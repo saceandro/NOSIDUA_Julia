@@ -40,7 +40,7 @@ function Adjoint(dt::T, steps::Int, obs_variance::T, obs::AbstractDataMatrix{T},
     Adjoint(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
-function dxdt!(a::Adjoint{N, L, T}, t::T, x::AbstractVector{T}) where {N, L, T<:AbstractFloat}
+function dxdt!(a::Adjoint{N}, t, x) where {N}
     a.dxdt[1]     = a.p[2] * (x[2]   - x[N-1]) * x[N]   + a.p[1] - x[1]
     a.dxdt[2]     = a.p[2] * (x[3]   - x[N])   * x[1]   + a.p[1] - x[2]
     @simd for i in 3:N-1
@@ -50,7 +50,7 @@ function dxdt!(a::Adjoint{N, L, T}, t::T, x::AbstractVector{T}) where {N, L, T<:
     nothing
 end
 
-function jacobian!(a::Adjoint{N, L, T}, t::T, x::AbstractVector{T}) where {N, L, T<:AbstractFloat} # might be faster if SparseMatrixCSC is used. L=N+M.
+function jacobian!(a::Adjoint{N, L}, t, x) where {N, L} # might be faster if SparseMatrixCSC is used. L=N+M.
     for j in 1:L, i in 1:N
         a.jacobian[i,j] = a.p[2]     * ( (mod1(i+1, N) == j) -  (mod1(i-2, N) == j)) * x[mod1(i-1, N)]
                         + a.p[2]     * (x[mod1(i+1, N)]      - x[mod1(i-2, N)])      *  (mod1(i-1, N) == j)
@@ -61,7 +61,7 @@ function jacobian!(a::Adjoint{N, L, T}, t::T, x::AbstractVector{T}) where {N, L,
     nothing
 end
 
-function hessian!(a::Adjoint{N, L, T}, t::T, x::AbstractVector{T}) where {N, L, T<:AbstractFloat}
+function hessian!(a::Adjoint{N, L}, t, x) where {N, L}
     for k in 1:L, j in 1:L, i in 1:N
         a.hessian[i,j,k] = (N+2 == j) * ( (mod1(i+1, N)==k) -  (mod1(i-2, N)==k)) * x[mod1(i-1, N)]
                          + (N+2 == j) * (x[mod1(i+1, N)]    - x[mod1(i-2, N)])    *  (mod1(i-1, N)==k)
@@ -86,14 +86,7 @@ next_dx!(       a::Adjoint,       t, x,        dx, dx_nxt)                      
 @views prev_λ!( a::Adjoint{N},    t, x,                   λ, λ_prev)            where {N}    = (jacobian!(a, t, x);                                 λ_prev .=  λ .+ a.jacobian' *  λ[1:N]                                              .* a.dt; nothing)
 
 @views prev_dλ!(a::Adjoint{N, L}, t, x,        dx,        λ,       dλ, dλ_prev) where {N, L} = (hessian!( a, t, x); prev_λ!(a, t, x, dλ, dλ_prev); dλ_prev .+= reshape(reshape(a.hessian, N*L, L) * CatView(dx, a.dp), N, L)' * λ[1:N] .* a.dt; nothing)
-# @views function prev_dλ!(dλ_nxt, jacobian, hessian, dt, t, x, p, dx, dp, λ, dλ)
-#     hessian!(hessian, t, x, p)
-#     prev_λ!(dλ_nxt, jacobian, dt, t, x, p, dλ)
-#     N = length(x)
-#     L = length(λ)
-#     dλ_nxt .+= reshape(reshape(hessian, N*L, L) * CatView(dx, dp), N, L)' * λ[1:length(x)] .* dt
-#     nothing
-# end
+
 
 @views function orbit!(a)
     for _i in 1:a.steps
@@ -203,9 +196,9 @@ import DataArrays: @data
 using Discrete4DVar
 a = Adjoint(0.1, 10, 1., @data(randn(5, 11)), randn(5), randn(2), randn(5), randn(2))
 initial_θ = randn(7)
-@code_typed minimize!(initial_θ, a)
+minimize!(initial_θ, a)
 hessian = similar(a.x, 7, 7)
 covariance = similar(a.x, 7, 7)
 variance = similar(a.x, 7)
 stddev = similar(a.x, 7)
-@code_typed covariance!(hessian, covariance, variance, stddev, a)
+covariance!(hessian, covariance, variance, stddev, a)
