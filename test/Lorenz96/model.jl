@@ -1,3 +1,10 @@
+# struct Lorenz{N, L, T<:AbstractFloat, A<:AbstractVecor, B<:AbstractMatrix, C<:AbstractArray}
+#     dxdt::A
+#     jacobian:::B
+#     hessian::C
+#     Lorenz{N,L,T,A,B,C}(dxdt::AbstractVector{T}, jacobian::AbstractMatrix{T}, hessian::AbstractArray{T,3}) where {N,L,T,A,B,C} = new{N,L,T,A,B,C}(dxdt, jacobian, hessian)
+# end
+
 function dxdt!(a::Adjoint{N}, t, x) where {N}
     a.dxdt[1]     = a.p[2] * (x[2]   - x[N-1]) * x[N]   + a.p[1] - x[1]
     a.dxdt[2]     = a.p[2] * (x[3]   - x[N])   * x[1]   + a.p[1] - x[2]

@@ -1,7 +1,7 @@
 include("../../src/Adjoints.jl")
 using Adjoints, DataFrames, PlotlyJS, Gadfly
 
-
+include("model.jl")
 
 const N = 5
 const true_p = [8., 1.]
@@ -26,7 +26,7 @@ const x0 = randn(5)
 const p = randn(2)
 const dx0 = [1., 0., 0., 0., 0.]
 const dp = zeros(2)
-a = Adjoint(dt, steps, obs_variance, obs, x0, p, dx0, dp)
+a = Adjoint(dt, steps, obs_variance, obs, x0, p, dx0, dp, dxdt!, jacobian!, hessian!)
 const initial_θ = [randn(5); 2.; 0.5]
 const res = minimize!(initial_θ, a)
 println(res)
@@ -35,12 +35,12 @@ covariance = similar(a.x, 7, 7)
 variance = similar(a.x, 7)
 stddev = similar(a.x, 7)
 covariance!(hessian, covariance, variance, stddev, a)
-const true_orbit = scatter3d(;x=tob[1,:],y=tob[2,:], z=tob[3,:], mode="lines", line=attr(color="#1f77b4", width=2))
-const assimilated = scatter3d(;x=a.x[1,:], y=a.x[2,:], z=a.x[3,:], mode="lines", line=attr(color="yellow", width=2))
-const mask = [all(isfinite.(obs[1:3,_i])) for _i in 1:101]
-const obs_pl = scatter3d(;x=obs[1,:][mask], y=obs[2,:][mask], z=obs[3,:][mask], mode="lines", line=attr(color="red", width=5))
-PlotlyJS.plot([true_orbit, assimilated])
-PlotlyJS.plot([true_orbit, assimilated, obs_pl])
+# const true_orbit = scatter3d(;x=tob[1,:],y=tob[2,:], z=tob[3,:], mode="lines", line=attr(color="#1f77b4", width=2))
+# const assimilated = scatter3d(;x=a.x[1,:], y=a.x[2,:], z=a.x[3,:], mode="lines", line=attr(color="yellow", width=2))
+# const mask = [all(isfinite.(obs[1:3,_i])) for _i in 1:101]
+# const obs_pl = scatter3d(;x=obs[1,:][mask], y=obs[2,:][mask], z=obs[3,:][mask], mode="lines", line=attr(color="red", width=5))
+# PlotlyJS.plot([true_orbit, assimilated])
+# PlotlyJS.plot([true_orbit, assimilated, obs_pl])
 
 const white_panel = Theme(panel_fill="white")
 p_stack = Array{Gadfly.Plot}(0)
