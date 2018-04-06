@@ -27,14 +27,47 @@ const p = randn(2)
 const dx0 = [1., 0., 0., 0., 0.]
 const dp = zeros(2)
 a = Adjoint(dt, steps, obs_variance, obs, x0, p, dx0, dp, dxdt!, jacobian!, hessian!)
+
+# gradient check
+@views copy!(a.x[:,1], x0)
+
+numerical_gradient = similar(x0, 7)
+numerical_gradient!(a, numerical_gradient, 0.0001)
+println("numerical gradient:")
+println(numerical_gradient)
+
+analytical_gradient = orbit_gradient!(a)
+println("analytical gradient:")
+println(analytical_gradient)
+
+gr_rel = (analytical_gradient .- numerical_gradient) ./ numerical_gradient
+println("relative error:")
+println(gr_rel)
+println("max relative error: ", maximum(abs, gr_rel))
+
 const initial_θ = [randn(5); 2.; 0.5]
 const res = minimize!(initial_θ, a)
 println(res)
+
 hessian = similar(a.x, 7, 7)
 covariance = similar(a.x, 7, 7)
 variance = similar(a.x, 7)
 stddev = similar(a.x, 7)
 covariance!(hessian, covariance, variance, stddev, a)
+println("analytical hessian:")
+println(hessian)
+
+numerical_hessian = similar(a.x, 7, 7)
+numerical_hessian!(a, numerical_hessian, 0.0001)
+println("numerical hessian:")
+println(numerical_hessian)
+
+hess_rel = (hessian .- numerical_hessian) ./ numerical_hessian
+println("relative error:")
+println(hess_rel)
+println("max relative error: ", maximum(abs, hess_rel))
+orbit_gradient!(a) # to restore
+
 # const true_orbit = scatter3d(;x=tob[1,:],y=tob[2,:], z=tob[3,:], mode="lines", line=attr(color="#1f77b4", width=2))
 # const assimilated = scatter3d(;x=a.x[1,:], y=a.x[2,:], z=a.x[3,:], mode="lines", line=attr(color="yellow", width=2))
 # const mask = [all(isfinite.(obs[1:3,_i])) for _i in 1:101]

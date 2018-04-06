@@ -36,6 +36,23 @@ end
     nothing
 end
 
+orbit_gradient!(a) = (orbit!(a); gradient!(a); a.λ[:,1])
+
+function numerical_gradient!(a::Adjoint{N,L}, gr, h) where {N,L}
+    c = orbit_cost!(a)
+    for _i in 1:N
+        a.x[_i,1] += h
+        gr[_i] = (orbit_cost!(a) - c)/h
+        a.x[_i,1] -= h
+    end
+    for _i in N+1:L
+        a.p[_i-N] += h
+        gr[_i] = (orbit_cost!(a) - c)/h
+        a.p[_i-N] -= h
+    end
+    nothing
+end
+
 @views function hessian_vector_product!(a::Adjoint{N}) where {N} # assuming dx[:,1] .= dx0; dp .= dp; neighboring!(jacobian, dt, t, x, p, dx, dp); is already run. dλ[:,1] is the hessian_vector_product.
     a.dλ[1:N,end] .= innovation_dλ.(a.dx[:,end], a.obs[:,end], a.obs_variance)
     for _i in a.steps:-1:1
@@ -46,6 +63,8 @@ end
 end
 
 @views cost(a) = mapreduce(abs2, +, (a.x .- a.obs)[isfinite.(a.obs)]) / a.obs_variance / oftype(a.obs_variance, 2.) # assuming x[:,1] .= x0; orbit!(dxdt, t, x, p, dt); is already run
+
+orbit_cost!(a) = (orbit!(a); cost(a))
 
 # @views function calculate_common!(θ, last_θ, a::Adjoint{N}) where {N} # buffering x and p do avoid recalculation of orbit between f! and g!
 #     if θ != last_θ
@@ -98,7 +117,7 @@ end
 
     df = OnceDifferentiable(θ -> fg!(F, nothing, θ, a), (∇θ, θ) -> fg!(nothing, ∇θ, θ, a), (∇θ, θ) -> fg!(F, ∇θ, θ, a), initial_θ, F, ∇θ, inplace=true)
     # options = Options(;x_tol=1e-32, f_tol=1e-32, g_tol=1e-8, iterations=1_000, show_every=1)
-    optimize(df, initial_θ, BFGS())
+    optimize(df, initial_θ, LBFGS())
 end
 
 @views function covariance!(hessian, covariance, variance, stddev, a::Adjoint{N,L}) where {N,L}
@@ -121,5 +140,20 @@ end
     covariance .= inv(hessian)
     variance .= diag(covariance)
     stddev .= sqrt.(variance)
+    nothing
+end
+
+function numerical_hessian!(a::Adjoint{N,L}, hessian, h) where {N,L}
+    gr = orbit_gradient!(a)
+    for _i in 1:N
+        a.x[_i,1] += h
+        hessian[:,_i] .= (orbit_gradient!(a) .- gr)/h
+        a.x[_i,1] -= h
+    end
+    for _i in N+1:L
+        a.p[_i-N] += h
+        hessian[:,_i] .= (orbit_gradient!(a) .- gr)/h
+        a.p[_i-N] -= h
+    end
     nothing
 end
