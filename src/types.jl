@@ -1,4 +1,21 @@
-mutable struct Adjoint{N, L, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix, C<:AbstractArray, F<:Function, G<:Function, H<:Function}
+mutable struct Model{N, L, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix, C<:AbstractArray, F<:Function, G<:Function, H<:Function}
+    dxdt::A
+    jacobian::B
+    hessian::C
+    dxdt!::F
+    jacobian!::G
+    hessian!::H
+    Model{N, L, T, A, B, C, F, G, H}(dxdt::AbstractVector{T}, jacobian::AbstractMatrix{T}, hessian::AbstractArray{T,3}, dxdt!::F, jacobian!::G, hessian!::H) where {N,L,T,A,B,C,F,G,H} = new{N,L,T,A,B,C,F,G,H}(dxdt, jacobian, hessian, dxdt!, jacobian!, hessian!)
+end
+
+function Model(t::Type{T}, N::Int, L::Int, dxdt!::F, jacobian!::G, hessian!::H) where {T<:AbstractFloat, F<:Function, G<:Function, H<:Function}
+    dxdt = Array{t}(N)
+    jacobian = zeros(t, N, L)
+    hessian = zeros(t, N, L, L)
+    Model{N, L, t, typeof(dxdt), typeof(jacobian), typeof(hessian), typeof(dxdt!), typeof(jacobian!), typeof(hessian!)}(dxdt, jacobian, hessian, dxdt!, jacobian!, hessian!)
+end
+
+mutable struct Adjoint{N, L, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix}
     dt::T
     steps::Int
     obs_variance::T
@@ -9,30 +26,22 @@ mutable struct Adjoint{N, L, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMat
     dp::A
     λ::B
     dλ::B
-    dxdt::A
-    jacobian::B
-    hessian::C
-    dxdt!::F
-    jacobian!::G
-    hessian!::H
-    Adjoint{N, L, T, A, B, C, F, G, H}(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}, dxdt::AbstractVector{T}, jacobian::AbstractMatrix{T}, hessian::AbstractArray{T,3}, dxdt!::F, jacobian!::G, hessian!::H) where {N,L,T,A,B,C,F,G,H} = new{N,L,T,A,B,C,F,G,H}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ, dxdt, jacobian, hessian, dxdt!, jacobian!, hessian!)
+    model::Model
+    Adjoint{N, L, T, A, B}(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}, model::Model) where {N,L,T,A,B} = new{N,L,T,A,B}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ, model)
 end
 
-function Adjoint(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}, dxdt!::F, jacobian!::G, hessian!::H) where {T<:AbstractFloat, F<:Function, G<:Function, H<:Function}
+function Adjoint(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}, model::Model) where {T<:AbstractFloat}
     xdim = size(x,1)
     θdim = xdim + length(p)
-    dxdt = similar(x, xdim)
-    jacobian = zeros(T, xdim, θdim)
-    hessian = zeros(T, xdim, θdim, θdim)
-    Adjoint{xdim, θdim, T, typeof(p), typeof(x), typeof(hessian), typeof(dxdt!), typeof(jacobian!), typeof(hessian!)}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ, dxdt, jacobian, hessian, dxdt!, jacobian!, hessian!)
+    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ, model)
 end
 
-function Adjoint(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x0::AbstractVector{T}, p::AbstractVector{T}, dx0::AbstractVector{T}, dp::AbstractVector{T}, dxdt!::F, jacobian!::G, hessian!::H) where {T<:AbstractFloat, F<:Function, G<:Function, H<:Function}
+function Adjoint(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x0::AbstractVector{T}, p::AbstractVector{T}, dx0::AbstractVector{T}, dp::AbstractVector{T}, model::Model) where {T<:AbstractFloat}
     xdim = length(x0)
     θdim = xdim + length(p)
     x = similar(x0, xdim, steps+1)
     dx = similar(dx0, xdim, steps+1)
     λ = zeros(T, θdim, steps+1)
     dλ = zeros(T, θdim, steps+1)
-    Adjoint(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ, dxdt!, jacobian!, hessian!)
+    Adjoint(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ, model)
 end

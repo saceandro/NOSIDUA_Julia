@@ -26,7 +26,8 @@ const x0 = randn(5)
 const p = randn(2)
 const dx0 = [1., 0., 0., 0., 0.]
 const dp = zeros(2)
-a = Adjoint(dt, steps, obs_variance, obs, x0, p, dx0, dp, dxdt!, jacobian!, hessian!)
+model = Model(typeof(dt), N, N+length(p), dxdt!, jacobian!, hessian!)
+a = Adjoint(dt, steps, obs_variance, obs, x0, p, dx0, dp, model)
 
 # gradient check
 @views copy!(a.x[:,1], x0)
