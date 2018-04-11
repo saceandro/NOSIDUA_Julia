@@ -44,5 +44,5 @@ function Adjoint(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x0:
     dx = similar(dx0, xdim, steps+1)
     λ = zeros(T, θdim, steps+1)
     dλ = zeros(T, θdim, steps+1)
-    Adjoint(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
