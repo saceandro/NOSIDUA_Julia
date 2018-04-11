@@ -26,18 +26,18 @@ const x0 = randn(5)
 const p = randn(2)
 const dx0 = [1., 0., 0., 0., 0.]
 const dp = zeros(2)
-model = Model(typeof(dt), N, N+length(p), dxdt!, jacobian!, hessian!)
-a = Adjoint(dt, steps, obs_variance, obs, x0, p, dx0, dp, model)
+m = Model(typeof(dt), N, N+length(p), dxdt!, jacobian!, hessian!)
+a = Adjoint(dt, steps, obs_variance, obs, x0, p, dx0, dp)
 
 # gradient check
 @views copy!(a.x[:,1], x0)
 
 numerical_gradient = similar(x0, 7)
-numerical_gradient!(a, numerical_gradient, 0.0001)
+numerical_gradient!(a, m, numerical_gradient, 0.0001)
 println("numerical gradient:")
 println(numerical_gradient)
 
-analytical_gradient = orbit_gradient!(a)
+analytical_gradient = orbit_gradient!(a, m)
 println("analytical gradient:")
 println(analytical_gradient)
 
@@ -47,19 +47,19 @@ println(gr_rel)
 println("max relative error: ", maximum(abs, gr_rel))
 
 const initial_θ = [randn(5); 2.; 0.5]
-const res = minimize!(initial_θ, a)
+const res = minimize!(initial_θ, a, m)
 println(res)
 
 hessian = similar(a.x, 7, 7)
 covariance = similar(a.x, 7, 7)
 variance = similar(a.x, 7)
 stddev = similar(a.x, 7)
-covariance!(hessian, covariance, variance, stddev, a)
+covariance!(hessian, covariance, variance, stddev, a, m)
 println("analytical hessian:")
 println(hessian)
 
 numerical_hessian = similar(a.x, 7, 7)
-numerical_hessian!(a, numerical_hessian, 0.0001)
+numerical_hessian!(a, m, numerical_hessian, 0.0001)
 println("numerical hessian:")
 println(numerical_hessian)
 
@@ -67,7 +67,7 @@ hess_rel = (hessian .- numerical_hessian) ./ numerical_hessian
 println("relative error:")
 println(hess_rel)
 println("max relative error: ", maximum(abs, hess_rel))
-orbit_gradient!(a) # to restore
+orbit_gradient!(a, m) # to restore
 
 # const true_orbit = scatter3d(;x=tob[1,:],y=tob[2,:], z=tob[3,:], mode="lines", line=attr(color="#1f77b4", width=2))
 # const assimilated = scatter3d(;x=a.x[1,:], y=a.x[2,:], z=a.x[3,:], mode="lines", line=attr(color="yellow", width=2))
