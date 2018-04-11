@@ -17,7 +17,7 @@ function Model(t::Type{T}, N, L, dxdt!::F, jacobian!::G, hessian!::H) where {T<:
     Model{N, L, t, typeof(dxdt), typeof(jacobian), typeof(hessian), typeof(dxdt!), typeof(jacobian!), typeof(hessian!)}(dxdt, jacobian, hessian, dxdt!, jacobian!, hessian!)
 end
 
-mutable struct Adjoint{N, L, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix}
+mutable struct Adjoint{T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix}
     dt::T
     steps::Int
     obs_variance::T
@@ -28,13 +28,11 @@ mutable struct Adjoint{N, L, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMat
     dp::A
     λ::B
     dλ::B
-    Adjoint{N, L, T, A, B}(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {N,L,T,A,B} = new{N,L,T,A,B}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    Adjoint{T, A, B}(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {T,A,B} = new{T,A,B}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
 function Adjoint(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {T<:AbstractFloat}
-    xdim = size(x,1)
-    θdim = xdim + length(p)
-    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    Adjoint{T, typeof(p), typeof(x)}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
 function Adjoint(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x0::AbstractVector{T}, p::AbstractVector{T}, dx0::AbstractVector{T}, dp::AbstractVector{T}) where {T<:AbstractFloat}
