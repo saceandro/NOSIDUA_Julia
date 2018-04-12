@@ -31,18 +31,42 @@ mutable struct Adjoint{N, L, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMat
     Adjoint{N, L, T, A, B}(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {N,L,T,A,B} = new{N,L,T,A,B}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {T<:AbstractFloat}
-    xdim = size(x,1)
+function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {T<:AbstractFloat}
+    xdim, steps = size(x)
     θdim = xdim + length(p)
-    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x0::AbstractVector{T}, p::AbstractVector{T}, dx0::AbstractVector{T}, dp::AbstractVector{T}) where {T<:AbstractFloat}
-    xdim = length(x0)
+function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, x0::AbstractVector{T}, p::AbstractVector{T}, dx0::AbstractVector{T}, dp::AbstractVector{T}) where {T<:AbstractFloat}
+    xdim, steps = size(obs)
     θdim = xdim + length(p)
-    x = similar(x0, xdim, steps+1)
-    dx = similar(dx0, xdim, steps+1)
-    λ = zeros(T, θdim, steps+1)
-    dλ = zeros(T, θdim, steps+1)
-    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    x = similar(x0, xdim, steps)
+    @views copy!(x[:,1], x0)
+    dx = similar(dx0, xdim, steps)
+    λ = zeros(T, θdim, steps)
+    dλ = zeros(T, θdim, steps)
+    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
+end
+
+function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, x0::AbstractVector{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
+    xdim, steps = size(obs)
+    θdim = xdim + length(p)
+    x = similar(x0, xdim, steps)
+    @views copy!(x[:,1], x0)
+    dx = similar(x0, xdim, steps)
+    dp = similar(p)
+    λ = zeros(T, θdim, steps)
+    dλ = zeros(T, θdim, steps)
+    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
+end
+
+function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
+    xdim, steps = size(obs)
+    θdim = xdim + length(p)
+    x = similar(obs, xdim, steps)
+    dx = similar(obs, xdim, steps)
+    dp = similar(p)
+    λ = zeros(T, θdim, steps)
+    dλ = zeros(T, θdim, steps)
+    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end

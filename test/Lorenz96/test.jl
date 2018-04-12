@@ -24,14 +24,10 @@ const obs = readdlm(pref * "observed.tsv")'
 
 const x0 = randn(5)
 const p = randn(2)
-const dx0 = [1., 0., 0., 0., 0.]
-const dp = zeros(2)
 m = Model(typeof(dt), N, N+length(p), dxdt!, jacobian!, hessian!)
-a = Adjoint(dt, steps, obs_variance, obs, x0, p, dx0, dp)
+a = Adjoint(dt, obs_variance, obs, x0, p)
 
 # gradient check
-@views copy!(a.x[:,1], x0)
-
 numerical_gradient = similar(x0, 7)
 numerical_gradient!(a, m, numerical_gradient, 0.0001)
 println("numerical gradient:")
