@@ -1,7 +1,6 @@
+include("model.jl")
 include("../../src/Adjoints.jl")
 using Adjoints, DataFrames, PlotlyJS, Gadfly
-
-include("model.jl")
 
 const N = 5
 const true_p = [8., 1.]
@@ -26,7 +25,7 @@ const x0 = randn(5)
 const p = randn(2)
 const dx0 = [1., 0., 0., 0., 0.]
 const dp = zeros(2)
-a = Adjoint(dt, steps, obs_variance, obs, x0, p, dx0, dp, dxdt!, jacobian!, hessian!)
+a = Adjoint(dt, steps, obs_variance, obs, x0, p, dx0, dp)
 
 # gradient check
 @views copy!(a.x[:,1], x0)
