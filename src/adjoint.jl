@@ -5,65 +5,59 @@ innovation_λ(  x, obs, obs_variance) = isnan(obs) ? zero(x)  : (x - obs)/obs_va
 innovation_dλ(dx, obs, obs_variance) = isnan(obs) ? zero(dx) : dx/obs_variance        # element-wise innovation of dλ.
 
 
-next_x!(        a::Adjoint,       t, x, x_nxt)                                               = (a.dxdt!(    a.dxdt,     t, x, a.p);                                  x_nxt .=  x .+ a.dxdt                                                                           .* a.dt; nothing)
+next_x!(        a::Adjoint,       t, x, x_nxt)                                               = (a.dxdt!(    a.dxdt,     t, x, a.p);                                  x_nxt .=  x .+ a.dxdt                                                                                    .* a.dt; nothing)
 
 
-next_dx!(       a::Adjoint,       t, x,        dx, dx_nxt)                                   = (a.jacobian!(a.jacobian, t, x, a.p);                                 dx_nxt .= dx      .+ a.jacobian     * CatView(dx, a.dp)                                          .* a.dt; nothing)
+# next_dx!(       a::Adjoint,       t, x,        dx, dx_nxt)                                   = (a.jacobian!(a.jacobian, t, x, a.p);                                 dx_nxt .= dx      .+ a.jacobian     * CatView(dx, a.dp)                                          .* a.dt; nothing)
 
-next_dx!(       a::Adjoint,       i)                                                         = (                                                                 a.dx[i+1] .= a.dx[i] .+ a.jacobians[i] * CatView(a.dx[i], a.dp)                                     .* a.dt; nothing)
-
-
-@views prev_λ!( a::Adjoint{N},    t, x,                   λ, λ_prev)            where {N}    = (a.jacobian!(a.jacobian, t, x, a.p);                                 λ_prev .=  λ        .+ a.jacobian'     * λ[1:N]                                                  .* a.dt; nothing)
-
-@views prev_λ!( a::Adjoint{N},    i)                                            where {N}    = (                                                                    a.λ[i] .=  a.λ[i+1] .+ a.jacobians[i]' * a.λ[i+1][1:N]                                           .* a.dt; nothing)
+next_dx!(       a::Adjoint,       i)                                                         = (                                                               a.dx[:,i+1] .= a.dx[:,i] .+ a.jacobians[:,:,i] * CatView(a.dx[:,i], a.dp)                                      .* a.dt; nothing)
 
 
-@views prev_dλ_sub!( a::Adjoint{N},    i)                                       where {N}    = (                                                                   a.dλ[i] .=  a.dλ[i+1] .+ a.jacobians[i]' *  a.dλ[i+1][1:N]                                        .* a.dt; nothing)
+@views prev_λ!( a::Adjoint{N},    t, x,                   λ, λ_prev)            where {N}    = (a.jacobian!(a.jacobian, t, x, a.p);                                 λ_prev .=  λ        .+ a.jacobian'     * λ[1:N]                                                           .* a.dt; nothing)
 
-@views prev_dλ!(a::Adjoint{N, L}, t, x,        dx,        λ,       dλ, dλ_prev) where {N, L} = (a.hessian!( a.hessian,  t, x, a.p); prev_λ!(a, t, x, dλ, dλ_prev); dλ_prev .+= reshape(reshape(a.hessian, N*L, L)     * CatView(dx,      a.dp), N, L)' * λ[1:N]      .* a.dt; nothing)
-
-@views prev_dλ!(a::Adjoint{N, L}, i)                                            where {N, L} = (                                    prev_dλ_sub!(a, i);            a.dλ[i] .+= reshape(reshape(a.hessians[i], N*L, L) * CatView(a.dx[i], a.dp), N, L)' * λ[i+1][1:N] .* a.dt; nothing)
+# @views prev_λ!( a::Adjoint{N},    i)                                            where {N}    = (                                                                    a.λ[i] .=  a.λ[i+1] .+ a.jacobians[i]' * a.λ[i+1,1:N]                                           .* a.dt; nothing)
 
 
-@views function innovation_λs!(a)
-    for _i in 1:a.steps
-        a.innovation_λ[:,_i] .= innovation_λ.(a.x[:,_i], a.obs[:,_i], a.obs_variance)
+@views prev_dλ_sub!( a::Adjoint{N},    i)                                       where {N}    = (                                                                 a.dλ[:,i] .=  a.dλ[:,i+1] .+ a.jacobians[:,:,i]' *  a.dλ[1:N,i+1]                                            .* a.dt; nothing)
+
+# @views prev_dλ!(a::Adjoint{N, L}, t, x,        dx,        λ,       dλ, dλ_prev) where {N, L} = (a.hessian!( a.hessian,  t, x, a.p); prev_λ!(a, t, x, dλ, dλ_prev); dλ_prev .+= reshape(reshape(a.hessian, N*L, L)     * CatView(dx,      a.dp), N, L)' * λ[1:N]      .* a.dt; nothing)
+
+@views prev_dλ!(a::Adjoint{N, L}, i)                                            where {N, L} = (                                    prev_dλ_sub!(a, i);          a.dλ[:,i] .+= reshape(reshape(a.hessians[:,:,:,i], N*L, L) * CatView(a.dx[:,i], a.dp), N, L)' * a.λ[1:N,i+1] .* a.dt; nothing)
+
+
+# @views jacobians!(a) = (a.jacobian!.(a.jacobians, a.t, a.x, a.p); nothing)
+@views function jacobians!(a::Adjoint{N,L,S}) where {N,L,S}
+    for _i in 1:S
+        a.jacobian!(a.jacobians[:,:,_i], a.t[_i], a.x[:,_i], a.p)
     end
 end
 
-@views function innovation_dλs!(a)
-end    
-
-@views jacobians!(a)
-    for _i in 1:a.steps
-        a.jacobian!(a.jacobians[_i], a.dt*(_i-1), a.x[_i], a.p)
+# @views hessians!(a)  = (a.hessian!.( a.hessians,  a.t, a.x, a.p); nothing)
+@views function hessians!(a::Adjoint{N,L,S}) where {N,L,S}
+    for _i in 1:S
+        a.hessian!(a.hessians[:,:,:,_i], a.t[_i], a.x[:,_i], a.p)
     end
 end
 
-@views hessians!(a)
-    for _i in 1:a.steps
-        a.hessian!(a.hessians[_i],   a.dt*(_i-1), a.x[_i], a.p)
-    end
-end
 
-@views function orbit!(a)
-    for _i in 1:a.steps
-        next_x!(a, a.dt*(_i-1), a.x[:,_i], a.x[:,_i+1])
+@views function orbit!(a::Adjoint{N,L,S}) where {N,L,S}
+    for _i in 1:S
+        next_x!(a, a.t[_i], a.x[:,_i], a.x[:,_i+1])
     end
     nothing
 end
 
-@views function neighboring!(a)
-    for _i in 1:a.steps
-        next_dx!(a, a.dt*(_i-1), a.x[:,_i],            a.dx[:,_i], a.dx[:,_i+1])
+@views function neighboring!(a::Adjoint{N,L,S}) where {N,L,S}
+    for _i in 1:S
+        next_dx!(a, _i)
     end
     nothing
 end
 
-@views function gradient!(a::Adjoint{N}) where {N} # assuming x[:,1] .= x0; p .= p; orbit!(dxdt, t, x, p, dt); is already run. λ[:,1] is the gradient.
+@views function gradient!(a::Adjoint{N,L,S}) where {N,L,S} # assuming x[:,1] .= x0; p .= p; orbit!(dxdt, t, x, p, dt); is already run. λ[:,1] is the gradient.
     a.λ[1:N,end] .= innovation_λ.(a.x[:,end], a.obs[:,end], a.obs_variance)
-    for _i in a.steps:-1:1
-        prev_λ!(a, a.dt*(_i-1), a.x[:,_i],                                      a.λ[:,_i+1], a.λ[:,_i]) # fix me! a.dt*_i?
+    for _i in S:-1:1
+        prev_λ!(a, a.t[_i], a.x[:,_i],                                      a.λ[:,_i+1], a.λ[:,_i]) # fix me! a.dt*_i?
         a.λ[1:N,_i] .+= innovation_λ.(a.x[:,_i], a.obs[:,_i], a.obs_variance)
     end
     nothing
@@ -86,10 +80,10 @@ function numerical_gradient!(a::Adjoint{N,L}, gr, h) where {N,L}
     nothing
 end
 
-@views function hessian_vector_product!(a::Adjoint{N}) where {N} # assuming dx[:,1] .= dx0; dp .= dp; neighboring!(jacobian, dt, t, x, p, dx, dp); is already run. dλ[:,1] is the hessian_vector_product.
+@views function hessian_vector_product!(a::Adjoint{N,L,S}) where {N,L,S} # assuming dx[:,1] .= dx0; dp .= dp; neighboring!(jacobian, dt, t, x, p, dx, dp); is already run. dλ[:,1] is the hessian_vector_product.
     a.dλ[1:N,end] .= innovation_dλ.(a.dx[:,end], a.obs[:,end], a.obs_variance)
-    for _i in a.steps:-1:1
-        prev_dλ!(a, a.dt*(_i-1), a.x[:,_i],            a.dx[:,_i],              a.λ[:,_i+1],            a.dλ[:,_i+1], a.dλ[:,_i]) # fix me! a.dt*_i?
+    for _i in S:-1:1
+        prev_dλ!(a, _i)
         a.dλ[1:N,_i] .+= innovation_dλ.(a.dx[:,_i], a.obs[:,_i], a.obs_variance)
     end
     nothing
@@ -153,7 +147,9 @@ end
     optimize(df, initial_θ, LBFGS())
 end
 
-@views function covariance!(hessian, covariance, variance, stddev, a::Adjoint{N,L}) where {N,L}
+@views function covariance!(hessian, covariance, variance, stddev, a::Adjoint{N,L,S}) where {N,L,S}
+    jacobians!(a)
+    hessians!(a)
     fill!(a.dx[:,1], 0.)
     fill!(a.dp, 0.)
     for i in 1:N

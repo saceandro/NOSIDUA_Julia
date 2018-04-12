@@ -1,6 +1,7 @@
 module Adjoints
 
-using CatViews, NLSolversBase, Optim
+import CatViews.CatView
+import Optim: OnceDifferentiable, LBFGS, optimize
 
 export Adjoint, minimize!, covariance!, orbit_gradient!, numerical_gradient!, numerical_hessian!
 
