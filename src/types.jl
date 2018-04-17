@@ -1,5 +1,3 @@
-# abstract type AbstractModel{N, L, T, A, B, C, F, G, H} where {T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix, C<:AbstractArray, F<:Function, G<:Function, H<:Function} end
-
 mutable struct Model{N, L, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix, C<:AbstractArray, F<:Function, G<:Function, H<:Function} #<: AbstractModel{N, L, T, A, B, C, F, G, H}
     dxdt::A
     jacobian::B
@@ -16,6 +14,7 @@ function Model(t::Type{T}, N, L, dxdt!::F, jacobian!::G, hessian!::H) where {T<:
     hessian = zeros(t, N, L, L)
     Model{N, L, t, typeof(dxdt), typeof(jacobian), typeof(hessian), typeof(dxdt!), typeof(jacobian!), typeof(hessian!)}(dxdt, jacobian, hessian, dxdt!, jacobian!, hessian!)
 end
+
 
 mutable struct Adjoint{N, L, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix}
     dt::T
@@ -69,4 +68,36 @@ function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, p::AbstractVect
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
     Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
+end
+
+function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, M::Int) where {T<:AbstractFloat}
+    xdim, steps = size(obs)
+    θdim = xdim + M
+    x = similar(obs, xdim, steps)
+    p = similar(obs, M)
+    dx = similar(x)
+    dp = similar(p)
+    λ = zeros(T, θdim, steps)
+    dλ = zeros(T, θdim, steps)
+    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
+end
+
+
+mutable struct AssimilationResults{T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix}
+    θ::A
+    stddev::Nullable{A}
+    covariance::Nullable{B}
+    AssimilationResults{T, A, B}(θ::S, stddev::Nullable{S}, covariance::Nullable{U}) where {S<:AbstractVector{T}, U<:AbstractMatrix{T}} where {T,A,B} = new{T,A,B}(θ, stddev, covariance)
+end
+
+function AssimilationResults(θ::AbstractVector{T}, stddev::AbstractVector{T}, covariance::AbstractMatrix{T}) where {T<:AbstractFloat}
+    AssimilationResults{T, typeof(θ), typeof(covariance)}(θ, Nullable(stddev), Nullable(covariance))
+end
+
+function AssimilationResults(θ::AbstractVector{T}, covariance::AbstractMatrix{T}) where {T<:AbstractFloat}
+    AssimilationResults{T, typeof(θ), typeof(covariance)}(θ, Nullable{Vector{T}}(), Nullable(covariance))
+end
+
+function AssimilationResults(θ::AbstractVector{T}) where {T<:AbstractFloat}
+    AssimilationResults{T, typeof(θ), Matrix{T}}(θ, Nullable{Vector{T}}(), Nullable{Matrix{T}}())
 end

@@ -116,13 +116,14 @@ end
     copy!(∇θ, a.λ[:,1])
 
     df = OnceDifferentiable(θ -> fg!(F, nothing, θ, a, m), (∇θ, θ) -> fg!(nothing, ∇θ, θ, a, m), (∇θ, θ) -> fg!(F, ∇θ, θ, a, m), initial_θ, F, ∇θ, inplace=true)
-    # options = Options(;x_tol=1e-32, f_tol=1e-32, g_tol=1e-8, iterations=1_000, show_every=1)
-    optimize(df, initial_θ, LBFGS())
+    options = Optim.Options(;x_tol=1e-32, f_tol=1e-32, g_tol=1e-8, iterations=1_000, store_trace=true, show_trace=false, show_every=1)
+    optimize(df, initial_θ, LBFGS(), options)
 end
 
-@views function covariance!(hessian, covariance, variance, stddev, a::Adjoint{N,L}, m::Model{N,L}) where {N,L}
+@views function covariance!(a::Adjoint{N,L,T}, m::Model{N,L,T}) where {N,L,T<:AbstractFloat}
     fill!(a.dx[:,1], 0.)
     fill!(a.dp, 0.)
+    hessian = Matrix{T}(L,L)
     for i in 1:N
         a.dx[i,1] = 1.
         neighboring!(a, m)
@@ -137,10 +138,34 @@ end
         copy!(hessian[:,i], a.dλ[:,1])
         a.dp[i-N] = 0.
     end
-    covariance .= inv(hessian)
-    variance .= diag(covariance)
-    stddev .= sqrt.(variance)
-    nothing
+    θ = vcat(a.x[:,1], a.p)
+    covariance = nothing
+    try
+        covariance = inv(hessian)
+    catch message
+        println(STDERR, "CI calculation failed.\nReason: Hessian inversion failed due to $message")
+        return AssimilationResults(θ)
+    end
+    stddev = nothing
+    try
+        stddev = sqrt.(diag(covariance))
+    catch message
+        if (minimum(diag(covariance)) < 0)
+            println(STDERR, "CI calculation failed.\nReason: Negative variance!")
+        else
+            println(STDERR, "CI calculation failed.\nReason: Taking sqrt of variance failed due to $message")
+        end
+        return AssimilationResults(θ, covariance)
+    end
+    return AssimilationResults(θ, stddev, covariance)
+end
+
+@views function covariance_from_x0_p!(a::Adjoint{N,L,T}, m::Model{N,L,T}, x0, p) where {N,L,T<:AbstractFloat}
+    copy!(a.x[:,1], x0)
+    copy!(a.p, p)
+    orbit!(a, m)
+    gradient!(a, m)
+    covariance!(a, m)
 end
 
 function numerical_hessian!(a::Adjoint{N,L}, m::Model{N,L}, hessian, h) where {N,L}

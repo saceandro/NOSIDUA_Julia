@@ -10,10 +10,10 @@ const obs_iteration = 5
 const dt = 0.01
 const spinup = 73.
 const T = 1.
-const steps = Integer(T/dt)
+# const steps = Integer(T/dt)
 const generation_seed = 0
 
-const t = collect(0.:.01:1.)
+const t = collect(0.:dt:T)
 
 const pref = "../../adjoint/data/Lorenz96/N_$N/p_$(join(true_p, "_"))/obsvar_$obs_variance/obsiter_$obs_iteration/dt_$dt/spinup_$spinup/T_$T/seed_$generation_seed/"
 
