@@ -12,6 +12,10 @@ next_dx!(       a::Adjoint,       m::Model,       t, x,        dx, dx_nxt)      
 
 @views prev_dλ!(a::Adjoint{N, L}, m::Model{N, L}, t, x,        dx,        λ,       dλ, dλ_prev) where {N, L} = (m.hessian!( m, t, x, a.p); prev_λ!(a, m, t, x, dλ, dλ_prev); dλ_prev .+= reshape(reshape(m.hessian, N*L, L) * CatView(dx, a.dp), N, L)' * λ[1:N] .* a.dt; nothing)
 
+@views function initialize!(a::Adjoint{N}, θ) where {N}
+    copy!(a.x[:,1], θ[1:N])
+    copy!(a.p, θ[N+1:end])
+end
 
 @views function orbit!(a, m)
     for _i in 1:a.steps
@@ -88,8 +92,7 @@ orbit_cost!(a, m) = (orbit!(a, m); cost(a))
 # end
 
 @views function fg!(F, ∇θ, θ, a::Adjoint{N}, m::Model{N}) where {N}
-    copy!(a.x[:,1], θ[1:N])
-    copy!(a.p, θ[N+1:end])
+    initialize!(a, θ)
     orbit!(a, m)
     if !(∇θ == nothing)
         gradient!(a, m)
@@ -106,8 +109,7 @@ end
 # end
 
 @views function minimize!(initial_θ, a::Adjoint{N,L}, m::Model{N,L}) where {N,L} # Fixed. views is definitely needed for copy!
-    copy!(a.x[:,1], initial_θ[1:N])
-    copy!(a.p, initial_θ[N+1:end])
+    initialize!(a, initial_θ)
     orbit!(a, m)
     F = cost(a)
 
@@ -160,9 +162,8 @@ end
     return AssimilationResults(θ, stddev, covariance)
 end
 
-@views function covariance_from_x0_p!(a::Adjoint{N,L,T}, m::Model{N,L,T}, x0, p) where {N,L,T<:AbstractFloat}
-    copy!(a.x[:,1], x0)
-    copy!(a.p, p)
+@views function covariance_from_θ0!(a::Adjoint{N,L,T}, m::Model{N,L,T}, θ0) where {N,L,T<:AbstractFloat}
+    initialize!(a, θ0)
     orbit!(a, m)
     gradient!(a, m)
     covariance!(a, m)
