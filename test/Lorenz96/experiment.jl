@@ -16,4 +16,4 @@ const true_file = pref * "true.tsv"
 
 model = Model(typeof(dt), N, N+length(true_p), dxdt!, jacobian!, hessian!)
 dists = [Uniform(-10., 10.), Uniform(-10., 10.), Uniform(-10., 10.), Uniform(-10., 10.), Uniform(-10., 10.), Uniform(0., 10.), Uniform(0., 2.)]
-twin_experiment_given_file!(model, observed_file, obs_variance, dt, true_p, true_file, dists, 20)
+twin_experiment!(model, observed_file, obs_variance, dt, true_p, true_file, dists, 20)
