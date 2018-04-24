@@ -4,6 +4,7 @@ innovation_λ(  x, obs, obs_variance) = isnan(obs) ? zero(x)  : (x - obs)/obs_va
 
 innovation_dλ(dx, obs, obs_variance) = isnan(obs) ? zero(dx) : dx/obs_variance        # element-wise innovation of dλ.
 
+
 next_x!(        a::Adjoint,       m::Model,       t, x, x_nxt)                                               = (m.dxdt!(    m, t, x, a.p);                                     x_nxt .=  x .+ m.dxdt                                                             .* a.dt; nothing)
 
 next_dx!(       a::Adjoint,       m::Model,       t, x,        dx, dx_nxt)                                   = (m.jacobian!(m, t, x, a.p);                                    dx_nxt .= dx .+ m.jacobian  * CatView(dx, a.dp)                                    .* a.dt; nothing)
@@ -12,10 +13,6 @@ next_dx!(       a::Adjoint,       m::Model,       t, x,        dx, dx_nxt)      
 
 @views prev_dλ!(a::Adjoint{N, L}, m::Model{N, L}, t, x,        dx,        λ,       dλ, dλ_prev) where {N, L} = (m.hessian!( m, t, x, a.p); prev_λ!(a, m, t, x, dλ, dλ_prev); dλ_prev .+= reshape(reshape(m.hessian, N*L, L) * CatView(dx, a.dp), N, L)' * λ[1:N] .* a.dt; nothing)
 
-@views function initialize!(a::Adjoint{N}, θ) where {N}
-    copy!(a.x[:,1], θ[1:N])
-    copy!(a.p, θ[N+1:end])
-end
 
 @views function orbit!(a, m)
     for _i in 1:a.steps
@@ -40,23 +37,6 @@ end
     nothing
 end
 
-orbit_gradient!(a, m) = (orbit!(a, m); gradient!(a, m); a.λ[:,1])
-
-function numerical_gradient!(a::Adjoint{N,L}, m::Model{N,L}, gr, h) where {N,L}
-    c = orbit_cost!(a, m)
-    for _i in 1:N
-        a.x[_i,1] += h
-        gr[_i] = (orbit_cost!(a, m) - c)/h
-        a.x[_i,1] -= h
-    end
-    for _i in N+1:L
-        a.p[_i-N] += h
-        gr[_i] = (orbit_cost!(a, m) - c)/h
-        a.p[_i-N] -= h
-    end
-    nothing
-end
-
 @views function hessian_vector_product!(a::Adjoint{N}, m::Model{N}) where {N} # assuming dx[:,1] .= dx0; dp .= dp; neighboring!(jacobian, dt, t, x, p, dx, dp); is already run. dλ[:,1] is the hessian_vector_product.
     a.dλ[1:N,end] .= innovation_dλ.(a.dx[:,end], a.obs[:,end], a.obs_variance)
     for _i in a.steps:-1:1
@@ -66,30 +46,14 @@ end
     nothing
 end
 
+
 @views cost(a) = mapreduce(abs2, +, (a.x .- a.obs)[isfinite.(a.obs)]) / a.obs_variance / oftype(a.obs_variance, 2.) # assuming x[:,1] .= x0; orbit!(dxdt, t, x, p, dt); is already run
 
-orbit_cost!(a, m) = (orbit!(a, m); cost(a))
-
-# @views function calculate_common!(θ, last_θ, a::Adjoint{N}) where {N} # buffering x and p do avoid recalculation of orbit between f! and g!
-#     if θ != last_θ
-#         copy!(last_θ, θ)
-#         copy!(a.x[:,1], θ[1:N])
-#         copy!(a.p, θ[N+1:end])
-#         orbit!(a)
-#     end
-# end
-#
-# function f!(θ, a, last_θ)
-#     calculate_common!(θ, last_θ, a)
-#     cost(a)
-# end
-#
-# @views function g!(θ, ∇θ, a, last_θ)
-#     calculate_common!(θ, last_θ, a)
-#     gradient!(a)
-#     copy!(∇θ, a.λ[:,1])
-#     nothing
-# end
+@views function initialize!(a::Adjoint{N}, θ) where {N}
+    copy!(a.x[:,1], θ[1:N])
+    copy!(a.p, θ[N+1:end])
+    nothing
+end
 
 @views function fg!(F, ∇θ, θ, a::Adjoint{N}, m::Model{N}) where {N}
     initialize!(a, θ)
@@ -97,6 +61,7 @@ orbit_cost!(a, m) = (orbit!(a, m); cost(a))
     if !(∇θ == nothing)
         gradient!(a, m)
         copy!(∇θ, a.λ[:,1])
+        nothing
     end
     if !(F == nothing)
         F = cost(a)
@@ -105,7 +70,7 @@ end
 
 # function minimize!(initial_θ, a)
 #     df = NLSolversBase.OnceDifferentiable(NLSolversBase.only_fg!((F, ∇θ, θ) -> fg!(F, ∇θ, θ, a)), initial_θ)
-#     Optim.optimize(df, initial_θ, BFGS())
+#     Optim.optimize(df, initial_θ, LBFGS())
 # end
 
 @views function minimize!(initial_θ, a::Adjoint{N,L}, m::Model{N,L}) where {N,L} # Fixed. views is definitely needed for copy!
@@ -160,26 +125,4 @@ end
         return AssimilationResults(θ, covariance)
     end
     return AssimilationResults(θ, stddev, covariance)
-end
-
-@views function covariance_from_θ0!(a::Adjoint{N,L,T}, m::Model{N,L,T}, θ0) where {N,L,T<:AbstractFloat}
-    initialize!(a, θ0)
-    orbit!(a, m)
-    gradient!(a, m)
-    covariance!(a, m)
-end
-
-function numerical_hessian!(a::Adjoint{N,L}, m::Model{N,L}, hessian, h) where {N,L}
-    gr = orbit_gradient!(a, m)
-    for _i in 1:N
-        a.x[_i,1] += h
-        hessian[:,_i] .= (orbit_gradient!(a, m) .- gr)/h
-        a.x[_i,1] -= h
-    end
-    for _i in N+1:L
-        a.p[_i-N] += h
-        hessian[:,_i] .= (orbit_gradient!(a, m) .- gr)/h
-        a.p[_i-N] -= h
-    end
-    nothing
 end
