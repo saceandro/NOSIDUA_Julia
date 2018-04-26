@@ -59,6 +59,20 @@ function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, x0::AbstractVec
     Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
+function Adjoint(dt::T, total_T::T, obs_variance::T, x0::AbstractVector{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
+    steps = Int(total_T/dt) + 1
+    xdim = length(x0)
+    θdim = xdim + length(p)
+    obs = similar(x0, xdim, steps)
+    x = similar(x0, xdim, steps)
+    @views copy!(x[:,1], x0)
+    dx = similar(x0, xdim, steps)
+    dp = similar(p)
+    λ = zeros(T, θdim, steps)
+    dλ = zeros(T, θdim, steps)
+    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
+end
+
 function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
     xdim, steps = size(obs)
     θdim = xdim + length(p)

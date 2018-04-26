@@ -54,8 +54,35 @@ function twin_experiment!(model::Model{N,L,T}, obs::AbstractMatrix{T}, obs_varia
     plot_twin_experiment_result(a, tob, get(assimres.stddev))
 end
 
-function twin_experiment!(model::Model{N,L,T}, observed_file::String, obs_variance::T, dt::T, true_params::AbstractVector{T}, true_file::String, dists, trials=10) where {N,L,T<:AbstractFloat}
-    obs = readdlm(observed_file)'
-    tob = readdlm(true_file)'
-    twin_experiment!(model, obs, obs_variance, dt, true_params, tob, dists, trials)
+twin_experiment!(model::Model{N,L,T}, observed_file::String, obs_variance::T, dt::T, true_params::AbstractVector{T}, true_file::String, dists, trials=10) where {N,L,T<:AbstractFloat} = twin_experiment!(model, readdlm(observed_file)', obs_variance, dt, true_params, readdlm(true_file)', dists, trials)
+
+@views function generate_data!(model::Model{N}, true_params, obs_variance, obs_iteration, dt, spinup, T, generation_seed, x0_dists, replicates) where {N}
+    pref = "data/N_$N/p_$(join(true_p, "_"))/obsvar_$obs_variance/obsiter_$obs_iteration/dt_$dt/spinup_$spinup/T_$T/seed_$generation_seed/"
+    true_pref = pref * "true/"
+    mkpath(true_pref)
+    srand(generation_seed)
+    x0 = rand.(x0_dists)
+    a = Adjoint(dt, T, obs_variance, x0, true_params)
+    orbit!(a, model)
+    writedlm(true_pref * "true.txt", a.x')
+    d = Normal(0., sqrt(obs_variance))
+    steps_iter = a.steps/obs_iteration
+    for _obsvarseed in 1:replicates
+        obs_pref = pref * "observed/obsvarseed_$_obsvarseed/"
+        mkpath(obs_pref)
+        srand(_obsvarseed)
+        obs = a.x .+ rand(d, N, a.steps+1)
+        maskall = rand(1:N, N, a.steps+1)
+        for _i in 1:obs_iteration:a.steps
+            for _j in 1:N
+                if maskall[_j, _i] == 1
+                    obs[_j, _i] = NaN
+                end
+            end
+            for _k in 1:obs_iteration-1
+                obs[:, _i + _k] .= NaN
+            end
+        end
+        writedlm(obs_pref * "observed.txt", obs')
+    end
 end
