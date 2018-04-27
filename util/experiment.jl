@@ -44,7 +44,8 @@ function plot_twin_experiment_result(a::Adjoint{N}, tob, stddev) where {N}
         white_panel))
     end
     draw(PDF("lorenz.pdf", 24cm, 40cm), vstack(p_stack))
-    nothing
+    set_default_plot_size(24cm, 40cm)
+    vstack(p_stack)
 end
 
 function twin_experiment!(model::Model{N,L,T}, obs::AbstractMatrix{T}, obs_variance::T, dt::T, true_params::AbstractVector{T}, tob::AbstractMatrix{T}, dists, trials=10) where {N,L,T<:AbstractFloat}
