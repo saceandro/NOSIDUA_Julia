@@ -5,7 +5,7 @@ orbit_cost!(a, m) = (orbit!(a, m); cost(a))
 
 orbit_gradient!(a, m) = (orbit!(a, m); gradient!(a, m); a.λ[:,1])
 
-function numerical_gradient!(a::Adjoint{N,L,T}, m::Model{N,L}, h) where {N,L,T}
+function numerical_gradient!(a::Adjoint{N,L,K,T}, m::Model{N,L}, h) where {N,L,K,T}
     gr = Vector{T}(L)
     c = orbit_cost!(a, m)
     for _i in 1:N
@@ -22,7 +22,7 @@ function numerical_gradient!(a::Adjoint{N,L,T}, m::Model{N,L}, h) where {N,L,T}
     gr
 end
 
-function numerical_covariance!(a::Adjoint{N,L,T}, m::Model{N,L}, h) where {N,L,T}
+function numerical_covariance!(a::Adjoint{N,L,K,T}, m::Model{N,L}, h) where {N,L,K,T}
     hessian = Matrix{T}(L, L)
     gr = orbit_gradient!(a, m)
     for _i in 1:N
@@ -59,9 +59,15 @@ function numerical_covariance!(a::Adjoint{N,L,T}, m::Model{N,L}, h) where {N,L,T
     return AssimilationResults(θ, stddev, covariance)
 end
 
-@views function gradient_covariance_check!(model::Model{N,L}, observed_file, obs_variance, dt, dists, trials=20, h=0.001) where {N,L}
-    obs = readdlm(observed_file)'
-    steps = size(obs,1)
+@views function gradient_covariance_check!(model::Model{N,L,T}, observed_files, obs_variance, dt, dists, trials=20, h=0.001) where {N,L,T}
+    obs1 = readdlm(observed_files[1])'
+    steps = size(obs1,2)
+    K = length(observed_files)
+    obs = Array{T}(N, steps, K)
+    copy!(obs[:,:,1], obs1)
+    for _replicate in 2:K
+        obs[:,:,_replicate] .= readdlm(observed_files[_replicate])'
+    end
     a = Adjoint(dt, obs_variance, obs, L-N)
     x0_p = rand.(dists)
     initialize!(a, x0_p)
