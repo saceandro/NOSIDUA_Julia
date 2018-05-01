@@ -9,7 +9,7 @@ const dt = 0.01
 const spinup = 73.
 const T = 1.
 const generation_seed = 0
-const replicates = 1
+const replicates = 2
 
 const pref = "data/N_$N/p_$(join(true_p, "_"))/obsvar_$obs_variance/obsiter_$obs_iteration/dt_$dt/spinup_$spinup/T_$T/seed_$generation_seed/"
 const observed_file = pref * "observed.tsv"

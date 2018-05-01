@@ -28,33 +28,29 @@ end
     nothing
 end
 
-function gradient!(a, m) # assuming x[:,1] .= x0; p .= p; orbit!(dxdt, t, x, p, dt); is already run. λ[:,1] is the gradient.
-    N = size(a.x, 1)
-    K = size(a.obs, 3)
-    a.λ[1:N,end] .= innovation_λ.(a.x[:,end], a.obs[:,end,1], a.obs_variance)
+function gradient!(a::Adjoint{N,L,K}, m::Model{N,L}) where {N,L,K} # assuming x[:,1] .= x0; p .= p; orbit!(dxdt, t, x, p, dt); is already run. λ[:,1] is the gradient.
+    a.λ[1:N,end] .= innovation_λ.(view(a.x, :, a.steps+1), view(a.obs, :, a.steps+1, 1), a.obs_variance)
     for _replicate in 2:K
-        a.λ[1:N,end] .+= innovation_λ.(a.x[:,end], a.obs[:,end,_replicate], a.obs_variance)
+        a.λ[1:N,end] .+= innovation_λ.(view(a.x, :, a.steps+1), view(a.obs, :, a.steps+1, _replicate), a.obs_variance)
     end
     for _i in a.steps:-1:1
-        prev_λ!(a, m, a.dt*(_i-1), a.x[:,_i],                                      a.λ[:,_i+1], a.λ[:,_i]) # fix me! a.dt*_i?
+        prev_λ!(a, m, a.dt*(_i-1), view(a.x, :, _i),                                      view(a.λ, :, _i+1), view(a.λ, :, _i)) # fix me! a.dt*_i?
         for _replicate in 1:K
-            a.λ[1:N,_i] .+= innovation_λ.(a.x[:,_i], a.obs[:,_i,_replicate], a.obs_variance)
+            a.λ[1:N,_i] .+= innovation_λ.(view(a.x, :, _i), view(a.obs, :, _i, _replicate), a.obs_variance)
         end
     end
     nothing
 end
 
-function hessian_vector_product!(a, m) # assuming dx[:,1] .= dx0; dp .= dp; neighboring!(jacobian, dt, t, x, p, dx, dp); is already run. dλ[:,1] is the hessian_vector_product.
-    N = size(a.x, 1)
-    K = size(a.obs, 3)
-    a.dλ[1:N,end] .= innovation_dλ.(a.dx[:,end], a.obs[:,end,1], a.obs_variance)
+function hessian_vector_product!(a::Adjoint{N,L,K}, m::Model{N,L}) where {N,L,K} # assuming dx[:,1] .= dx0; dp .= dp; neighboring!(jacobian, dt, t, x, p, dx, dp); is already run. dλ[:,1] is the hessian_vector_product.
+    a.dλ[1:N,end] .= innovation_dλ.(view(a.dx, :, a.steps+1), view(a.obs, :, a.steps+1, 1), a.obs_variance)
     for _replicate in 2:K
-        a.dλ[1:N,end] .+= innovation_dλ.(a.dx[:,end], a.obs[:,end,_replicate], a.obs_variance)
+        a.dλ[1:N,end] .+= innovation_dλ.(view(a.dx, :, a.steps+1), view(a.obs, :, a.steps+1, _replicate), a.obs_variance)
     end
     for _i in a.steps:-1:1
-        prev_dλ!(a, m, a.dt*(_i-1), a.x[:,_i],            a.dx[:,_i],              a.λ[:,_i+1],            a.dλ[:,_i+1], a.dλ[:,_i]) # fix me! a.dt*_i?
+        prev_dλ!(a, m, a.dt*(_i-1), view(a.x, :, _i),            view(a.dx, :, _i),              view(a.λ, :, _i+1),            view(a.dλ, :, _i+1), view(a.dλ, :, _i)) # fix me! a.dt*_i?
         for _replicate in 1:K
-            a.dλ[1:N,_i] .+= innovation_dλ.(a.dx[:,_i], a.obs[:,_i,_replicate], a.obs_variance)
+            a.dλ[1:N,_i] .+= innovation_dλ.(view(a.dx, :, _i), view(a.obs, :, _i, _replicate), a.obs_variance)
         end
     end
     nothing

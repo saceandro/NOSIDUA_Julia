@@ -26,7 +26,7 @@ function plot_twin_experiment_result(a::Adjoint{N}, tob, stddev) where {N}
     for _i in 1:N
         df_tob = DataFrame(t=t, x=tob[_i,:], data_type="true orbit")
         _mask = isfinite.(a.obs[_i,:,1])
-        df_obs = DataFrame(t=t[_mask], x=a.obs[_i,:,1][_mask], data_type="observed") # plot one replicate for example
+        # df_obs = DataFrame(t=t[_mask], x=a.obs[_i,:,1][_mask], data_type="observed") # plot one replicate for example
         xmin = similar(a.x[_i,:], a.steps+1)
         xmin .= NaN
         xmax = similar(a.x[_i,:], a.steps+1)
@@ -37,7 +37,7 @@ function plot_twin_experiment_result(a::Adjoint{N}, tob, stddev) where {N}
         p_stack = vcat(p_stack,
         Gadfly.plot(
         layer(df_tob, x="t", y="x", color=:data_type, Geom.line),
-        layer(df_obs, x="t", y="x", color=:data_type, Geom.point),
+        # layer(df_obs, x="t", y="x", color=:data_type, Geom.point),
         layer(df_assim, x="t", y="x", ymin="xmin", ymax="xmax", color=:data_type, Geom.line, Geom.errorbar),
         Guide.xlabel("<i>t</i>"),
         Guide.ylabel("<i>x<sub>$_i</sub></i>"),
