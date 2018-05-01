@@ -96,3 +96,28 @@ end
         writedlm(obs_pref * "obsvarseed_$_obsvarseed.tsv", obs')
     end
 end
+
+@views function generate_data_no_loss!(model::Model{N}, true_params, obs_variance, obs_iteration, dt, spinup, T, generation_seed, x0_dists, replicates) where {N}
+    pref = "no_loss_data/N_$N/p_$(join(true_p, "_"))/obsvar_$obs_variance/obsiter_$obs_iteration/dt_$dt/spinup_$spinup/T_$T/seed_$generation_seed/"
+    true_pref = pref * "true/"
+    mkpath(true_pref)
+    srand(generation_seed)
+    x0 = rand.(x0_dists)
+    a = Adjoint(dt, T, obs_variance, x0, true_params)
+    orbit!(a, model)
+    writedlm(true_pref * "true.tsv", a.x')
+    d = Normal(0., sqrt(obs_variance))
+    steps_iter = a.steps/obs_iteration
+    for _obsvarseed in 1:replicates
+        obs_pref = pref * "observed/"
+        mkpath(obs_pref)
+        srand(_obsvarseed)
+        obs = a.x .+ rand(d, N, a.steps+1)
+        for _i in 1:obs_iteration:a.steps
+            for _k in 1:obs_iteration-1
+                obs[:, _i + _k] .= NaN
+            end
+        end
+        writedlm(obs_pref * "obsvarseed_$_obsvarseed.tsv", obs')
+    end
+end
