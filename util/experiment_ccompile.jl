@@ -1,4 +1,5 @@
 @views function write_twin_experiment_result(pref, assimilation_results, minimum, true_params, tob)
+    mkpath(pref)
     N = length(assimilation_results.θ)
     println(STDERR, "mincost:\t", minimum)
     println(STDERR, "θ:\t", assimilation_results.θ)
@@ -20,7 +21,6 @@ end
 function twin_experiment!(model::Model{N,L,T}, obs::AbstractArray{T,3}, obs_variance::T, dt::T, true_params::AbstractVector{T}, tob::AbstractMatrix{T}, dists, trials=10) where {N,L,T<:AbstractFloat}
     replicates = size(obs, 3)
     pref = "results/replicate_$replicates/"
-    mkpath(pref)
     a = Adjoint(dt, obs_variance, obs, L-N)
     assimres, minres = assimilate!(a, model, dists, trials)
     write_twin_experiment_result(pref, assimres, minres.minimum, true_params, tob)
@@ -38,22 +38,28 @@ function twin_experiment!(model::Model{N,L,T}, observed_files::Tuple, obs_varian
     twin_experiment!(model, obs, obs_variance, dt, true_params, readdlm(true_file)', dists, trials)
 end
 
-function twin_experiment_iter!(outdir, model::Model{N}, true_params, obs_variance, obs_iteration, dt, spinup, T, seed, replicates, dists, trials=10, iter=10) where {N}
+function twin_experiment!(outdir::String, model::Model{N,L,T}, obs::AbstractArray{T,3}, obs_variance::T, dt::T, true_params::AbstractVector{T}, tob::AbstractMatrix{T}, dists, trials=10) where {N,L,T<:AbstractFloat}
+    a = Adjoint(dt, obs_variance, obs, L-N)
+    assimres, minres = assimilate!(a, model, dists, trials)
+    write_twin_experiment_result(outdir, assimres, minres.minimum, true_params, tob)
+end
+
+function twin_experiment_iter!(outdir::String, model::Model{N,L}, true_params, obs_variance, obs_iteration, dt, spinup, T, seed, replicates, dists, trials=10, iter=10) where {N,L}
     srand(seed)
+    x0 = rand.(dists[1:5])
+    a = Adjoint(dt, T, obs_variance, x0, true_params)
+    orbit!(a, model)
+    d = Normal(0., sqrt(obs_variance))
     for _it in 1:iter
-        x0 = rand.(dists)
-        a = Adjoint(dt, T, obs_variance, x0, true_params)
-        orbit!(a, model)
-        d = Normal(0., sqrt(obs_variance))
-        steps_iter = a.steps/obs_iteration
+        obs = Array{Float64}(N, a.steps+1, replicates)
         for _replicate in 1:replicates
-            obs = a.x .+ rand(d, N, a.steps+1)
+            obs[:,:,_replicate] .= a.x .+ rand(d, N, a.steps+1)
             for _i in 1:obs_iteration:a.steps
                 for _k in 1:obs_iteration-1
-                    obs[:, _i + _k] .= NaN
+                    obs[:, _i + _k, _replicate] .= NaN
                 end
             end
         end
-        twin_experiment(outdir * "replicate_$replicates/iter_$_it/", model, obs, obs_variance, dt, true_params, a.x, dists, trials)
+        twin_experiment!(outdir * "replicate_$replicates/iter_$_it/", model, obs, obs_variance, dt, true_params, a.x, dists, trials)
     end
 end
