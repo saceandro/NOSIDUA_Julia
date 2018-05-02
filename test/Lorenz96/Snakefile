@@ -1,0 +1,155 @@
+import sys
+import subprocess
+from snakemake.utils import R
+
+def execcommand(cmd,stdout,stderr,input=""):
+    with open(stdout, "w") as outf:
+        with open (stderr, "w") as errf:
+            o,e = subprocess.Popen(cmd, shell=True, stdout=outf, stderr=errf, universal_newlines=True).communicate(input)
+            errf.close()
+        outf.close()
+    return o,e
+
+replicates = [str(2**i) for i in range(8)]
+dims = [str(i) for i in range(1,8)]
+
+rule all:
+    input:
+        expand('results/replicate/plots/{b}.pdf', b=dims),
+        'results/replicate/plots/RMSE.pdf'
+        # 'results/replicate/RMSE_total.tsv',
+        # 'results/replicate/CI_total.tsv'
+        # expand('results/replicate/CI/{param}.tsv', param=replicates)
+
+# rulename should not be begin by numbers
+rule replicate:
+    params:
+        3
+    output:
+        'results/replicate_{a}/RMSE',
+        ['results/replicate_{a}/' + b + '.tsv' for b in dims]
+    log:
+        'log/replicate/replicate/{a}'
+    run:
+        execcommand(expand('./builddir/replicate_ccompile {n}', n={wildcards.a}), output[0], log[0])
+
+rule RMSE_totaling:
+    params:
+        1
+    input:
+        expand('results/replicate_{param}/RMSE', param=replicates)
+    output:
+        'results/replicate/RMSE_total.tsv'
+    log:
+        'log/replicate/RMSE'
+    run:
+        with open(output[0],'w') as outf:
+            for i in replicates:
+                with open('results/replicate_' + i + '/RMSE', 'r') as infile:
+                    outf.write("%s\t%s\n" % (i, infile.readline().rstrip('\n')))
+                infile.close()
+            outf.close()
+
+rule totaling:
+    params:
+        1
+    input:
+        ['results/replicate_'+ a + '/{b}.tsv' for a in replicates]
+    output:
+        'results/replicate/{b}.tsv'
+    log:
+        'log/replicate/dims/{b}'
+    run:
+        with open(output[0],'w') as outf:
+            for i in replicates:
+                with open('results/replicate_' + i + '/' + expand('{b}', b={wildcards.b})[0] + '.tsv', 'r') as infile:
+                    outf.write("%s\t%s" % (i, infile.readline()))
+                infile.close()
+            outf.close()
+
+# rule diff_totaling:
+#     params:
+#         1
+#     input:
+#         expand('results/replicate/diff/{param}.tsv', param=replicates)
+#     output:
+#         'results/replicate/diff_total.tsv'
+#     log:
+#         'log/replicate/stderr_diff'
+#     run:
+#         with open(output[0],'w') as outf:
+#             for i in replicates:
+#                 with open('results/replicate/diff/' + i + '.tsv', 'r') as infile:
+#                     outf.write("%s\t%s\n" % (i, infile.readline().rstrip('\n')))
+#                 infile.close()
+#             outf.close()
+#
+# rule CI_totaling:
+#     params:
+#         1
+#     input:
+#         expand('results/replicate/CI/{param}.tsv', param=replicates)
+#     output:
+#         'results/replicate/CI_total.tsv'
+#     log:
+#         'log/replicate/stderr_CI'
+#     run:
+#         with open(output[0],'w') as outf:
+#             for i in replicates:
+#                 with open('results/replicate/CI/' + i + '.tsv', 'r') as infile:
+#                     outf.write("%s\t%s\n" % (i, infile.readline().rstrip('\n')))
+#                 infile.close()
+#             outf.close()
+
+rule RMSE_plot:
+    params:
+        1
+    input:
+        'results/replicate/RMSE_total.tsv'
+    output:
+        'results/replicate/plots/RMSE.pdf'
+    run:
+        R("""
+        library(ggplot2)
+        d <- read.delim("{input}", header=F)
+        g <- ggplot(d, aes(x=V1, y=V2))
+        g <- g + geom_point(aes(), size=1)
+        g <- g + scale_x_log10()
+        g <- g + scale_y_log10()
+        g <- g + labs(x="#replicates", y="RMSE")
+        ggsave(file="{output}", plot=g)
+        """)
+
+rule CI_plot:
+    params:
+        1
+    input:
+        'results/replicate/{b}.tsv'
+    output:
+        'results/replicate/plots/{b}.pdf'
+    run:
+        R("""
+        library(ggplot2)
+        d <- read.delim("{input[0]}", header=F)
+        g <- ggplot(d, aes(x=V1, y=V2))
+        g <- g + geom_point(aes())
+        g <- g + geom_errorbar(aes(ymin=V2-V3, ymax=V2+V3))
+        g <- g + scale_x_log10()
+        g <- g + labs(x="#replicates", y="diff")
+        ggsave(file="{output}", plot=g)
+        """)
+
+rule clean:
+    shell:
+        "rm -rf results/replicate"
+
+# install.packages("ggplot2")
+
+# pdf("{output}", height=7, width=7)
+# par(ps = 24)
+# par(lwd = 2)
+# par(mex=1.5)
+# d <- read.delim("{input}", header=F)
+# plot(d, type="l", lty=1, xlab="#replicates",
+#   ylab="RMSE")
+# dev.off()
