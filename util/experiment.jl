@@ -11,8 +11,8 @@ using Adjoints, Distributions, DataFrames, Gadfly
 @views function print_twin_experiment_result(assimilation_results, minimum, true_params, tob)
     println("mincost:\t", minimum)
     println("θ:\t", assimilation_results.θ)
-    println("ans:\t", CatViews.CatView(tob[:,1], true_params))
-    println("diff:\t", assimilation_results.θ .- CatViews.CatView(tob[:,1], true_params))
+    println("ans:\t", [tob[:,1]; true_params])
+    println("diff:\t", assimilation_results.θ .- [tob[:,1]; true_params])
     if !(isnull(assimilation_results.stddev))
         println("CI:\t", get(assimilation_results.stddev))
     end

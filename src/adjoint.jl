@@ -5,13 +5,13 @@ innovation_λ(  x, obs, obs_variance) = isnan(obs) ? zero(x)  : (x - obs)/obs_va
 innovation_dλ(dx, obs, obs_variance) = isnan(obs) ? zero(dx) : dx/obs_variance        # element-wise innovation of dλ.
 
 
-next_x!(        a::Adjoint,       m::Model,       t, x, x_nxt)                                               = (m.dxdt!(    m, t, x, a.p);                                     x_nxt .=  x .+ m.dxdt                                                             .* a.dt; nothing)
+next_x!(        a::Adjoint,       m::Model,       t, x, x_nxt)                                               = (m.dxdt!(    m, t, x, a.p);                                     x_nxt .=  x .+ m.dxdt                                                      .* a.dt; nothing)
 
-next_dx!(       a::Adjoint,       m::Model,       t, x,        dx, dx_nxt)                                   = (m.jacobian!(m, t, x, a.p);                                    dx_nxt .= dx .+ m.jacobian  * CatView(dx, a.dp)                                    .* a.dt; nothing)
+next_dx!(       a::Adjoint,       m::Model,       t, x,        dx, dx_nxt)                                   = (m.jacobian!(m, t, x, a.p);                                    dx_nxt .= dx .+ m.jacobian  * [dx; a.dp]                                    .* a.dt; nothing)
 
-@views prev_λ!( a::Adjoint{N},    m::Model{N},    t, x,                   λ, λ_prev)            where {N}    = (m.jacobian!(m, t, x, a.p);                                    λ_prev .=  λ .+ m.jacobian' *  λ[1:N]                                              .* a.dt; nothing)
+@views prev_λ!( a::Adjoint{N},    m::Model{N},    t, x,                   λ, λ_prev)            where {N}    = (m.jacobian!(m, t, x, a.p);                                    λ_prev .=  λ .+ m.jacobian' *  λ[1:N]                                       .* a.dt; nothing)
 
-@views prev_dλ!(a::Adjoint{N, L}, m::Model{N, L}, t, x,        dx,        λ,       dλ, dλ_prev) where {N, L} = (m.hessian!( m, t, x, a.p); prev_λ!(a, m, t, x, dλ, dλ_prev); dλ_prev .+= reshape(reshape(m.hessian, N*L, L) * CatView(dx, a.dp), N, L)' * λ[1:N] .* a.dt; nothing)
+@views prev_dλ!(a::Adjoint{N, L}, m::Model{N, L}, t, x,        dx,        λ,       dλ, dλ_prev) where {N, L} = (m.hessian!( m, t, x, a.p); prev_λ!(a, m, t, x, dλ, dλ_prev); dλ_prev .+= reshape(reshape(m.hessian, N*L, L) * [dx; a.dp], N, L)' * λ[1:N] .* a.dt; nothing)
 
 
 @views function orbit!(a, m)
