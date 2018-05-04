@@ -35,16 +35,27 @@ rule all:
 #     run:
 #         execcommand(expand('./builddir/replicate_ccompile {n}', n={wildcards.a}), output[0], log[0])
 
-rule replicate_iter:
+# rule replicate_iter:
+#     params:
+#         3
+#     output:
+#         'result/replicate_{a}/RMSE',
+#         ['result/replicate_{a}/iter_' + b + '/' + c + '.tsv' for c in dims for b in ite]
+#     log:
+#         'log/replicate/replicate/{a}'
+#     run:
+#         execcommand(expand('./builddir/replicate_ccompile_iter {n}', n={wildcards.a}), output[0], log[0])
+
+rule replicate_each:
     params:
         3
     output:
-        'result/replicate_{a}/RMSE',
-        ['result/replicate_{a}/iter_' + b + '/' + c + '.tsv' for c in dims for b in ite]
+        'result/replicate_{a}/iter_{b}/RMSE',
+        ['result/replicate_{a}/iter_{b}/' + c + '.tsv' for c in dims]
     log:
-        'log/replicate/replicate/{a}'
+        'log/replicate/replicate_{a}/iter_{b}'
     run:
-        execcommand(expand('./builddir/replicate_ccompile_iter {n}', n={wildcards.a}), output[0], log[0])
+        execcommand(expand('./builddir/replicate_ccompile_each {a} {b}', n={wildcards.a}, b={wildcards.b}), output[0], log[0])
 
 # rule RMSE_totaling:
 #     params:
@@ -181,11 +192,13 @@ rule iter_plot:
     run:
         R("""
         library(ggplot2)
+        library(scales)
         d <- read.delim("{input[0]}", header=T)
-        g <- ggplot(d, aes(x=replicates, y=diff))
+        g <- ggplot(d, aes(x=replicates, y=diff, group=replicates))
         g <- g + geom_boxplot()
-        g <- g + scale_x_log10()
-        # g <- g + labs(x="#replicates", y="diff")
+        g <- g + scale_x_continuous(
+            trans = 'log2',
+            labels = trans_format('log2', math_format(2^.x)))
         ggsave(file="{output}", plot=g)
         """)
 
@@ -194,6 +207,7 @@ rule clean:
         "rm -rf results/replicate"
 
 # install.packages("ggplot2")
+# install.packages("scales")
 
 # pdf("{output}", height=7, width=7)
 # par(ps = 24)

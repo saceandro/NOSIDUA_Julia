@@ -44,9 +44,27 @@ function twin_experiment!(outdir::String, model::Model{N,L,T}, obs::AbstractArra
     write_twin_experiment_result(outdir, assimres, minres.minimum, true_params, tob)
 end
 
+function twin_experiment!(outdir::String, model::Model{N,L,T}, obs_variance::T, obs_iteration::Int, dt::T, true_params::AbstractVector{T}, tob::AbstractMatrix{T}, dists, replicates::Int, iter::Int, trials=10) where {N,L,T}
+    steps = size(tob, 2)
+    srand(hash([replicates, iter]))
+    d = Normal(0., sqrt(obs_variance))
+    obs = similar(tob, N, steps, replicates)
+    for _replicate in 1:replicates
+        obs[:,:,_replicate] .= tob .+ rand(d, N, steps)
+        for _i in 1:obs_iteration:steps-1
+            for _k in 1:obs_iteration-1
+                obs[:, _i + _k, _replicate] .= NaN
+            end
+        end
+    end
+    twin_experiment!(outdir * "replicate_$replicates/iter_$iter/", model, obs, obs_variance, dt, true_params, tob, dists, trials)
+end
+
+twin_experiment!(outdir::String, model::Model{N,L,T}, obs_variance::T, obs_iteration::Int, dt::T, true_params::AbstractVector{T}, true_file::String, dists, replicates::Int, iter::Int, trials=10) where {N,L,T} = twin_experiment!(outdir, model, obs_variance, obs_iteration, dt, true_params, readdlm(true_file)', dists, replicates, iter, trials)
+
 function twin_experiment_iter!(outdir::String, model::Model{N,L}, true_params, obs_variance, obs_iteration, dt, spinup, T, seed, replicates, dists, trials=10, iter=10) where {N,L}
     srand(seed)
-    x0 = rand.(dists[1:5])
+    x0 = rand.(dists[1:N])
     a = Adjoint(dt, T, obs_variance, x0, true_params)
     orbit!(a, model)
     d = Normal(0., sqrt(obs_variance))
@@ -64,14 +82,11 @@ function twin_experiment_iter!(outdir::String, model::Model{N,L}, true_params, o
     end
 end
 
-@views function generate_true_data!(model::Model{N}, true_params, dt, spinup, T, generation_seed, x0_dists) where {N}
+@views function generate_true_data!(pref::String, model::Model{N}, true_params, dt, spinup, T, generation_seed, x0_dists) where {N}
     srand(generation_seed)
     x0 = rand.(x0_dists)
-    a = Adjoint(dt, T, obs_variance, x0, true_params)
+    a = Adjoint(dt, T, 1., x0, true_params) # 1. means obs_variance. defined as 1 though not used.
     orbit!(a, model)
-    pref = "true_data/N_$N/p_$(join(true_p, "_"))/dt_$dt/spinup_$spinup/T_$T/"
     mkpath(pref)
     writedlm(pref * "seed_$generation_seed.tsv", a.x')
 end
-
-function twin_experiment!(outdir::String, model)
