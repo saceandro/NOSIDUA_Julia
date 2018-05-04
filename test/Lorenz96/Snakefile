@@ -91,11 +91,11 @@ rule totaling_iter:
         'log/replicate/dims/{b}'
     run:
         with open(output[0],'w') as outf:
-            outf.write("#replicates\tdiff\n")
+            outf.write("replicates\tdiff\n")
             for i in replicates:
                 for j in ite:
                     with open('result/replicate_' + i + '/iter_' + j + expand('/{b}', b={wildcards.b})[0] + '.tsv', 'r') as infile:
-                        outf.write('%s\t%s\n' % (i, infile.readline().rsplit('\n').split('\t')[0]))
+                        outf.write('%s\t%s\n' % (i, infile.readline().rstrip('\n').split('\t')[0]))
                         infile.close()
             outf.close()
 
@@ -181,11 +181,11 @@ rule iter_plot:
     run:
         R("""
         library(ggplot2)
-        d <- read.delim("{input[0]}", header=F)
-        g <- ggplot(d, aes(x=V1, y=V2))
+        d <- read.delim("{input[0]}", header=T)
+        g <- ggplot(d, aes(x=replicates, y=diff))
         g <- g + geom_boxplot()
         g <- g + scale_x_log10()
-        g <- g + labs(x="#replicates", y="diff")
+        # g <- g + labs(x="#replicates", y="diff")
         ggsave(file="{output}", plot=g)
         """)
 

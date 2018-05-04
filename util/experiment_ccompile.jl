@@ -63,3 +63,15 @@ function twin_experiment_iter!(outdir::String, model::Model{N,L}, true_params, o
         twin_experiment!(outdir * "replicate_$replicates/iter_$_it/", model, obs, obs_variance, dt, true_params, a.x, dists, trials)
     end
 end
+
+@views function generate_true_data!(model::Model{N}, true_params, dt, spinup, T, generation_seed, x0_dists) where {N}
+    srand(generation_seed)
+    x0 = rand.(x0_dists)
+    a = Adjoint(dt, T, obs_variance, x0, true_params)
+    orbit!(a, model)
+    pref = "true_data/N_$N/p_$(join(true_p, "_"))/dt_$dt/spinup_$spinup/T_$T/"
+    mkpath(pref)
+    writedlm(pref * "seed_$generation_seed.tsv", a.x')
+end
+
+function twin_experiment!(outdir::String, model)
