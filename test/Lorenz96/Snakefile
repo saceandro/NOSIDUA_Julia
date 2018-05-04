@@ -55,7 +55,7 @@ rule replicate_each:
     log:
         'log/replicate/replicate_{a}/iter_{b}'
     run:
-        execcommand(expand('./builddir/replicate_ccompile_each {a} {b}', n={wildcards.a}, b={wildcards.b}), output[0], log[0])
+        execcommand(expand('./builddir/replicate_ccompile_each {a} {b}', a={wildcards.a}, b={wildcards.b}), output[0], log[0])
 
 # rule RMSE_totaling:
 #     params:
