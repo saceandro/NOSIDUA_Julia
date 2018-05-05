@@ -218,7 +218,7 @@ rule iter_plot:
 
 rule clean:
     shell:
-        "rm -rf result"
+        "rm -rf result log"
 
 # install.packages("ggplot2")
 # install.packages("scales")
