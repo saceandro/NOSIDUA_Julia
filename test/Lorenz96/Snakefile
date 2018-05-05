@@ -24,6 +24,8 @@ rule all:
         # expand('results/replicate/CI/{param}.tsv', param=replicates)
 
 rule build:
+    params:
+        1
     input:
         'replicate_ccompile_each.jl'
     output:
