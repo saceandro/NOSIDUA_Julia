@@ -65,7 +65,7 @@ rule replicate_each:
         'builddir/replicate_ccompile_each'
     output:
         'result/replicate_{a}/iter_{b}/RMSE',
-        expand('result/replicate_{a}/iter_{b}/{c}.tsv', c=dims)
+        ['result/replicate_{a}/iter_{b}/' + c + '.tsv' for c in dims]
     log:
         'log/replicate/replicate_{a}/iter_{b}'
     run:
