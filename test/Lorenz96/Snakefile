@@ -60,7 +60,7 @@ rule build:
 
 rule replicate_each:
     params:
-        1
+        2
     input:
         'builddir/replicate_ccompile_each'
     output:
