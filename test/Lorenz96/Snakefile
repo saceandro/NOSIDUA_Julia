@@ -62,18 +62,31 @@ rule build:
 #     run:
 #         execcommand(expand('./builddir/replicate_ccompile_iter {n}', n={wildcards.a}), output[0], log[0])
 
+# rule replicate_each:
+#     params:
+#         2
+#     input:
+#         'builddir/replicate_ccompile_each'
+#     output:
+#         'result/replicate_{a}/iter_{b}/RMSE',
+#         ['result/replicate_{a}/iter_{b}/' + c + '.tsv' for c in dims]
+#     log:
+#         'log/replicate/replicate_{a}/iter_{b}'
+#     run:
+#         execcommand(expand('./builddir/replicate_ccompile_each {a} {b}', a={wildcards.a}, b={wildcards.b}), output[0], log[0])
+
 rule replicate_each:
     params:
-        2
+        1
     input:
         'builddir/replicate_ccompile_each'
     output:
-        'result/replicate_{a}/iter_{b}/RMSE',
-        ['result/replicate_{a}/iter_{b}/' + c + '.tsv' for c in dims]
+        ['result/replicate_' + a + '/iter_' + b + '/RMSE' for b in ite for a in replicates],
+        ['result/replicate_' + a + '/iter_' + b + '/' + c + '.tsv' for c in dims for b in ite for a in replicates]
     log:
-        'log/replicate/replicate_{a}/iter_{b}'
-    run:
-        execcommand(expand('./builddir/replicate_ccompile_each {a} {b}', a={wildcards.a}, b={wildcards.b}), output[0], log[0])
+        ['log/replicate/replicate_' + a + '/iter_' + b for b in ite for a in replicates]
+    shell
+        "qsub -sync y -t 1-400:1 array_qsub.sh"
 
 # rule RMSE_totaling:
 #     params:
