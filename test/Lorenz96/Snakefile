@@ -18,7 +18,11 @@ rule all:
     input:
         # expand('results/replicate/plots/{b}.pdf', b=dims),
         # 'results/replicate/plots/RMSE.pdf'
-        expand('result/replicate/iter_plots/{b}.pdf', b=dims)
+        # expand('result/replicate/iter_plots/{b}.pdf', b=dims)
+        expand('result/replicate/boxplots/{b}.pdf', b=dims),
+        expand('result/replicate/CI_plots/{b}.pdf', b=dims),
+        expand('result/replicate/CI_line_plots/{b}.pdf', b=dims),
+        expand('result/replicate/CI_line_ylinear_plots/{b}.pdf', b=dims)
         # 'results/replicate/RMSE_total.tsv',
         # 'results/replicate/CI_total.tsv'
         # expand('results/replicate/CI/{param}.tsv', param=replicates)
@@ -105,7 +109,33 @@ rule replicate_each:
 #                 infile.close()
 #             outf.close()
 
-rule totaling_iter:
+# rule totaling_iter:
+#     params:
+#         1
+#     input:
+#         ['result/replicate_{a}/iter_' + it + '/{b}.tsv' for it in ite]
+#     output:
+#         'result/replicate_{a}/{b}.tsv'
+#     log:
+#         'log/replicate_{a}/dims/{b}'
+#     run:
+#         execcommand(expand("""
+#         cat result/replicate_{a}/iter_*/{b}.tsv | sed "s/^/{a}$(printf '\t')/g"
+#         """, a={wildcards.a}, b={wildcards.b}), output[0], log[0])
+#
+# rule totaling_replicate:
+#     params:
+#         1
+#     input:
+#         ['result/replicate_' + a + '/{b}.tsv' for a in replicates]
+#     output:
+#         'result/replicate/{b}.tsv'
+#     log:
+#         'log/replicate/dims/{b}'
+#     run:
+#         execcommand(expand("cat result/replicate_*/{b}.tsv", b={wildcards.b}), output[0], log[0])
+
+rule totaling_replicate:
     params:
         1
     input:
@@ -116,11 +146,11 @@ rule totaling_iter:
         'log/replicate/dims/{b}'
     run:
         with open(output[0],'w') as outf:
-            outf.write("replicates\tdiff\n")
+            outf.write("replicates\tdiff\tCI\n")
             for i in replicates:
                 for j in ite:
                     with open('result/replicate_' + i + '/iter_' + j + expand('/{b}', b={wildcards.b})[0] + '.tsv', 'r') as infile:
-                        outf.write('%s\t%s\n' % (i, infile.readline().rstrip('\n').split('\t')[0]))
+                        outf.write('%s\t%s\n' % (i, infile.readline().rstrip('\n')))
                         infile.close()
             outf.close()
 
@@ -196,6 +226,133 @@ rule CI_plot:
         ggsave(file="{output}", plot=g)
         """)
 
+# rule iter_plot:
+#     params:
+#         1
+#     input:
+#         'result/replicate/{b}.tsv'
+#     output:
+#         'result/replicate/iter_plots/{b}.pdf'
+#     run:
+#         R("""
+#         library(ggplot2)
+#         library(scales)
+#         library(plyr)
+#         d <- read.delim("{input[0]}", header=T)
+#         d_median <- ddply(d, .(replicates), summarize, "median_diff"=median(diff), "median_CI"=median(CI))
+#         d_merged <- merge(d, d_median, by="replicates")
+#         g <- ggplot(d_merged, aes(x=replicates, y=diff, group=replicates))
+#         g <- g + geom_boxplot()
+#         g <- g + scale_x_continuous(
+#             trans = 'log2',
+#             labels = trans_format('log2', math_format(2^.x)))
+#         g <- g + geom_errorbar(aes(ymin=median_diff-median_CI, ymax=median_diff+median_CI), width=.2, position=position_dodge(.9), color="red")
+#         ggsave(file="{output}", plot=g)
+#         """)
+
+rule boxplot:
+    params:
+        1
+    input:
+        'result/replicate/{b}.tsv'
+    output:
+        'result/replicate/boxplots/{b}.pdf'
+    run:
+        R("""
+        library(ggplot2)
+        library(scales)
+        d <- read.delim("{input[0]}", header=T)
+        g <- ggplot(d, aes(x=replicates, y=diff, group=replicates))
+        g <- g + geom_boxplot()
+        g <- g + scale_x_continuous(
+            trans = 'log2',
+            labels = trans_format('log2', math_format(2^.x)))
+        ggsave(file="{output}", plot=g)
+        """)
+
+rule CI_plot2:
+    params:
+        1
+    input:
+        'result/replicate/{b}.tsv'
+    output:
+        'result/replicate/CI_plots/{b}.pdf'
+    run:
+        R("""
+        library(ggplot2)
+        library(scales)
+        library(plyr)
+        d <- read.delim("{input[0]}", header=T)
+        d_stat <- ddply(d, .(replicates), summarize, "mean_diff"=mean(diff), "sd_diff"=sd(diff), "mean_CI"=mean(CI))
+        g <- ggplot(d_stat, aes(x=replicates, y=mean_diff))
+        g <- g + geom_point(aes())
+        g <- g + geom_errorbar(aes(ymin=mean_diff-sd_diff, ymax=mean_diff+sd_diff), width=.2, position=position_dodge(.9))
+        g <- g + geom_errorbar(aes(ymin=mean_diff-mean_CI, ymax=mean_diff+mean_CI), width=.2, position=position_dodge(.9), color="red")
+        g <- g + scale_x_continuous(
+            trans = 'log2',
+            labels = trans_format('log2', math_format(2^.x)))
+        ggsave(file="{output}", plot=g)
+        """)
+
+rule CI_plot_line:
+    params:
+        1
+    input:
+        'result/replicate/{b}.tsv'
+    output:
+        'result/replicate/CI_line_plots/{b}.pdf'
+    run:
+        R("""
+        library(ggplot2)
+        library(scales)
+        library(plyr)
+        d <- read.delim("{input[0]}", header=T)
+        d_stat <- ddply(d, .(replicates), summarize, "sd_diff"=sd(diff), "mean_CI"=mean(CI))
+        d1 <- data.frame(d_stat$replicates, d_stat$sd_diff, "sd_diff")
+        colnames(d1) <- c("replicates", "diff", "group")
+        d2 <- data.frame(d_stat$replicates, d_stat$mean_CI, "mean_CI")
+        colnames(d2) <- c("replicates", "diff", "group")
+        d_merged <- rbind(d1, d2)
+        g <- ggplot(d_merged, aes(x=replicates, y=diff, group=group, color=group))
+        g <- g + geom_point()
+        g <- g + geom_line()
+        g <- g + scale_x_continuous(
+            trans = 'log2',
+            labels = trans_format('log2', math_format(2^.x)))
+        g <- g + scale_y_continuous(
+            trans = 'log2')
+        g <- g + scale_color_hue(name="", labels=c(sd_diff="SD(diff)", mean_CI="mean(CI)"))
+        ggsave(file="{output}", plot=g)
+        """)
+
+rule CI_plot_line_ylinear:
+    params:
+        1
+    input:
+        'result/replicate/{b}.tsv'
+    output:
+        'result/replicate/CI_line_ylinear_plots/{b}.pdf'
+    run:
+        R("""
+        library(ggplot2)
+        library(scales)
+        library(plyr)
+        d <- read.delim("{input[0]}", header=T)
+        d_stat <- ddply(d, .(replicates), summarize, "sd_diff"=sd(diff), "mean_CI"=mean(CI))
+        g <- ggplot(d_stat, aes(x=replicates, y))
+        g <- g + geom_point(aes(y=sd_diff), color="blue")
+        g <- g + geom_line(aes(y=sd_diff), color="blue")
+        g <- g + geom_point(aes(y=mean_CI), color="red")
+        g <- g + geom_line(aes(y=mean_CI), color="red")
+        g <- g + scale_x_continuous(
+            trans = 'log2',
+            labels = trans_format('log2', math_format(2^.x)))
+        g <- g + scale_y_continuous(
+        limits=c(0,NA)
+        )
+        ggsave(file="{output}", plot=g)
+        """)
+
 rule iter_plot:
     params:
         1
@@ -207,12 +364,16 @@ rule iter_plot:
         R("""
         library(ggplot2)
         library(scales)
+        library(plyr)
         d <- read.delim("{input[0]}", header=T)
-        g <- ggplot(d, aes(x=replicates, y=diff, group=replicates))
+        d_median <- ddply(d, .(replicates), summarize, "median_diff"=median(diff), "median_CI"=median(CI))
+        d_merged <- merge(d, d_median, by="replicates")
+        g <- ggplot(d_merged, aes(x=replicates, y=diff, group=replicates))
         g <- g + geom_boxplot()
         g <- g + scale_x_continuous(
             trans = 'log2',
             labels = trans_format('log2', math_format(2^.x)))
+        g <- g + geom_errorbar(aes(ymin=median_diff-median_CI, ymax=median_diff+median_CI), width=.2, position=position_dodge(.9), color="red")
         ggsave(file="{output}", plot=g)
         """)
 
