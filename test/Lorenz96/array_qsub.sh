@@ -8,9 +8,10 @@
 #$ -r no
 
 taskid_1=$(($SGE_TASK_ID - 1))
-replicate=$(($taskid_1 / 50 + 1))
+replicate=$((2 ** ($taskid_1 / 50)))
 iter=$(($taskid_1 % 50 + 1))
 outfile=result/replicate_${replicate}/iter_${iter}/RMSE
 errfile=log/replicate/replicate_${replicate}/iter_${iter}
 
+echo "./builddir/replicate_ccompile_each $replicate $iter 1> $outfile 2> $errfile"
 ./builddir/replicate_ccompile_each $replicate $iter 1> $outfile 2> $errfile
