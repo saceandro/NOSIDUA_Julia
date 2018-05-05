@@ -19,7 +19,7 @@ Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
     spinup = 73.
     T = 1.
     generation_seed = 0
-    trials = 100
+    trials = 50
 
     pref = "true_data/N_$N/p_$(join(true_params, "_"))/dt_$dt/spinup_$spinup/T_$T/"
     true_file = pref * "seed_$generation_seed.tsv"

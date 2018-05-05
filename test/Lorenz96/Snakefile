@@ -12,7 +12,7 @@ def execcommand(cmd,stdout,stderr,input=""):
 
 replicates = [str(2**i) for i in range(8)]
 dims = [str(i) for i in range(1,8)]
-ite = [str(i) for i in range(1,11)]
+ite = [str(i) for i in range(1,51)]
 
 rule all:
     input:
@@ -48,7 +48,7 @@ rule all:
 
 rule replicate_each:
     params:
-        3
+        1
     output:
         'result/replicate_{a}/iter_{b}/RMSE',
         ['result/replicate_{a}/iter_{b}/' + c + '.tsv' for c in dims]
