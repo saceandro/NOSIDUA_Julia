@@ -10,8 +10,12 @@
 taskid_1=$(($SGE_TASK_ID - 1))
 replicate=$((2 ** ($taskid_1 / 50)))
 iter=$(($taskid_1 % 50 + 1))
-outfile=result/replicate_${replicate}/iter_${iter}/RMSE
-errfile=log/replicate/replicate_${replicate}/iter_${iter}
+outdir=result/replicate_${replicate}/iter_${iter}
+outfile=${outdir}/RMSE
+errdir=log/replicate/replicate_${replicate}
+errfile=${errdir}/iter_${iter}
 
+mkdir -p outdir
+mkdir -p errdir
 echo "./builddir/replicate_ccompile_each $replicate $iter 1> $outfile 2> $errfile"
 ./builddir/replicate_ccompile_each $replicate $iter 1> $outfile 2> $errfile
