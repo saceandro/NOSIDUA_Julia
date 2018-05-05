@@ -85,7 +85,7 @@ rule replicate_each:
         ['result/replicate_' + a + '/iter_' + b + '/' + c + '.tsv' for c in dims for b in ite for a in replicates]
     log:
         ['log/replicate/replicate_' + a + '/iter_' + b for b in ite for a in replicates]
-    shell
+    shell:
         "qsub -sync y -t 1-400:1 array_qsub.sh"
 
 # rule RMSE_totaling:
