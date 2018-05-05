@@ -23,6 +23,16 @@ rule all:
         # 'results/replicate/CI_total.tsv'
         # expand('results/replicate/CI/{param}.tsv', param=replicates)
 
+rule build:
+    input:
+        'replicate_ccompile_each.jl'
+    output:
+        'builddir/replicate_ccompile_each',
+        'builddir/replicate_ccompile_each.so',
+        'builddir/replicate_ccompile_each.o'
+    shell:
+        "julia ~/.julia/v0.6/PackageCompiler/juliac.jl -vae replicate_ccompile_each.jl"
+
 # rulename should not be begin by numbers
 # rule replicate:
 #     params:
