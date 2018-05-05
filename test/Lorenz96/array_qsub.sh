@@ -1,6 +1,6 @@
 #$ -cwd
-#$ -e /home/konta/.ugeerr
-#$ -o /home/konta/.ugeout
+#$ -e /home/konta/bitbucket/androsace/adjoint_julia/test/Lorenz96/log/replicate/err
+#$ -o /home/konta/bitbucket/androsace/adjoint_julia/test/Lorenz96/log/replicate/out
 #$ -S /usr/local/bin/zsh
 ##$ -m es -M konta@hgc.jp
 #$ -V
