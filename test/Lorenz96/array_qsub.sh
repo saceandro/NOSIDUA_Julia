@@ -4,7 +4,7 @@
 #$ -S /usr/local/bin/zsh
 ##$ -m es -M konta@hgc.jp
 #$ -V
-#$ -l s_vmem=1G,mem_req=1G
+#$ -l s_vmem=2G,mem_req=2G
 #$ -r no
 
 taskid_1=$(($SGE_TASK_ID - 1))
