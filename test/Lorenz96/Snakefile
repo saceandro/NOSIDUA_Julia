@@ -317,6 +317,9 @@ rule CI_boxplot:
         g <- g + scale_x_continuous(
             trans = 'log2',
             labels = trans_format('log2', math_format(2^.x)))
+        g <- g + scale_y_continuous(
+            limits=c(0,NA)
+            )
         ggsave(file="{output}", plot=g)
         """)
 
