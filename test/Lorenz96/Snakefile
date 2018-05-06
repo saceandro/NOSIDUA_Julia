@@ -88,6 +88,21 @@ rule replicate_each:
     shell:
         "qsub -sync y -t 1-400:1 array_qsub.sh"
 
+# rule replicate_each_replicate:
+#     params:
+#         1
+#     input:
+#         'builddir/replicate_ccompile_each'
+#     output:
+#         ['result/replicate_{a}/iter_' + b + '/RMSE' for b in ite],
+#         ['result/replicate_{a}/iter_' + b + '/' + c + '.tsv' for c in dims for b in ite]
+#     log:
+#         ['log/replicate/replicate_{a}/iter_' + b for b in ite]
+#     shell:
+#         "qsub -sync y -t 1-50:1 array_qsub_replicate.sh {wildcards.a}"
+#         # import subprocess
+#         # subprocess.run(["qsub -sync y -t 1-50:1 array_qsub_replicate.sh", expand('{a}', b={wildcards.a})[0]])
+
 # rule RMSE_totaling:
 #     params:
 #         1

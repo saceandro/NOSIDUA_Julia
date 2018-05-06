@@ -22,7 +22,6 @@ Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
     trials = 50
 
     pref = "true_data/N_$N/p_$(join(true_params, "_"))/dt_$dt/spinup_$spinup/T_$T/"
-    true_file = pref * "seed_$generation_seed.tsv"
 
     model = Model(typeof(dt), N, N+length(true_params), dxdt!, jacobian!, hessian!)
     dists = [Uniform(-10., 10.), Uniform(-10., 10.), Uniform(-10., 10.), Uniform(-10., 10.), Uniform(-10., 10.), Uniform(0., 10.), Uniform(0., 2.)]
@@ -32,6 +31,8 @@ Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
     replicates = parse(Int, ARGS[1])
     iter = parse(Int, ARGS[2])
 
+    true_file = pref * "seed_$(generation_seed)_forreplicate_$(replicates)_foriter_$(iter).tsv"
+    
     twin_experiment!(outdir, model, obs_variance, obs_iteration, dt, true_params, true_file, dists, replicates, iter, trials)
     return 0
 end
