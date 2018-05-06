@@ -337,9 +337,9 @@ rule CI_boxplot_ylog:
         g <- g + scale_x_continuous(
             trans = 'log2',
             labels = trans_format('log2', math_format(2^.x)))
-        ggsave(file="{output}", plot=g)
         g <- g + scale_y_continuous(
             trans = 'log2')
+        ggsave(file="{output}", plot=g)
         """)
 
 rule CI_plot2:
