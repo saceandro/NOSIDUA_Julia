@@ -20,6 +20,7 @@ rule all:
         # 'results/replicate/plots/RMSE.pdf'
         # expand('result/replicate/iter_plots/{b}.pdf', b=dims)
         expand('result/replicate/boxplots/{b}.pdf', b=dims),
+        expand('result/replicate/CI_boxplots/{b}.pdf', b=dims),
         expand('result/replicate/CI_plots/{b}.pdf', b=dims),
         expand('result/replicate/CI_line_plots/{b}.pdf', b=dims),
         expand('result/replicate/CI_line_ylinear_plots/{b}.pdf', b=dims)
@@ -297,6 +298,27 @@ rule boxplot:
             labels = trans_format('log2', math_format(2^.x)))
         ggsave(file="{output}", plot=g)
         """)
+
+rule CI_boxplot:
+    params:
+        1
+    input:
+        'result/replicate/{b}.tsv'
+    output:
+        'result/replicate/CI_boxplots/{b}.pdf'
+    run:
+        R("""
+        library(ggplot2)
+        library(scales)
+        d <- read.delim("{input[0]}", header=T)
+        g <- ggplot(d, aes(x=replicates, y=CI, group=replicates))
+        g <- g + geom_boxplot()
+        g <- g + scale_x_continuous(
+            trans = 'log2',
+            labels = trans_format('log2', math_format(2^.x)))
+        ggsave(file="{output}", plot=g)
+        """)
+
 
 rule CI_plot2:
     params:
