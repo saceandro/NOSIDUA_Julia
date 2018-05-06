@@ -2,7 +2,7 @@ include("../../src/Adjoints.jl")
 
 module ReplicateIter
 
-using Adjoints, Distributions
+using CatViews.CatView, Adjoints, Distributions
 
 export julia_main
 
@@ -32,7 +32,7 @@ Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
     iter = parse(Int, ARGS[2])
 
     true_file = pref * "seed_$(generation_seed)_forreplicate_$(replicates)_foriter_$(iter).tsv"
-    
+
     twin_experiment!(outdir, model, obs_variance, obs_iteration, dt, true_params, true_file, dists, replicates, iter, trials)
     return 0
 end

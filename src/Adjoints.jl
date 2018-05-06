@@ -1,6 +1,6 @@
 module Adjoints
 
-using NLSolversBase, Optim, Distributions
+using CatViews.CatView, NLSolversBase, Optim, Distributions
 
 export Adjoint, Model, AssimilationResults, initialize!, orbit!, gradient!, cost, assimilate!
 

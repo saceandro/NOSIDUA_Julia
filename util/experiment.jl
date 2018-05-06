@@ -12,7 +12,7 @@ using Adjoints, Distributions, DataFrames, Gadfly
     println("mincost:\t", minimum)
     println("θ:\t", assimilation_results.θ)
     println("ans:\t", [tob[:,1]; true_params])
-    println("diff:\t", assimilation_results.θ .- [tob[:,1]; true_params])
+    println("diff:\t", assimilation_results.θ .- CatView(tob[:,1], true_params))
     if !(isnull(assimilation_results.stddev))
         println("CI:\t", get(assimilation_results.stddev))
     end

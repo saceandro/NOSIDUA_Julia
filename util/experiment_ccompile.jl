@@ -3,8 +3,8 @@
     N = length(assimilation_results.θ)
     println(STDERR, "mincost:\t", minimum)
     println(STDERR, "θ:\t", assimilation_results.θ)
-    println(STDERR, "ans:\t", [tob[:,1]; true_params])
-    diff = assimilation_results.θ .- [tob[:,1]; true_params]
+    println(STDERR, "ans:\t", CatView(tob[:,1], true_params))
+    diff = assimilation_results.θ .- CatView(tob[:,1], true_params)
     println(STDERR, "diff:\t", diff)
     println(sqrt(mapreduce(abs2, +, diff) / N)) # output RMSE to STDOUT
     if !(isnull(assimilation_results.stddev))
