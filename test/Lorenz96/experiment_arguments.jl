@@ -7,7 +7,7 @@ using Adjoints, Distributions, ArgParse, CatViews.CatView, Juno
 export julia_main
 
 include("model.jl")
-include("../../util/argprase.jl")
+# include("../../util/argprase.jl")
 include("../../util/experiment_ccompile.jl")
 
 Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
@@ -74,7 +74,7 @@ Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
         "--iter"
             help = "#iterations"
             arg_type = Int
-            default = 2
+            default = 1
     end
 
     # set_args(settings)
@@ -85,8 +85,14 @@ Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
     # model = Model(Float64, dimension, length(initial_lower_bounds), dxdt!, jacobian!, hessian!)
     model = Model(Float64, parsed_args["dimension"], length(parsed_args["initial-lower-bounds"]), dxdt!, jacobian!, hessian!)
 
+    kw_args = map(parsed_args) do kv
+        Symbol(replace(kv.first, "-", "_")) => kv.second
+    end
+
     # twin_experiment!(args_hash, dir, model, obs_variance, obs_iteration, dt, spinup, duration, generation_seed, true_params, initial_lower_bounds, initial_upper_bounds, replicates, iter, trials)
-    twin_experiment!(model, parsed_args)
+    # twin_experiment!(model, parsed_args)
+    twin_experiment!(model; kw_args...)
+
     return 0
 end
 
