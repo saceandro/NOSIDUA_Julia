@@ -41,6 +41,18 @@ rule build:
     shell:
         "julia ~/.julia/v0.6/PackageCompiler/juliac.jl -vae replicate_ccompile_each.jl"
 
+rule build2:
+    params:
+        1
+    input:
+        'experiment_arguments.jl'
+    output:
+        'builddir/experiment_arguments',
+        'builddir/experiment_arguments.so',
+        'builddir/experiment_arguments.o'
+    shell:
+        "julia ~/.julia/v0.6/PackageCompiler/juliac.jl -vae experiment_arguments.jl"
+
 # rulename should not be begin by numbers
 # rule replicate:
 #     params:
