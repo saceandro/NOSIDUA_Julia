@@ -62,6 +62,75 @@ end
 
 twin_experiment!(outdir::String, model::Model{N,L,T}, obs_variance::T, obs_iteration::Int, dt::T, true_params::AbstractVector{T}, true_file::String, dists, replicates::Int, iter::Int, trials=10) where {N,L,T} = twin_experiment!(outdir, model, obs_variance, obs_iteration, dt, true_params, readdlm(true_file)', dists, replicates, iter, trials)
 
+# function twin_experiment!(model::Model{N,L}, parsed_args) where {N,L}
+#     args2varname(parsed_args)
+#     srand(generation_seed)
+#     dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L]
+#     x0 = rand.(view(dists, 1:N))
+#     a = Adjoint(dt, duration, obs_variance, x0, copy(true_params), replicates)
+#     orbit!(a, model)
+#     srand(hash(parsed_args))
+#     d = Normal(0., sqrt(obs_variance))
+#     for _replicate in 1:replicates
+#         a.obs[:,:,_replicate] .= a.x .+ rand(d, N, a.steps+1)
+#         for _i in 1:obs_iteration:a.steps
+#             for _k in 1:obs_iteration-1
+#                 a.obs[:, _i + _k, _replicate] .= NaN
+#             end
+#         end
+#     end
+#     twin_experiment!(dir, a, model, true_params, dists, trials)
+# end
+
+function twin_experiment!(model::Model{N,L}, parsed_args) where {N,L}
+    args2varname(parsed_args)
+    twin_experiment!(hash(parsed_args), dir, model, obs_variance, obs_iteration, dt, spinup, duration, generation_seed, true_params, initial_lower_bounds, initial_upper_bounds, replicates, iter, trials)
+end
+
+# function twin_experiment!(model::Model{N,L}, s) where {N,L}
+#     srand(s["generation_seed"])
+#     dists = [Uniform(s["initial_lower_bounds"][i], s["initial_upper_bounds"][i]) for i in 1:L]
+#     x0 = rand.(view(dists, 1:N))
+#     a = Adjoint(s["dt"], s["duration"], s["obs_variance"], x0, copy(s["true_params"]), s["replicates"])
+#     orbit!(a, model)
+#     srand(hash(s))
+#     d = Normal(0., sqrt(s["obs_variance"]))
+#     for _replicate in 1:s["replicates"]
+#         a.obs[:,:,_replicate] .= a.x .+ rand(d, N, a.steps+1)
+#         for _i in 1:s["obs_iteration"]:a.steps
+#             for _k in 1:s["obs_iteration"]-1
+#                 a.obs[:, _i + _k, _replicate] .= NaN
+#             end
+#         end
+#     end
+#     twin_experiment!(s["dir"], a, model, s["true_params"], dists, s["trials"])
+# end
+
+function twin_experiment!(args_hash, outdir::String, model::Model{N,L,T}, obs_variance::T, obs_iteration::Int, dt::T, spinup::T, total_T::T, generation_seed::Int, true_params::AbstractVector{T}, initial_lower_bounds::AbstractVector{T}, initial_upper_bounds::AbstractVector{T}, replicates::Int, iter::Int, trials=10) where {N,L,T}
+    srand(generation_seed)
+    dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L]
+    x0 = rand.(view(dists, 1:N))
+    a = Adjoint(dt, total_T, obs_variance, x0, copy(true_params), replicates)
+    orbit!(a, model)
+    srand(args_hash)
+    d = Normal(0., sqrt(obs_variance))
+    for _replicate in 1:replicates
+        a.obs[:,:,_replicate] .= a.x .+ rand(d, N, a.steps+1)
+        for _i in 1:obs_iteration:a.steps
+            for _k in 1:obs_iteration-1
+                a.obs[:, _i + _k, _replicate] .= NaN
+            end
+        end
+    end
+    twin_experiment!(outdir, a, model, true_params, dists, trials)
+end
+
+function twin_experiment!(outdir::String, a::Adjoint{N,L,K,T}, model::Model{N,L,T}, true_params::AbstractVector{T}, dists, trials=10) where {N,L,K,T<:AbstractFloat}
+    tob = copy(a.x)
+    assimres, minres = assimilate!(a, model, dists, trials)
+    write_twin_experiment_result(outdir, assimres, minres.minimum, true_params, tob)
+end
+
 function twin_experiment_iter!(outdir::String, model::Model{N,L}, true_params, obs_variance, obs_iteration, dt, spinup, T, seed, replicates, dists, trials=10, iter=10) where {N,L}
     srand(seed)
     x0 = rand.(dists[1:N])
