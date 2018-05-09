@@ -1,0 +1,9 @@
+dir: "result"
+true_params: 8.0 1.0
+initial_lower_bounds: -10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0
+initial_upper_bounds: 10.0 10.0 10.0 10.0 10.0 16.0 2.0
+spinup: 73.0
+generation_seed: 0
+trials: 50
+maxiter: 100
+hoge: 1,2
