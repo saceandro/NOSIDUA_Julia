@@ -9,10 +9,10 @@
     println(sqrt(mapreduce(abs2, +, diff) / N)) # output RMSE to STDOUT
     if !(isnull(assimilation_results.stddev))
         println(STDERR, "CI:\t", get(assimilation_results.stddev))
-    end
-    for _i in 1:N
-        open(pref * "$_i.tsv", "w") do f
-            println(f, "$(diff[_i])\t$(get(assimilation_results.stddev)[_i])")
+        for _i in 1:N
+            open(pref * "$_i.tsv", "w") do f
+                println(f, "$(diff[_i])\t$(get(assimilation_results.stddev)[_i])")
+            end
         end
     end
     nothing
@@ -116,23 +116,76 @@ end
 #                         trials
 #                     )
 
-function twin_experiment!(
-    model::Model{N,L};
-    dir = "result1/",
-    true_params = [8., 1.],
-    initial_lower_bounds = [-10.,-10.,-10.,-10.,-10.,0.,0.],
-    initial_upper_bounds = [10.,10.,10.,10.,10.,16.,2.],
-    obs_variance = 1.,
-    obs_iteration = 5,
-    dt = 0.01,
-    spinup = 73.,
-    duration = 1.,
-    generation_seed = 0,
-    trials = 50,
-    replicates = 1,
-    iter = 1
-    ) where {N,L}
+# function twin_experiment!(
+#     model::Model{N,L};
+#     dir = "result1/",
+#     true_params = [8., 1.],
+#     initial_lower_bounds = [-10.,-10.,-10.,-10.,-10.,0.,0.],
+#     initial_upper_bounds = [10.,10.,10.,10.,10.,16.,2.],
+#     obs_variance = 1.,
+#     obs_iteration = 5,
+#     dt = 0.01,
+#     spinup = 73.,
+#     duration = 1.,
+#     generation_seed = 0,
+#     trials = 50,
+#     replicates = 1,
+#     iter = 1
+#     ) where {N,L}
+#
+#     srand(generation_seed)
+#     dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L]
+#     x0 = rand.(view(dists, 1:N))
+#     a = Adjoint(dt, duration, obs_variance, x0, copy(true_params), replicates)
+#     orbit!(a, model)
+#     srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, obs_variance, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
+#     d = Normal(0., sqrt(obs_variance))
+#     for _replicate in 1:replicates
+#         a.obs[:,:,_replicate] .= a.x .+ rand(d, N, a.steps+1)
+#         for _i in 1:obs_iteration:a.steps
+#             for _k in 1:obs_iteration-1
+#                 a.obs[:, _i + _k, _replicate] .= NaN
+#             end
+#         end
+#     end
+#     twin_experiment!(dir, a, model, true_params, dists, trials)
+# end
 
+function twin_experiment!(
+    dxdt!::Function,
+    jacobian!::Function,
+    hessian!::Function;
+    dir = nothing,
+    true_params = nothing,
+    initial_lower_bounds = nothing,
+    initial_upper_bounds = nothing,
+    obs_variance = nothing,
+    obs_iteration = nothing,
+    dt = nothing,
+    spinup = nothing,
+    duration = nothing,
+    generation_seed = nothing,
+    trials = nothing,
+    replicates = nothing,
+    iter = nothing
+    # dir = "result1/",
+    # true_params = [8., 1.],
+    # initial_lower_bounds = [-10.,-10.,-10.,-10.,-10.,0.,0.],
+    # initial_upper_bounds = [10.,10.,10.,10.,10.,16.,2.],
+    # obs_variance = 1.,
+    # obs_iteration = 5,
+    # dt = 0.01,
+    # spinup = 73.,
+    # duration = 1.,
+    # generation_seed = 0,
+    # trials = 50,
+    # replicates = 1,
+    # iter = 1
+    )
+
+    L = length(initial_lower_bounds)
+    N = L - length(true_params)
+    model = Model(typeof(obs_variance), N, L, dxdt!, jacobian!, hessian!)
     srand(generation_seed)
     dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L]
     x0 = rand.(view(dists, 1:N))
@@ -150,6 +203,7 @@ function twin_experiment!(
     end
     twin_experiment!(dir, a, model, true_params, dists, trials)
 end
+
 
 # function twin_experiment!(model::Model{N,L}, parsed_args) where {N,L}
 #     args2varname(parsed_args)

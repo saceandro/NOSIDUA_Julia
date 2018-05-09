@@ -2,18 +2,18 @@ include("../../src/Adjoints.jl")
 
 module Experiment
 
-using Adjoints, Distributions, ArgParse, CatViews.CatView, Juno
+using Adjoints, Distributions, ArgParse, CatViews.CatView
 
 export julia_main
 
 include("model.jl")
-# include("../../util/argprase.jl")
 include("../../util/experiment_ccompile.jl")
+include("../../util/check_args.jl")
 
-Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
+Base.@ccallable function julia_main(args::Vector{String})::Cint
     settings = ArgParseSettings("Adjoint method",
-                                prog = "experiment_arguments",
-                                version = "$(basename(@__FILE__)) version 0.1",
+                                prog = first(splitext(basename(@__FILE__))),
+                                version = "$(first(splitext(basename(@__FILE__)))) version 0.1",
                                 add_version = true,
                                 autofix_names = true)
 
@@ -74,13 +74,10 @@ Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
             default = 1
     end
 
-    parsed_args = parse_args(ARGS, settings; as_symbols=true) # ARGS is needed for static compilation; Otherwise, global ARGS is used.
+    parsed_args = parse_args(args, settings; as_symbols=true) # ARGS is needed for static compilation; Otherwise, global ARGS is used.
+    check_args(settings; parsed_args...)
 
-    L = length(parsed_args[:initial_lower_bounds])
-    N = L - length(parsed_args[:true_params])
-    model = Model(Float64, N, L, dxdt!, jacobian!, hessian!)
-
-    twin_experiment!(model; parsed_args...)
+    twin_experiment!(dxdt!, jacobian!, hessian!; parsed_args...)
 
     return 0
 end
