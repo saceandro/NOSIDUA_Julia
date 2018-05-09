@@ -1,22 +1,39 @@
-@views function write_twin_experiment_result(pref, assimilation_results, minimum, true_params, tob)
+# @views function write_twin_experiment_result(pref, assimilation_results, minimum, true_params, tob)
+#     mkpath(pref)
+#     N = length(assimilation_results.θ)
+#     println(STDERR, "mincost:\t", minimum)
+#     println(STDERR, "θ:\t", assimilation_results.θ)
+#     println(STDERR, "ans:\t", CatView(tob[:,1], true_params))
+#     diff = assimilation_results.θ .- CatView(tob[:,1], true_params)
+#     println(STDERR, "diff:\t", diff)
+#     println(sqrt(mapreduce(abs2, +, diff) / N)) # output RMSE to STDOUT
+#     if !(isnull(assimilation_results.stddev))
+#         println(STDERR, "CI:\t", get(assimilation_results.stddev))
+#         for _i in 1:N
+#             open(pref * "$_i.tsv", "w") do f
+#                 println(f, "$(diff[_i])\t$(get(assimilation_results.stddev)[_i])")
+#             end
+#         end
+#     end
+#     nothing
+# end
+
+@views function write_twin_experiment_result(dir, assimilation_results, minimum, true_params, tob)
     mkpath(pref)
-    N = length(assimilation_results.θ)
+    L = length(assimilation_results.θ)
     println(STDERR, "mincost:\t", minimum)
     println(STDERR, "θ:\t", assimilation_results.θ)
     println(STDERR, "ans:\t", CatView(tob[:,1], true_params))
     diff = assimilation_results.θ .- CatView(tob[:,1], true_params)
     println(STDERR, "diff:\t", diff)
-    println(sqrt(mapreduce(abs2, +, diff) / N)) # output RMSE to STDOUT
+    println(sqrt(mapreduce(abs2, +, diff) / L)) # output RSME to STDOUT
     if !(isnull(assimilation_results.stddev))
         println(STDERR, "CI:\t", get(assimilation_results.stddev))
-        for _i in 1:N
-            open(pref * "$_i.tsv", "w") do f
-                println(f, "$(diff[_i])\t$(get(assimilation_results.stddev)[_i])")
-            end
-        end
+        writedlm(dir * "estimates.tsv", reshape(CatView(diff, get(assimilation_results.stddev)), L, 2))
     end
     nothing
 end
+
 
 # function twin_experiment!(model::Model{N,L,T}, obs::AbstractArray{T,3}, obs_variance::T, dt::T, true_params::AbstractVector{T}, tob::AbstractMatrix{T}, dists, trials=10) where {N,L,T<:AbstractFloat}
 #     replicates = size(obs, 3)
@@ -188,6 +205,7 @@ function twin_experiment!(
             end
         end
     end
+    dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/spinup_$spinup/generation_seed_$generation_seed/trials_$trials/obs_variance_$obs_variance/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
     twin_experiment!(dir, a, model, true_params, dists, trials)
 end
 

@@ -20,7 +20,8 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
     @add_arg_table settings begin
         "--dir", "-d"
             help = "output directory"
-            default = "result1/"
+            # default = "result1/"
+            default = "result1"
         "--true-params", "-p"
             help = "true parameters"
             arg_type = Float64

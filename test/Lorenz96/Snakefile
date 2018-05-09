@@ -1,5 +1,4 @@
-import sys
-import subprocess
+import sys, os, subprocess
 from snakemake.utils import R
 
 def execcommand(cmd,stdout,stderr,input=""):
@@ -10,9 +9,68 @@ def execcommand(cmd,stdout,stderr,input=""):
         outf.close()
     return o,e
 
+obs_variance = [str(float(i)) for i in range(1,2)]
+obs_iteration = [str(i) for i in range(5,6)]
+dt = [str(0.01*i) for i in range(1,2)]
+duration = [str(float(i)) for i in range(1,2)]
 replicates = [str(2**i) for i in range(8)]
+iterations = [str(i) for i in range(1,101)]
 dims = [str(i) for i in range(1,8)]
-ite = [str(i) for i in range(1,51)]
+
+configfile: "snakeconfig.yaml"
+
+rule junk:
+    run:
+        outdir = "/".join([\
+        config["dir"],\
+        "true_params_" + config["true_params"].replace(" ", "_"),\
+        "initial_lower_bounds_" + config["initial_lower_bounds"].replace(" ", "_"),\
+        "initial_upper_bounds_" + config["initial_upper_bounds"].replace(" ", "_"),\
+        "spinup_" + str(config["spinup"]),\
+        "generation_seed_" + str(config["generation_seed"]),\
+        "trials_" + str(config["trials"])\
+        ])
+        for _obs_variance in obs_variance:
+            for _obs_iteration in obs_iteration:
+                for _dt in dt:
+                    for _duration in duration:
+                        for _replicates in replicates:
+                            for _iterations in iterations:
+                                for _dims in dims:
+                                    print("/".join([outdir,\
+                                    "obs_variance_" + _obs_variance,\
+                                    "obs_iteration_" + _obs_iteration,\
+                                    "dt_" + _dt,\
+                                    "duration_" + _duration,\
+                                    "replicates_" + _replicates,\
+                                    "iter_" + _iterations,\
+                                    _dims + ".tsv"\
+                                    ]))
+
+rule junk2:
+    run:
+        print(expand(\
+        "{outdir}/true_params_{true_params}/initial_lower_bounds_{initial_lower_bounds}/initial_upper_bounds_{initial_upper_bounds}/spinup_{spinup}/generation_seed_{generation_seed}/trials_{trials}/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iter_{iterations}/{dims}.tsv",\
+        outdir = config["dir"],\
+        true_params = config["true_params"].replace(" ", "_"),\
+        initial_lower_bounds = config["initial_lower_bounds"].replace(" ", "_"),\
+        initial_upper_bounds = config["initial_upper_bounds"].replace(" ", "_"),\
+        spinup = str(config["spinup"]),\
+        generation_seed = str(config["generation_seed"]),\
+        trials = str(config["trials"]),\
+        obs_variance = obs_variance,\
+        obs_iteration = obs_iteration,\
+        dt = dt,\
+        duration = duration,\
+        replicates = replicates,\
+        iterations = iterations,\
+        dims = dims\
+        ))
+
+rule junk3:
+    run:
+        print(config["hoge"])
+        print(type(config["hoge"]))
 
 rule all:
     input:
@@ -29,19 +87,19 @@ rule all:
         # 'results/replicate/CI_total.tsv'
         # expand('results/replicate/CI/{param}.tsv', param=replicates)
 
-rule build:
-    params:
-        1
-    input:
-        'replicate_ccompile_each.jl'
-    output:
-        'builddir/replicate_ccompile_each',
-        'builddir/replicate_ccompile_each.so',
-        'builddir/replicate_ccompile_each.o'
-    shell:
-        "julia ~/.julia/v0.6/PackageCompiler/juliac.jl -vae replicate_ccompile_each.jl"
+# rule build:
+#     params:
+#         1
+#     input:
+#         'replicate_ccompile_each.jl'
+#     output:
+#         'builddir/replicate_ccompile_each',
+#         'builddir/replicate_ccompile_each.so',
+#         'builddir/replicate_ccompile_each.o'
+#     shell:
+#         "julia ~/.julia/v0.6/PackageCompiler/juliac.jl -vae replicate_ccompile_each.jl"
 
-rule build2:
+rule build:
     params:
         1
     input:
@@ -54,27 +112,6 @@ rule build2:
         "julia ~/.julia/v0.6/PackageCompiler/juliac.jl -vae experiment_arguments.jl"
 
 # rulename should not be begin by numbers
-# rule replicate:
-#     params:
-#         3
-#     output:
-#         'results/replicate_{a}/RMSE',
-#         ['results/replicate_{a}/' + b + '.tsv' for b in dims]
-#     log:
-#         'log/replicate/replicate/{a}'
-#     run:
-#         execcommand(expand('./builddir/replicate_ccompile {n}', n={wildcards.a}), output[0], log[0])
-
-# rule replicate_iter:
-#     params:
-#         3
-#     output:
-#         'result/replicate_{a}/RMSE',
-#         ['result/replicate_{a}/iter_' + b + '/' + c + '.tsv' for c in dims for b in ite]
-#     log:
-#         'log/replicate/replicate/{a}'
-#     run:
-#         execcommand(expand('./builddir/replicate_ccompile_iter {n}', n={wildcards.a}), output[0], log[0])
 
 # rule replicate_each:
 #     params:
@@ -89,18 +126,59 @@ rule build2:
 #     run:
 #         execcommand(expand('./builddir/replicate_ccompile_each {a} {b}', a={wildcards.a}, b={wildcards.b}), output[0], log[0])
 
-rule replicate_each:
+# rule replicate_each:
+#     params:
+#         1
+#     input:
+#         'builddir/replicate_ccompile_each'
+#     output:
+#         ['result/replicate_' + a + '/iter_' + b + '/RMSE' for b in iterations for a in replicates],
+#         ['result/replicate_' + a + '/iter_' + b + '/' + c + '.tsv' for c in dims for b in iterations for a in replicates]
+#     log:
+#         ['log/replicate/replicate_' + a + '/iter_' + b for b in iterations for a in replicates]
+#     shell:
+#         "qsub -sync y -t 1-400:1 array_qsub.sh"
+
+rule experiment:
     params:
         1
     input:
-        'builddir/replicate_ccompile_each'
+        'builddir/experiment_arguments'
     output:
-        ['result/replicate_' + a + '/iter_' + b + '/RMSE' for b in ite for a in replicates],
-        ['result/replicate_' + a + '/iter_' + b + '/' + c + '.tsv' for c in dims for b in ite for a in replicates]
-    log:
-        ['log/replicate/replicate_' + a + '/iter_' + b for b in ite for a in replicates]
-    shell:
-        "qsub -sync y -t 1-400:1 array_qsub.sh"
+        expand(\
+        "{outdir}/true_params_{true_params}/initial_lower_bounds_{initial_lower_bounds}/initial_upper_bounds_{initial_upper_bounds}/spinup_{spinup}/generation_seed_{generation_seed}/trials_{trials}/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iter_{iterations}/estimates.tsv",\
+        outdir = config["dir"],\
+        true_params = config["true_params"].replace(" ", "_"),\
+        initial_lower_bounds = config["initial_lower_bounds"].replace(" ", "_"),\
+        initial_upper_bounds = config["initial_upper_bounds"].replace(" ", "_"),\
+        spinup = str(config["spinup"]),\
+        generation_seed = str(config["generation_seed"]),\
+        trials = str(config["trials"]),\
+        obs_variance = obs_variance,\
+        obs_iteration = obs_iteration,\
+        dt = dt,\
+        duration = duration,\
+        replicates = replicates,\
+        iterations = iterations\
+        )
+    run:
+        suprocess.run(\
+        expand("dir={outdir} true_params={true_params} initial_lower_bounds={initial_lower_bounds} initial_upper_bounds={initial_upper_bounds} spinup={spinup} generation_seed={generation_seed} trials={trials} obs_variance={obs_variance} obs_iteration={obs_iteration} dt={dt} duration={duration} replicates={replicates} qsub -sync y -t 1:{maxiter}:1 array_qsub_experiment.sh {logdir}"\
+        outdir = config["dir"],\
+        true_params = config["true_params"].replace(" ", "_"),\
+        initial_lower_bounds = config["initial_lower_bounds"].replace(" ", "_"),\
+        initial_upper_bounds = config["initial_upper_bounds"].replace(" ", "_"),\
+        spinup = str(config["spinup"]),\
+        generation_seed = str(config["generation_seed"]),\
+        trials = str(config["trials"]),\
+        obs_variance = obs_variance,\
+        obs_iteration = obs_iteration,\
+        dt = dt,\
+        duration = duration,\
+        replicates = replicates,\
+        maxiter = str(config["maxiter"]),\
+        logdir = dirname(output[0]) + "/" + os.pardir + "/"\
+        ))
 
 # rule replicate_each_replicate:
 #     params:
@@ -108,10 +186,10 @@ rule replicate_each:
 #     input:
 #         'builddir/replicate_ccompile_each'
 #     output:
-#         ['result/replicate_{a}/iter_' + b + '/RMSE' for b in ite],
-#         ['result/replicate_{a}/iter_' + b + '/' + c + '.tsv' for c in dims for b in ite]
+#         ['result/replicate_{a}/iter_' + b + '/RMSE' for b in iterations],
+#         ['result/replicate_{a}/iter_' + b + '/' + c + '.tsv' for c in dims for b in iterations]
 #     log:
-#         ['log/replicate/replicate_{a}/iter_' + b for b in ite]
+#         ['log/replicate/replicate_{a}/iter_' + b for b in iterations]
 #     shell:
 #         "qsub -sync y -t 1-50:1 array_qsub_replicate.sh {wildcards.a}"
 #         # import subprocess
@@ -155,7 +233,7 @@ rule replicate_each:
 #     params:
 #         1
 #     input:
-#         ['result/replicate_{a}/iter_' + it + '/{b}.tsv' for it in ite]
+#         ['result/replicate_{a}/iter_' + it + '/{b}.tsv' for it in iterations]
 #     output:
 #         'result/replicate_{a}/{b}.tsv'
 #     log:
@@ -181,7 +259,7 @@ rule totaling_replicate:
     params:
         1
     input:
-        ['result/replicate_' + a + '/iter_' + it + '/{b}.tsv' for a in replicates for it in ite]
+        ['result/replicate_' + a + '/iter_' + it + '/{b}.tsv' for a in replicates for it in iterations]
     output:
         'result/replicate/{b}.tsv'
     log:
@@ -190,7 +268,7 @@ rule totaling_replicate:
         with open(output[0],'w') as outf:
             outf.write("replicates\tdiff\tCI\n")
             for i in replicates:
-                for j in ite:
+                for j in iterations:
                     with open('result/replicate_' + i + '/iter_' + j + expand('/{b}', b={wildcards.b})[0] + '.tsv', 'r') as infile:
                         outf.write('%s\t%s\n' % (i, infile.readline().rstrip('\n')))
                         infile.close()
