@@ -14,16 +14,13 @@ Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
     settings = ArgParseSettings("Adjoint method",
                                 prog = "experiment_arguments",
                                 version = "$(basename(@__FILE__)) version 0.1",
-                                add_version = true)
+                                add_version = true,
+                                autofix_names = true)
 
     @add_arg_table settings begin
         "--dir", "-d"
             help = "output directory"
             default = "result1/"
-        "--dimension", "-n"
-            help = "model dimension"
-            arg_type = Int
-            default = 5
         "--true-params", "-p"
             help = "true parameters"
             arg_type = Float64
@@ -77,21 +74,13 @@ Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
             default = 1
     end
 
-    # set_args(settings)
-    parsed_args = parse_args(ARGS, settings) # ARGS is needed for static compilation; Otherwise, global ARGS is used.
+    parsed_args = parse_args(ARGS, settings; as_symbols=true) # ARGS is needed for static compilation; Otherwise, global ARGS is used.
 
-    # args_hash = hash([dimension, true_params, initial_lower_bounds, initial_upper_bounds, obs_variance, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter])
+    L = length(parsed_args[:initial_lower_bounds])
+    N = L - length(parsed_args[:true_params])
+    model = Model(Float64, N, L, dxdt!, jacobian!, hessian!)
 
-    # model = Model(Float64, dimension, length(initial_lower_bounds), dxdt!, jacobian!, hessian!)
-    model = Model(Float64, parsed_args["dimension"], length(parsed_args["initial-lower-bounds"]), dxdt!, jacobian!, hessian!)
-
-    kw_args = map(parsed_args) do kv
-        Symbol(replace(kv.first, "-", "_")) => kv.second
-    end
-
-    # twin_experiment!(args_hash, dir, model, obs_variance, obs_iteration, dt, spinup, duration, generation_seed, true_params, initial_lower_bounds, initial_upper_bounds, replicates, iter, trials)
-    # twin_experiment!(model, parsed_args)
-    twin_experiment!(model; kw_args...)
+    twin_experiment!(model; parsed_args...)
 
     return 0
 end

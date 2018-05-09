@@ -119,7 +119,6 @@ end
 function twin_experiment!(
     model::Model{N,L};
     dir = "result1/",
-    dimension = 5,
     true_params = [8., 1.],
     initial_lower_bounds = [-10.,-10.,-10.,-10.,-10.,0.,0.],
     initial_upper_bounds = [10.,10.,10.,10.,10.,16.,2.],
@@ -139,7 +138,7 @@ function twin_experiment!(
     x0 = rand.(view(dists, 1:N))
     a = Adjoint(dt, duration, obs_variance, x0, copy(true_params), replicates)
     orbit!(a, model)
-    srand(hash([dimension, true_params, initial_lower_bounds, initial_upper_bounds, obs_variance, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
+    srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, obs_variance, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
     d = Normal(0., sqrt(obs_variance))
     for _replicate in 1:replicates
         a.obs[:,:,_replicate] .= a.x .+ rand(d, N, a.steps+1)
