@@ -168,19 +168,6 @@ function twin_experiment!(
     trials = nothing,
     replicates = nothing,
     iter = nothing
-    # dir = "result1/",
-    # true_params = [8., 1.],
-    # initial_lower_bounds = [-10.,-10.,-10.,-10.,-10.,0.,0.],
-    # initial_upper_bounds = [10.,10.,10.,10.,10.,16.,2.],
-    # obs_variance = 1.,
-    # obs_iteration = 5,
-    # dt = 0.01,
-    # spinup = 73.,
-    # duration = 1.,
-    # generation_seed = 0,
-    # trials = 50,
-    # replicates = 1,
-    # iter = 1
     )
 
     L = length(initial_lower_bounds)
