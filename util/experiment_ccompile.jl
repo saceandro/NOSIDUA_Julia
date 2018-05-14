@@ -19,7 +19,7 @@
 # end
 
 @views function write_twin_experiment_result(dir, assimilation_results, minimum, true_params, tob)
-    mkpath(pref)
+    mkpath(dir)
     L = length(assimilation_results.θ)
     println(STDERR, "mincost:\t", minimum)
     println(STDERR, "θ:\t", assimilation_results.θ)

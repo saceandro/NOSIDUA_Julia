@@ -1,5 +1,8 @@
-import sys, os, subprocess
+import sys, os, subprocess, itertools
+import numpy as np
 from snakemake.utils import R
+
+configfile: "snakeconfig.yaml"
 
 def execcommand(cmd,stdout,stderr,input=""):
     with open(stdout, "w") as outf:
@@ -9,80 +12,289 @@ def execcommand(cmd,stdout,stderr,input=""):
         outf.close()
     return o,e
 
-obs_variance = [str(float(i)) for i in range(1,2)]
-obs_iteration = [str(i) for i in range(5,6)]
-dt = [str(0.01*i) for i in range(1,2)]
-duration = [str(float(i)) for i in range(1,2)]
-replicates = [str(2**i) for i in range(8)]
-iterations = [str(i) for i in range(1,101)]
-dims = [str(i) for i in range(1,8)]
+def makepath(dirdic):
+    return "/".join(["{dir}".format(**dirdic), "/".join("{}_{}".format(key,str(val).replace(" ", "_")) for (key,val) in config.items())])
+    # a = ""
+    # for key,val in config.items():
+    #     a += key + "_" + str(val).replace(" ", "_") + "/"
+    # return a
 
-configfile: "snakeconfig.yaml"
+dirdic = {\
+"dir": "result"
+}
+outdir = "result"
+basedir = makepath(dirdic)
 
-rule junk:
-    run:
-        outdir = "/".join([\
-        config["dir"],\
-        "true_params_" + config["true_params"].replace(" ", "_"),\
-        "initial_lower_bounds_" + config["initial_lower_bounds"].replace(" ", "_"),\
-        "initial_upper_bounds_" + config["initial_upper_bounds"].replace(" ", "_"),\
-        "spinup_" + str(config["spinup"]),\
-        "generation_seed_" + str(config["generation_seed"]),\
-        "trials_" + str(config["trials"])\
-        ])
-        for _obs_variance in obs_variance:
-            for _obs_iteration in obs_iteration:
-                for _dt in dt:
-                    for _duration in duration:
-                        for _replicates in replicates:
-                            for _iterations in iterations:
-                                for _dims in dims:
-                                    print("/".join([outdir,\
-                                    "obs_variance_" + _obs_variance,\
-                                    "obs_iteration_" + _obs_iteration,\
-                                    "dt_" + _dt,\
-                                    "duration_" + _duration,\
-                                    "replicates_" + _replicates,\
-                                    "iter_" + _iterations,\
-                                    _dims + ".tsv"\
-                                    ]))
+# paramsdic = {\
+# "obs_variance":  [str(float(i)) for i in range(1,2)],\
+# "obs_iteration": [str(i) for i in range(5,6)],\
+# "dt":            [str(0.01*i) for i in range(1,2)],\
+# "duration":      [str(float(i)) for i in range(1,2)],\
+# "replicates":    [str(2**i) for i in range(8)],\
+# "iterations":    [str(i) for i in range(1,101)],\
+# "dims":          [str(i) for i in range(1,8)]\
+# }
+paramsdic = {\
+"obs_variance":  np.arange(1.,2.,1.),\
+"obs_iteration": np.arange(5,6,1),\
+"dt":            np.arange(0.01,0.02,0.01),\
+"duration":      np.arange(1.,2.,1.),\
+"replicates":    pow(2, np.arange(0,8,1))\
+# "iterations":    np.arange(1,101,1)\
+}
 
-rule junk2:
+arrayparam = {\
+"iterations":    np.arange(1,101,1)\
+}
+
+arrayparam_length = {\
+"maxiter":       len(arrayparam["iterations"])\
+}
+
+config_paramsdic = dict(config, **paramsdic)
+alldic = dict(paramsdic, **arrayparam)
+config_alldic = dict(config, **alldic)
+
+# paramsdics = [{\
+# "obs_variance":  float(i),\
+# "obs_iteration": j,\
+# "dt":            0.01*k,\
+# "duration":      float(l),\
+# "replicates":    2**m,\
+# "iterations":    n,\
+# "dims":          o\
+# }\
+# for i in range(1,2)\
+# for j in range(5,6)\
+# for k in range(1,2)\
+# for l in range(1,2)\
+# for m in range(8)\
+# for n in range(1,101)\
+# for o in range(1,8)\
+# ]
+
+def dic_path(basedir, paramsdic):
+    return "/".join([basedir, "/".join("{}_{}".format(*item) for item in paramsdic.items())])
+
+# def format_dics(paramsdics):
+#     return [format_dic(paramsdic) for paramsdic in paramsdics]
+
+def divide_dic(paramsdic):
+    return [dict(zip(paramsdic.keys(), item)) for item in itertools.product(*paramsdic.values())]
+
+def format_divide_alldics(dirdic, alldics):
+    return ["/".join(["{dir}".format(**dirdic), "/".join(["{}_{}".format(key,str(val).replace(" ", "_")) for (key,val) in item.items()])]) for item in alldics]
+
+def format_divide_dic(basedir, paramsdic):
+    return ["/".join([basedir, "/".join("{}_{}".format(*i) for i in zip(paramsdic.keys(), item))]) for item in itertools.product(*paramsdic.values())]
+
+def shell_format_dic(paramdic):
+    return " ".join("{}='{}'".format(*item) for item in paramdic.items())
+
+def shell_format_wildcard(paramsdic):
+    return " ".join("{0}={{{0}}}".format(key) for key in paramsdic.keys())
+
+def shell_format_dics(base, paramdics):
+    return [" ".join([base, shell_format_dic(paramdic)]) for paramdic in paramdics]
+
+# def shell_format_dics_run(base, paramdics, shellfile):
+#     return [" ".join([base, shell_format_dic(paramdic)]) + " ./" + shellfile for paramdic in paramdics]
+#
+# def shell_format_dics_run(config_paramdics, shellfile):
+#     return [shell_format_dic(config_paramdic) + " ./" + shellfile for config_paramdic in config_paramdics]
+#
+# def shell_format_dics_run_wildcard(config_paramsdic, shellfile):
+#     return shell_format_wildcard(config_paramsdic) + " ./" + shellfile
+
+def shell_format_dics_run(base, paramdics, shellfile, maxiter):
+    return [" ".join([base, shell_format_dic(paramdic)]) + " qsub -sync y -t 1:{maxiter}:1 ./".format(**arrayparam_length) + shellfile for paramdic in paramdics]
+
+def shell_format_dics_run(config_paramdics, shellfile):
+    return [shell_format_dic(config_paramdic) + " qsub -sync y -t 1:{maxiter}:1 ./".format(**arrayparam_length) + shellfile for config_paramdic in config_paramdics]
+
+def shell_format_dics_run_wildcard(config_paramsdic, shellfile):
+    return shell_format_wildcard(config_paramsdic) + " qsub -sync y -t 1:{maxiter}:1 ./".format(**arrayparam_length) + shellfile
+
+# def format_dic_wildcard(basedir, paramsdic):
+#     return "/".join([basedir, "/".join("{0}_{{{0}}}".format(key) for key in paramsdic.keys())]) # curly braces can be escaped by doubling
+
+def format_dic_wildcard(dirdic, config_paramsdic):
+    return "/".join(["{dir}", "/".join("{0}_{{{0}}}".format(key) for key in config_paramsdic.keys())]) # curly braces can be escaped by doubling
+
+
+configformat = shell_format_dic(config)
+paramsdics = divide_dic(paramsdic)
+config_paramsdic = dict(config, **paramsdic)
+dir_config_paramsdic = dict(dict(dirdic, **config), **paramsdic)
+config_paramsdics = [dict(config, **dic) for dic in divide_dic(paramsdic)]
+config_alldics = [dict(config, **dic) for dic in divide_dic(alldic)]
+
+rule junk6:
     run:
         print(expand(\
-        "{outdir}/true_params_{true_params}/initial_lower_bounds_{initial_lower_bounds}/initial_upper_bounds_{initial_upper_bounds}/spinup_{spinup}/generation_seed_{generation_seed}/trials_{trials}/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iter_{iterations}/{dims}.tsv",\
+        basedir +\
+        "/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iter_{iterations}/{dims}.tsv",
+        obs_variance = paramsdic["obs_variance"],\
+        obs_iteration = paramsdic["obs_iteration"],\
+        dt = paramsdic["dt"],\
+        duration = paramsdic["duration"],\
+        replicates = paramsdic["replicates"],\
+        iterations = paramsdic["iterations"],\
+        dims = paramsdic["dims"]\
+        ))
+
+rule junk7:
+    run:
+        # print(divide_dic(paramsdic))
+        # for i in format_dics(divide_dic(paramsdic)):
+        #     print(i)
+        for i in format_divide_dic(paramsdic):
+            print(i)
+
+rule junk8:
+    run:
+        print(shell_format_dic(paramsdics[0]))
+
+rule junk9:
+    run:
+        # print(expand("dir={outdir} true_params='{true_params}' initial_lower_bounds='{initial_lower_bounds}' initial_upper_bounds='{initial_upper_bounds}' spinup={spinup} generation_seed={generation_seed} trials={trials} obs_variance={obs_variance} obs_iteration={obs_iteration} dt={dt} duration={duration} replicates={replicates} qsub -sync y -t 1:{maxiter}:1 array_qsub_experiment.sh",\
+        execcommand(expand("dir={outdir} true_params='{true_params}' initial_lower_bounds='{initial_lower_bounds}' initial_upper_bounds='{initial_upper_bounds}' spinup={spinup} generation_seed={generation_seed} trials={trials} obs_variance={obs_variance} obs_iteration={obs_iteration} dt={dt} duration={duration} replicates={replicates} ./array_qsub_experiment.sh",\
         outdir = config["dir"],\
-        true_params = config["true_params"].replace(" ", "_"),\
-        initial_lower_bounds = config["initial_lower_bounds"].replace(" ", "_"),\
-        initial_upper_bounds = config["initial_upper_bounds"].replace(" ", "_"),\
+        true_params = config["true_params"],\
+        initial_lower_bounds = config["initial_lower_bounds"],\
+        initial_upper_bounds = config["initial_upper_bounds"],\
         spinup = str(config["spinup"]),\
         generation_seed = str(config["generation_seed"]),\
         trials = str(config["trials"]),\
-        obs_variance = obs_variance,\
-        obs_iteration = obs_iteration,\
-        dt = dt,\
-        duration = duration,\
-        replicates = replicates,\
-        iterations = iterations,\
-        dims = dims\
-        ))
+        obs_variance = paramsdic["obs_variance"],\
+        obs_iteration = paramsdic["obs_iteration"],\
+        dt = paramsdic["dt"],\
+        duration = paramsdic["duration"],\
+        replicates = paramsdic["replicates"],\
+        maxiter = 100\
+        ), "hoge1", "hoge2")
+
+rule junk10:
+    params:
+        1
+    # input:
+    #     'builddir/experiment_arguments'
+    # output:
+    #     format_divide_dic(paramsdic)
+    run:
+        # print(shell_format_dics(configformat, paramsdics))
+        # for item in format_divide_dic(basedir, alldic):
+        #     print(item)
+        pref = format_dic_wildcard(basedir, paramsdic)
+        for item in format_divide_dic(pref, arrayparam):
+            print(item)
+        # print(" ".join([configformat, shell_format_wildcard(paramsdic)]))
+        # execcommand(shell_format_dics_run(configformat, paramsdics, "array_qsub_experiment.sh")[0], "hoge1", "hoge2")
+
+rule junk11:
+    params:
+        1
+    # input:
+    #     'builddir/experiment_arguments'
+    # output:
+    #     format_divide_dic(paramsdic)
+    run:
+        # print(shell_format_dics(configformat, paramsdics))
+        # for item in format_divide_dic(basedir, alldic):
+        #     print(item)
+        for item in format_divide_alldics(dirdic, config_alldics):
+            print(item)
+        for item in format_divide_dic(format_dic_wildcard(dirdic, config_paramsdic), arrayparam):
+            print(item)
+        print(shell_format_dics_run_wildcard(dir_config_paramsdic, "array_qsub_experiment.sh"))
+        # subprocess.Popen(shell_format_dics_run_wildcard(config_paramsdic, "array_qsub_experiment.sh"), shell=True, universal_newlines=True)
+
+rule experiment:
+    params:
+        1
+    # input:
+    #     'builddir/experiment_arguments'
+    output:
+        format_divide_dic(format_dic_wildcard(dirdic, config_paramsdic), arrayparam)
+    run:
+        subprocess.Popen(shell_format_dics_run_wildcard(dir_config_paramsdic, "array_qsub_experiment.sh"), shell=True, universal_newlines=True)
+
+# rule junk:
+#     run:
+#         outdir = "/".join([\
+#         config["dir"],\
+#         "true_params_" + config["true_params"].replace(" ", "_"),\
+#         "initial_lower_bounds_" + config["initial_lower_bounds"].replace(" ", "_"),\
+#         "initial_upper_bounds_" + config["initial_upper_bounds"].replace(" ", "_"),\
+#         "spinup_" + str(config["spinup"]),\
+#         "generation_seed_" + str(config["generation_seed"]),\
+#         "trials_" + str(config["trials"])\
+#         ])
+#         for _obs_variance in obs_variance:
+#             for _obs_iteration in obs_iteration:
+#                 for _dt in dt:
+#                     for _duration in duration:
+#                         for _replicates in replicates:
+#                             for _iterations in iterations:
+#                                 for _dims in dims:
+#                                     print("/".join([outdir,\
+#                                     "obs_variance_" + _obs_variance,\
+#                                     "obs_iteration_" + _obs_iteration,\
+#                                     "dt_" + _dt,\
+#                                     "duration_" + _duration,\
+#                                     "replicates_" + _replicates,\
+#                                     "iter_" + _iterations,\
+#                                     _dims + ".tsv"\
+#                                     ]))
+#
+# rule junk2:
+#     run:
+#         print(expand(\
+#         "{outdir}/true_params_{true_params}/initial_lower_bounds_{initial_lower_bounds}/initial_upper_bounds_{initial_upper_bounds}/spinup_{spinup}/generation_seed_{generation_seed}/trials_{trials}/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iter_{iterations}/{dims}.tsv",\
+#         outdir = config["dir"],\
+#         true_params = config["true_params"].replace(" ", "_"),\
+#         initial_lower_bounds = config["initial_lower_bounds"].replace(" ", "_"),\
+#         initial_upper_bounds = config["initial_upper_bounds"].replace(" ", "_"),\
+#         spinup = str(config["spinup"]),\
+#         generation_seed = str(config["generation_seed"]),\
+#         trials = str(config["trials"]),\
+#         obs_variance = obs_variance,\
+#         obs_iteration = obs_iteration,\
+#         dt = dt,\
+#         duration = duration,\
+#         replicates = replicates,\
+#         iterations = iterations,\
+#         dims = dims\
+#         ))
 
 rule junk3:
     run:
-        print(config["hoge"])
-        print(type(config["hoge"]))
+        print(makepath())
+        # print(config["hoge"])
+        # print(type(config["hoge"]))
+
+rule junk4:
+    run:
+        # print(type(paramsdic))
+        # print(paramsdic)
+        print(format_dic(paramsdic))
+
+rule junk5:
+    run:
+        print(format_dics(paramsdics))
 
 rule all:
     input:
-        # expand('results/replicate/plots/{b}.pdf', b=dims),
+        format_divide_alldics(dirdic, config_alldics)
+        # expand('results/replicate/plots/{b}.pdf', b=paramsdic["dims"]),
         # 'results/replicate/plots/RMSE.pdf'
-        # expand('result/replicate/iter_plots/{b}.pdf', b=dims)
-        expand('result/replicate/boxplots/{b}.pdf', b=dims),
-        expand('result/replicate/CI_boxplots/{b}.pdf', b=dims),
-        expand('result/replicate/CI_boxplots_ylog/{b}.pdf', b=dims),
-        expand('result/replicate/CI_plots/{b}.pdf', b=dims),
-        expand('result/replicate/CI_line_plots/{b}.pdf', b=dims),
-        expand('result/replicate/CI_line_ylinear_plots/{b}.pdf', b=dims)
+        # expand('result/replicate/iter_plots/{b}.pdf', b=paramsdic["dims"])
+        # expand('result/replicate/boxplots/{b}.pdf', b=paramsdic["dims"]),
+        # expand('result/replicate/CI_boxplots/{b}.pdf', b=paramsdic["dims"]),
+        # expand('result/replicate/CI_boxplots_ylog/{b}.pdf', b=paramsdic["dims"]),
+        # expand('result/replicate/CI_plots/{b}.pdf', b=paramsdic["dims"]),
+        # expand('result/replicate/CI_line_plots/{b}.pdf', b=paramsdic["dims"]),
+        # expand('result/replicate/CI_line_ylinear_plots/{b}.pdf', b=paramsdic["dims"])
         # 'results/replicate/RMSE_total.tsv',
         # 'results/replicate/CI_total.tsv'
         # expand('results/replicate/CI/{param}.tsv', param=replicates)
@@ -120,7 +332,7 @@ rule build:
 #         'builddir/replicate_ccompile_each'
 #     output:
 #         'result/replicate_{a}/iter_{b}/RMSE',
-#         ['result/replicate_{a}/iter_{b}/' + c + '.tsv' for c in dims]
+#         ['result/replicate_{a}/iter_{b}/' + c + '.tsv' for c in paramsdic["dims"]]
 #     log:
 #         'log/replicate/replicate_{a}/iter_{b}'
 #     run:
@@ -133,52 +345,59 @@ rule build:
 #         'builddir/replicate_ccompile_each'
 #     output:
 #         ['result/replicate_' + a + '/iter_' + b + '/RMSE' for b in iterations for a in replicates],
-#         ['result/replicate_' + a + '/iter_' + b + '/' + c + '.tsv' for c in dims for b in iterations for a in replicates]
+#         ['result/replicate_' + a + '/iter_' + b + '/' + c + '.tsv' for c in paramsdic["dims"] for b in iterations for a in replicates]
 #     log:
 #         ['log/replicate/replicate_' + a + '/iter_' + b for b in iterations for a in replicates]
 #     shell:
 #         "qsub -sync y -t 1-400:1 array_qsub.sh"
 
-rule experiment:
-    params:
-        1
-    input:
-        'builddir/experiment_arguments'
-    output:
-        expand(\
-        "{outdir}/true_params_{true_params}/initial_lower_bounds_{initial_lower_bounds}/initial_upper_bounds_{initial_upper_bounds}/spinup_{spinup}/generation_seed_{generation_seed}/trials_{trials}/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iter_{iterations}/estimates.tsv",\
-        outdir = config["dir"],\
-        true_params = config["true_params"].replace(" ", "_"),\
-        initial_lower_bounds = config["initial_lower_bounds"].replace(" ", "_"),\
-        initial_upper_bounds = config["initial_upper_bounds"].replace(" ", "_"),\
-        spinup = str(config["spinup"]),\
-        generation_seed = str(config["generation_seed"]),\
-        trials = str(config["trials"]),\
-        obs_variance = obs_variance,\
-        obs_iteration = obs_iteration,\
-        dt = dt,\
-        duration = duration,\
-        replicates = replicates,\
-        iterations = iterations\
-        )
-    run:
-        suprocess.run(\
-        expand("dir={outdir} true_params={true_params} initial_lower_bounds={initial_lower_bounds} initial_upper_bounds={initial_upper_bounds} spinup={spinup} generation_seed={generation_seed} trials={trials} obs_variance={obs_variance} obs_iteration={obs_iteration} dt={dt} duration={duration} replicates={replicates} qsub -sync y -t 1:{maxiter}:1 array_qsub_experiment.sh {logdir}"\
-        outdir = config["dir"],\
-        true_params = config["true_params"].replace(" ", "_"),\
-        initial_lower_bounds = config["initial_lower_bounds"].replace(" ", "_"),\
-        initial_upper_bounds = config["initial_upper_bounds"].replace(" ", "_"),\
-        spinup = str(config["spinup"]),\
-        generation_seed = str(config["generation_seed"]),\
-        trials = str(config["trials"]),\
-        obs_variance = obs_variance,\
-        obs_iteration = obs_iteration,\
-        dt = dt,\
-        duration = duration,\
-        replicates = replicates,\
-        maxiter = str(config["maxiter"]),\
-        logdir = dirname(output[0]) + "/" + os.pardir + "/"\
-        ))
+# rule experiment:
+#     params:
+#         1
+#     input:
+#         'builddir/experiment_arguments'
+#     output:
+#         # expand(\
+#         # "{outdir}/true_paramsdic_{true_params}/initial_lower_bounds_{initial_lower_bounds}/initial_upper_bounds_{initial_upper_bounds}/spinup_{spinup}/generation_seed_{generation_seed}/trials_{trials}/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iter_{iterations}/estimates.tsv",\
+#         # outdir = config["dir"],\
+#         # true_params = config["true_params"].replace(" ", "_"),\
+#         # initial_lower_bounds = config["initial_lower_bounds"].replace(" ", "_"),\
+#         # initial_upper_bounds = config["initial_upper_bounds"].replace(" ", "_"),\
+#         # spinup = str(config["spinup"]),\
+#         # generation_seed = str(config["generation_seed"]),\
+#         # trials = str(config["trials"]),\
+#         # obs_variance = obs_variance,\
+#         # obs_iteration = obs_iteration,\
+#         # dt = dt,\
+#         # duration = duration,\
+#         # replicates = replicates,\
+#         # iterations = iterations\
+#         # )
+#         expand(basedir + \
+#         "obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iter_{iterations}/estimates.tsv",\
+#         obs_variance = paramsdic["obs_variance"],\
+#         obs_iteration = paramsdic["obs_iteration"],\
+#         dt = paramsdic["dt"],\
+#         duration = paramsdic["duration"],\
+#         replicates = paramsdic["replicates"],\
+#         iterations = paramsdic["iterations"]\
+#         )
+#     run:
+#         suprocess.run(expand("dir={outdir} true_params={true_params} initial_lower_bounds={initial_lower_bounds} initial_upper_bounds={initial_upper_bounds} spinup={spinup} generation_seed={generation_seed} trials={trials} obs_variance={obs_variance} obs_iteration={obs_iteration} dt={dt} duration={duration} replicates={replicates} qsub -sync y -t 1:{maxiter}:1 array_qsub_experiment.sh {logdir}",\
+#         outdir = config["dir"],\
+#         true_params = config["true_params"].replace(" ", "_"),\
+#         initial_lower_bounds = config["initial_lower_bounds"].replace(" ", "_"),\
+#         initial_upper_bounds = config["initial_upper_bounds"].replace(" ", "_"),\
+#         spinup = str(config["spinup"]),\
+#         generation_seed = str(config["generation_seed"]),\
+#         trials = str(config["trials"]),\
+#         obs_variance = paramsdic["obs_variance"],\
+#         obs_iteration = paramsdic["obs_iteration"],\
+#         dt = paramsdic["dt"],\
+#         duration = paramsdic["duration"],\
+#         replicates = paramsdic["replicates"],\
+#         maxiter = str(config["maxiter"]),\
+#         logdir = os.path.dirname(output[0]) + "/../"))
 
 # rule replicate_each_replicate:
 #     params:
@@ -187,7 +406,7 @@ rule experiment:
 #         'builddir/replicate_ccompile_each'
 #     output:
 #         ['result/replicate_{a}/iter_' + b + '/RMSE' for b in iterations],
-#         ['result/replicate_{a}/iter_' + b + '/' + c + '.tsv' for c in dims for b in iterations]
+#         ['result/replicate_{a}/iter_' + b + '/' + c + '.tsv' for c in paramsdic["dims"] for b in iterations]
 #     log:
 #         ['log/replicate/replicate_{a}/iter_' + b for b in iterations]
 #     shell:
@@ -255,24 +474,24 @@ rule experiment:
 #     run:
 #         execcommand(expand("cat result/replicate_*/{b}.tsv", b={wildcards.b}), output[0], log[0])
 
-rule totaling_replicate:
-    params:
-        1
-    input:
-        ['result/replicate_' + a + '/iter_' + it + '/{b}.tsv' for a in replicates for it in iterations]
-    output:
-        'result/replicate/{b}.tsv'
-    log:
-        'log/replicate/dims/{b}'
-    run:
-        with open(output[0],'w') as outf:
-            outf.write("replicates\tdiff\tCI\n")
-            for i in replicates:
-                for j in iterations:
-                    with open('result/replicate_' + i + '/iter_' + j + expand('/{b}', b={wildcards.b})[0] + '.tsv', 'r') as infile:
-                        outf.write('%s\t%s\n' % (i, infile.readline().rstrip('\n')))
-                        infile.close()
-            outf.close()
+# rule totaling_replicate:
+#     params:
+#         1
+#     input:
+#         ['result/replicate_' + str(a) + '/iter_' + str(it) + '/{b}.tsv' for a in paramsdic["replicates"] for it in paramsdic["iterations"]]
+#     output:
+#         'result/replicate/{b}.tsv'
+#     log:
+#         'log/replicate/dims/{b}'
+#     run:
+#         with open(output[0],'w') as outf:
+#             outf.write("replicates\tdiff\tCI\n")
+#             for i in replicates:
+#                 for j in iterations:
+#                     with open('result/replicate_' + i + '/iter_' + j + expand('/{b}', b={wildcards.b})[0] + '.tsv', 'r') as infile:
+#                         outf.write('%s\t%s\n' % (i, infile.readline().rstrip('\n')))
+#                         infile.close()
+#             outf.close()
 
 # rule diff_totaling:
 #     params:
@@ -308,43 +527,43 @@ rule totaling_replicate:
 #                 infile.close()
 #             outf.close()
 
-rule RMSE_plot:
-    params:
-        1
-    input:
-        'results/replicate/RMSE_total.tsv'
-    output:
-        'results/replicate/plots/RMSE.pdf'
-    run:
-        R("""
-        library(ggplot2)
-        d <- read.delim("{input}", header=F)
-        g <- ggplot(d, aes(x=V1, y=V2))
-        g <- g + geom_point(aes(), size=1)
-        g <- g + scale_x_log10()
-        g <- g + scale_y_log10()
-        g <- g + labs(x="#replicates", y="RMSE")
-        ggsave(file="{output}", plot=g)
-        """)
-
-rule CI_plot:
-    params:
-        1
-    input:
-        'results/replicate/{b}.tsv'
-    output:
-        'results/replicate/plots/{b}.pdf'
-    run:
-        R("""
-        library(ggplot2)
-        d <- read.delim("{input[0]}", header=F)
-        g <- ggplot(d, aes(x=V1, y=V2))
-        g <- g + geom_point(aes())
-        g <- g + geom_errorbar(aes(ymin=V2-V3, ymax=V2+V3))
-        g <- g + scale_x_log10()
-        g <- g + labs(x="#replicates", y="diff")
-        ggsave(file="{output}", plot=g)
-        """)
+# rule RMSE_plot:
+#     params:
+#         1
+#     input:
+#         'results/replicate/RMSE_total.tsv'
+#     output:
+#         'results/replicate/plots/RMSE.pdf'
+#     run:
+#         R("""
+#         library(ggplot2)
+#         d <- read.delim("{input}", header=F)
+#         g <- ggplot(d, aes(x=V1, y=V2))
+#         g <- g + geom_point(aes(), size=1)
+#         g <- g + scale_x_log10()
+#         g <- g + scale_y_log10()
+#         g <- g + labs(x="#replicates", y="RMSE")
+#         ggsave(file="{output}", plot=g)
+#         """)
+#
+# rule CI_plot:
+#     params:
+#         1
+#     input:
+#         'results/replicate/{b}.tsv'
+#     output:
+#         'results/replicate/plots/{b}.pdf'
+#     run:
+#         R("""
+#         library(ggplot2)
+#         d <- read.delim("{input[0]}", header=F)
+#         g <- ggplot(d, aes(x=V1, y=V2))
+#         g <- g + geom_point(aes())
+#         g <- g + geom_errorbar(aes(ymin=V2-V3, ymax=V2+V3))
+#         g <- g + scale_x_log10()
+#         g <- g + labs(x="#replicates", y="diff")
+#         ggsave(file="{output}", plot=g)
+#         """)
 
 # rule iter_plot:
 #     params:
@@ -518,29 +737,29 @@ rule CI_plot_line_ylinear:
         ggsave(file="{output}", plot=g)
         """)
 
-rule iter_plot:
-    params:
-        1
-    input:
-        'result/replicate/{b}.tsv'
-    output:
-        'result/replicate/iter_plots/{b}.pdf'
-    run:
-        R("""
-        library(ggplot2)
-        library(scales)
-        library(plyr)
-        d <- read.delim("{input[0]}", header=T)
-        d_median <- ddply(d, .(replicates), summarize, "median_diff"=median(diff), "median_CI"=median(CI))
-        d_merged <- merge(d, d_median, by="replicates")
-        g <- ggplot(d_merged, aes(x=replicates, y=diff, group=replicates))
-        g <- g + geom_boxplot()
-        g <- g + scale_x_continuous(
-            trans = 'log2',
-            labels = trans_format('log2', math_format(2^.x)))
-        g <- g + geom_errorbar(aes(ymin=median_diff-median_CI, ymax=median_diff+median_CI), width=.2, position=position_dodge(.9), color="red")
-        ggsave(file="{output}", plot=g)
-        """)
+# rule iter_plot:
+#     params:
+#         1
+#     input:
+#         'result/replicate/{b}.tsv'
+#     output:
+#         'result/replicate/iter_plots/{b}.pdf'
+#     run:
+#         R("""
+#         library(ggplot2)
+#         library(scales)
+#         library(plyr)
+#         d <- read.delim("{input[0]}", header=T)
+#         d_median <- ddply(d, .(replicates), summarize, "median_diff"=median(diff), "median_CI"=median(CI))
+#         d_merged <- merge(d, d_median, by="replicates")
+#         g <- ggplot(d_merged, aes(x=replicates, y=diff, group=replicates))
+#         g <- g + geom_boxplot()
+#         g <- g + scale_x_continuous(
+#             trans = 'log2',
+#             labels = trans_format('log2', math_format(2^.x)))
+#         g <- g + geom_errorbar(aes(ymin=median_diff-median_CI, ymax=median_diff+median_CI), width=.2, position=position_dodge(.9), color="red")
+#         ggsave(file="{output}", plot=g)
+#         """)
 
 rule clean:
     shell:
