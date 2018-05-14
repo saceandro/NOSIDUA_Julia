@@ -92,7 +92,7 @@ def shell_format_dic(paramdic):
     return " ".join("{}='{}'".format(*item) for item in paramdic.items())
 
 def shell_format_wildcard(paramsdic):
-    return " ".join("{0}={{{0}}}".format(key) for key in paramsdic.keys())
+    return " ".join("{0}={{wildcards.{0}}}".format(key) for key in paramsdic.keys())
 
 def shell_format_dics(base, paramdics):
     return [" ".join([base, shell_format_dic(paramdic)]) for paramdic in paramdics]
@@ -106,20 +106,23 @@ def shell_format_dics(base, paramdics):
 # def shell_format_dics_run_wildcard(config_paramsdic, shellfile):
 #     return shell_format_wildcard(config_paramsdic) + " ./" + shellfile
 
-def shell_format_dics_run(base, paramdics, shellfile, maxiter):
-    return [" ".join([base, shell_format_dic(paramdic)]) + " qsub -sync y -t 1:{maxiter}:1 ./".format(**arrayparam_length) + shellfile for paramdic in paramdics]
+def shell_format_dics_run(base, paramdics, shellfile, maxiter, out):
+    return [" ".join([base, shell_format_dic(paramdic)]) + " qsub -sync y -t 1:{maxiter}:1 ./".format(**arrayparam_length) + shellfile + " " + out for paramdic in paramdics]
 
-def shell_format_dics_run(config_paramdics, shellfile):
-    return [shell_format_dic(config_paramdic) + " qsub -sync y -t 1:{maxiter}:1 ./".format(**arrayparam_length) + shellfile for config_paramdic in config_paramdics]
+def shell_format_dics_run(config_paramdics, shellfile, out):
+    return [shell_format_dic(config_paramdic) + " qsub -sync y -t 1:{maxiter}:1 ./".format(**arrayparam_length) + shellfile + " " + out for config_paramdic in config_paramdics]
 
-def shell_format_dics_run_wildcard(config_paramsdic, shellfile):
-    return shell_format_wildcard(config_paramsdic) + " qsub -sync y -t 1:{maxiter}:1 ./".format(**arrayparam_length) + shellfile
+def shell_format_dics_run_wildcard(config_paramsdic, shellfile, out):
+    return shell_format_wildcard(config_paramsdic) + " qsub -sync y -t 1:{maxiter}:1 ./".format(**arrayparam_length) + shellfile + " " + out
 
 # def format_dic_wildcard(basedir, paramsdic):
 #     return "/".join([basedir, "/".join("{0}_{{{0}}}".format(key) for key in paramsdic.keys())]) # curly braces can be escaped by doubling
 
 def format_dic_wildcard(dirdic, config_paramsdic):
     return "/".join(["{dir}", "/".join("{0}_{{{0}}}".format(key) for key in config_paramsdic.keys())]) # curly braces can be escaped by doubling
+
+def format_dic_with_wildcard_prefix(dirdic, config_paramsdic):
+    return "/".join(["{wildcards.dir}", "/".join("{0}_{{wildcards.{0}}}".format(key) for key in config_paramsdic.keys())]) # curly braces can be escaped by doubling
 
 
 configformat = shell_format_dic(config)
@@ -204,9 +207,10 @@ rule junk11:
         #     print(item)
         for item in format_divide_alldics(dirdic, config_alldics):
             print(item)
+        print(format_dic_with_wildcard_prefix(dirdic, config_paramsdic))
         for item in format_divide_dic(format_dic_wildcard(dirdic, config_paramsdic), arrayparam):
             print(item)
-        print(shell_format_dics_run_wildcard(dir_config_paramsdic, "array_qsub_experiment.sh"))
+        print(shell_format_dics_run_wildcard(dir_config_paramsdic, "array_qsub_experiment.sh", format_dic_with_wildcard_prefix(dirdic, config_paramsdic)))
         # subprocess.Popen(shell_format_dics_run_wildcard(config_paramsdic, "array_qsub_experiment.sh"), shell=True, universal_newlines=True)
 
 rule experiment:
@@ -217,7 +221,7 @@ rule experiment:
     output:
         format_divide_dic(format_dic_wildcard(dirdic, config_paramsdic), arrayparam)
     run:
-        subprocess.Popen(shell_format_dics_run_wildcard(dir_config_paramsdic, "array_qsub_experiment.sh"), shell=True, universal_newlines=True)
+        subprocess.Popen(shell_format_dics_run_wildcard(config_paramsdic, "array_qsub_experiment.sh", format_dic_with_wildcard_prefix(dirdic, config_paramsdic)), shell=True, universal_newlines=True)
 
 # rule junk:
 #     run:
