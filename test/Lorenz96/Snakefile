@@ -106,6 +106,17 @@ def shell_format_dics(base, paramdics):
 # def shell_format_dics_run_wildcard(config_paramsdic, shellfile):
 #     return shell_format_wildcard(config_paramsdic) + " ./" + shellfile
 
+
+def shell_format_dics_run_noqsub(base, paramdics, shellfile, maxiter, out):
+    return [" ".join([base, shell_format_dic(paramdic)]) + " ./".format(**arrayparam_length) + shellfile + " " + out for paramdic in paramdics]
+
+def shell_format_dics_run_noqsub(config_paramdics, shellfile, out):
+    return [shell_format_dic(config_paramdic) + " ./".format(**arrayparam_length) + shellfile + " " + out for config_paramdic in config_paramdics]
+
+def shell_format_dics_run_wildcard_noqsub(config_paramsdic, shellfile, out):
+    return shell_format_wildcard(config_paramsdic) + " ./".format(**arrayparam_length) + shellfile + " " + out
+
+
 def shell_format_dics_run(base, paramdics, shellfile, maxiter, out):
     return [" ".join([base, shell_format_dic(paramdic)]) + " qsub -sync y -t 1:{maxiter}:1 ./".format(**arrayparam_length) + shellfile + " " + out for paramdic in paramdics]
 
@@ -227,7 +238,7 @@ rule all:
 #         for item in format_divide_dic(format_dic_wildcard(dirdic, config_paramsdic), arrayparam):
 #             print(item)
 #         print(shell_format_dics_run_wildcard(dir_config_paramsdic, "array_qsub_experiment.sh", format_dic_with_wildcard_prefix(dirdic, config_paramsdic)))
-#         # subprocess.Popen(shell_format_dics_run_wildcard(config_paramsdic, "array_qsub_experiment.sh"), shell=True, universal_newlines=True)
+#         subprocess.Popen(shell_format_dics_run_wildcard_noqsub(dir_config_paramsdic, "array_qsub_experiment.sh", format_dic_with_wildcard_prefix(dirdic, config_paramsdic)), shell=True, universal_newlines=True)
 
 rule experiment:
     params:
