@@ -1,0 +1,97 @@
+# test for snakeutils.py
+# run "snakemake `snakemake --list-target-rules`"
+
+import sys, os
+import numpy as np
+from snakemake.utils import R
+from snakeutils import *
+
+dirdic = {\
+"dir": "result1"\
+}
+
+# snakeconfig.yaml contains fixed parameters. They are packed in a dictionary named config by the following declaration.
+configfile: "../test/Lorenz96/snakeconfig.yaml"
+
+paramsdic = {\
+"obs_variance":  np.arange(1.,2.,1.),\
+"obs_iteration": np.arange(5,6,1),\
+"dt":            np.arange(0.01,0.02,0.01),\
+"duration":      np.arange(1.,2.,1.),\
+"replicates":    pow(2, np.arange(0,8,1))\
+}
+
+arrayparam = {\
+"iter":    np.arange(1,101,1)\
+}
+
+rule test_makepath:
+    run:
+        print(dirdic)
+        print(config)
+        print(makepath(dirdic, config))
+
+rule test_format_divide_dic:
+    run:
+        basedir = makepath(dirdic, config)
+        alldic = dict(paramsdic, **arrayparam)
+        print(basedir)
+        print(alldic)
+        print(format_divide_dic(basedir, alldic))
+        for item in format_divide_dic(basedir, alldic):
+            print(item)
+
+rule test_format_divide_dic_file:
+    run:
+        basedir = makepath(dirdic, config)
+        alldic = dict(paramsdic, **arrayparam)
+        print(basedir)
+        print(alldic)
+        print(format_divide_dic_file(basedir, alldic, "estimates.tsv"))
+        for item in format_divide_dic_file(basedir, alldic, "estimates.tsv"):
+            print(item)
+
+rule test_shell_format_dics_run_wildcard:
+    run:
+        dir_config_paramsdic = dict(dict(dirdic, **config), **paramsdic)
+        print(dir_config_paramsdic)
+        print(arrayparam)
+        print(shell_format_dics_run_wildcard(dir_config_paramsdic, arrayparam, "hoge.sh", "outfile"))
+
+rule test_format_dic_wildcard:
+    run:
+        config_paramsdic = dict(config, **paramsdic)
+        print(dirdic)
+        print(config_paramsdic)
+        print(format_dic_wildcard(dirdic, config_paramsdic))
+
+rule test_format_dic_with_wildcard_prefix:
+    run:
+        config_paramsdic = dict(config, **paramsdic)
+        print(dirdic)
+        print(config_paramsdic)
+        print(format_dic_with_wildcard_prefix(dirdic, config_paramsdic))
+
+rule test_wildcardparams_expandarrayparams:
+    run:
+        print(dirdic)
+        print(config)
+        print(paramsdic)
+        print(arrayparam)
+        print(wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam))
+
+rule test_make_array_shellcommand:
+    run:
+        print(dirdic)
+        print(config)
+        print(paramsdic)
+        print(arrayparam)
+        print(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
+
+rule test_make_all_output_filenames:
+    run:
+        print(dirdic)
+        print(config)
+        print(paramsdic)
+        print(arrayparam)
+        print(make_all_output_filenames(dirdic, config, paramsdic, arrayparam, "estimates.tsv"))
