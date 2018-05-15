@@ -172,7 +172,7 @@ def format_dic_with_wildcard_prefix(dirdic, config_paramsdic):
 
 
 # API functions
-def wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam):
+def wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam, filename):
     """
     Output files for the array job rule.
     e.g.
@@ -193,12 +193,13 @@ def wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam):
      'replicates':              array([1, 2])}
     arrayparam =
     {'iterations': array([1, 2])}
+    filename = "estimates.tsv"
         ->
-    wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam) =
-    ['{dir}/true_params_{true_params}/initial_lower_bounds_{initial_lower_bounds}/initial_upper_bounds_{initial_upper_bounds}/spinup_{spinup}/generation_seed_{generation_seed}/trials_{trials}/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iterations_1',
-     '{dir}/true_params_{true_params}/initial_lower_bounds_{initial_lower_bounds}/initial_upper_bounds_{initial_upper_bounds}/spinup_{spinup}/generation_seed_{generation_seed}/trials_{trials}/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iterations_2']
+    wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam, filename) =
+    ['{dir}/true_params_{true_params}/initial_lower_bounds_{initial_lower_bounds}/initial_upper_bounds_{initial_upper_bounds}/spinup_{spinup}/generation_seed_{generation_seed}/trials_{trials}/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iterations_1/estimates.tsv',
+     '{dir}/true_params_{true_params}/initial_lower_bounds_{initial_lower_bounds}/initial_upper_bounds_{initial_upper_bounds}/spinup_{spinup}/generation_seed_{generation_seed}/trials_{trials}/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iterations_2/estimates.tsv']
     """
-    return format_divide_dic(format_dic_wildcard(dirdic, dict(config, **paramsdic)), arrayparam)
+    return format_divide_dic_file(format_dic_wildcard(dirdic, dict(config, **paramsdic)), arrayparam, filename)
 
 def make_array_shellcommand(dirdic, config, paramsdic, arrayparam, shellfile):
     """

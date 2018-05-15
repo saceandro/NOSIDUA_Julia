@@ -78,7 +78,7 @@ rule test_wildcardparams_expandarrayparams:
         print(config)
         print(paramsdic)
         print(arrayparam)
-        print(wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam))
+        print(wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam, "estimates.tsv"))
 
 rule test_make_array_shellcommand:
     run:

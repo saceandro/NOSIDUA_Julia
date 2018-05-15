@@ -57,14 +57,14 @@ rule experiment:
     input:
         'builddir/experiment_arguments'
     output:
-        wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam)
+        wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
     run:
         shell(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
 
 rule test_experiment:
     run:
         print("output:")
-        for item in wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam):
+        for item in wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam, "estimates.tsv"):
             print(item)
         print("\nshell command:")
         print(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
