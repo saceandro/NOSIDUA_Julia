@@ -51,15 +51,15 @@ rule build:
     shell:
         "julia ~/.julia/v0.6/PackageCompiler/juliac.jl -vae experiment_arguments.jl"
 
-rule experiment:
-    params:
-        1
-    input:
-        'builddir/experiment_arguments'
-    output:
-        wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
-    run:
-        shell(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
+# rule experiment:
+#     params:
+#         1
+#     input:
+#         'builddir/experiment_arguments'
+#     output:
+#         wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+#     run:
+#         shell(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
 
 rule test_experiment:
     run:
@@ -68,6 +68,22 @@ rule test_experiment:
             print(item)
         print("\nshell command:")
         print(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
+
+rule experiment_bigarray:
+    params:
+        1
+    input:
+        'builddir/experiment_arguments'
+    output:
+        make_all_output_filenames(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+    run:
+        shell(bigarrayjob_run(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
+
+rule test_experiment_bigarray:
+    run:
+        print("shell command:")
+        print(bigarrayjob_run(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
+        # subprocess.Popen(bigarrayjob_noqsub(dict(dirdic, **config), dict(paramsdic, **arrayparam), "bigarray_qsub_experiment.sh"), executable="/bin/zsh", shell=True, universal_newlines=True)
 
 # rulename should not be begin by numbers
 

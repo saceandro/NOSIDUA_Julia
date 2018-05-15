@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import subprocess, itertools
+import subprocess, itertools, operator
+from functools import reduce
 
 def execcommand(cmd,stdout,stderr,input=""):
     with open(stdout, "w") as outf:
@@ -120,6 +121,15 @@ def shell_format_dics_run_wildcard(config_paramsdic, arrayparam, shellfile, out)
     "dir={wildcards.dir} true_params={wildcards.true_params} initial_lower_bounds={wildcards.initial_lower_bounds} initial_upper_bounds={wildcards.initial_upper_bounds} spinup={wildcards.spinup} generation_seed={wildcards.generation_seed} trials={wildcards.trials} obs_variance={wildcards.obs_variance} obs_iteration={wildcards.obs_iteration} dt={wildcards.dt} duration={wildcards.duration} replicates={wildcards.replicates} qsub -sync y -t 1:2:1 ./hoge.sh outfile"
     """
     return " ".join([_shell_format_wildcard(config_paramsdic), "qsub -sync y -t 1:{}:1".format(len(next(iter(arrayparam.values())))), "./{}".format(shellfile), out]) # get first arrayparam value non-destructively
+
+def _bigarrayjob(dir_config, paramsdic):
+    return " ".join([ " ".join("{}='{}'".format(*item) for item in dir_config.items()), " ".join("{}='{}'".format(key, " ".join(map(str, val))) for (key,val) in paramsdic.items()) ])
+
+def bigarrayjob(dir_config, paramsdic, shellfile, out):
+    return " ".join([ _bigarrayjob(dir_config, paramsdic), "qsub -sync y -t 1:{}:1".format(reduce(operator.mul, map(len, paramsdic.values()))), "./{}".format(shellfile), out ])
+
+def bigarrayjob_noqsub(dir_config, paramsdic, shellfile):
+    return " ".join([ _bigarrayjob(dir_config, paramsdic), "./{}".format(shellfile) ])
 
 def format_dic_wildcard(dirdic, config_paramsdic):
     """
@@ -260,3 +270,6 @@ def make_all_output_filenames(dirdic, config, paramsdic, arrayparam, filename):
      'result1/true_params_8.0_1.0/initial_lower_bounds_-10.0_-10.0_-10.0_-10.0_-10.0_0.0_0.0/initial_upper_bounds_10.0_10.0_10.0_10.0_10.0_16.0_2.0/spinup_73.0/generation_seed_0/trials_50/obs_variance_1.0/obs_iteration_5/dt_0.01/duration_1.0/replicates_2/iter_2/estimates.tsv']
     """
     return format_divide_dic_file(makepath(dirdic, config), dict(paramsdic, **arrayparam), filename)
+
+def bigarrayjob_run(dirdic, config, paramsdic, arrayparam, filename):
+    return bigarrayjob(dict(dirdic, **config), dict(paramsdic, **arrayparam), filename, "")

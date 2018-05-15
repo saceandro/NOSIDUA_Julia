@@ -58,6 +58,14 @@ rule test_shell_format_dics_run_wildcard:
         print(arrayparam)
         print(shell_format_dics_run_wildcard(dir_config_paramsdic, arrayparam, "hoge.sh", "outfile"))
 
+rule test_bigarrayjob:
+    run:
+        dir_config = dict(dirdic, **config)
+        alldic = dict(paramsdic, **arrayparam)
+        print(dir_config)
+        print(alldic)
+        print(bigarrayjob(dir_config, alldic, "foo.sh", "outfile"))
+
 rule test_format_dic_wildcard:
     run:
         config_paramsdic = dict(config, **paramsdic)
