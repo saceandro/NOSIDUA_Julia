@@ -12,5 +12,6 @@ outdir=$1/iter_$iter
 outfile=${outdir}/RMSE
 errfile=${outdir}/log
 
-mkdir -p outdir
+mkdir -p $outdir
+echo "./builddir/experiment_arguments --dir $dir --true-params $true_params --initial-lower-bounds $initial_lower_bounds --initial-upper-bounds $initial_upper_bounds --obs-variance $obs_variance --obs-iteration $obs_iteration --dt $dt --spinup $spinup --duration $duration --generation-seed $generation_seed --trials $trials --replicates $replicates --iter $iter 1> $outfile 2> $errfile"
 ./builddir/experiment_arguments --dir $dir --true-params $true_params --initial-lower-bounds $initial_lower_bounds --initial-upper-bounds $initial_upper_bounds --obs-variance $obs_variance --obs-iteration $obs_iteration --dt $dt --spinup $spinup --duration $duration --generation-seed $generation_seed --trials $trials --replicates $replicates --iter $iter 1> $outfile 2> $errfile
