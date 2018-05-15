@@ -20,9 +20,9 @@ def makepath(dirdic):
     # return a
 
 dirdic = {\
-"dir": "result"
+"dir": "result1"
 }
-outdir = "result"
+outdir = "result1"
 basedir = makepath(dirdic)
 
 # paramsdic = {\
@@ -132,96 +132,112 @@ dir_config_paramsdic = dict(dict(dirdic, **config), **paramsdic)
 config_paramsdics = [dict(config, **dic) for dic in divide_dic(paramsdic)]
 config_alldics = [dict(config, **dic) for dic in divide_dic(alldic)]
 
-rule junk6:
-    run:
-        print(expand(\
-        basedir +\
-        "/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iter_{iterations}/{dims}.tsv",
-        obs_variance = paramsdic["obs_variance"],\
-        obs_iteration = paramsdic["obs_iteration"],\
-        dt = paramsdic["dt"],\
-        duration = paramsdic["duration"],\
-        replicates = paramsdic["replicates"],\
-        iterations = paramsdic["iterations"],\
-        dims = paramsdic["dims"]\
-        ))
+rule all:
+    input:
+        format_divide_alldics(dirdic, config_alldics)
+        # expand('results/replicate/plots/{b}.pdf', b=paramsdic["dims"]),
+        # 'results/replicate/plots/RMSE.pdf'
+        # expand('result/replicate/iter_plots/{b}.pdf', b=paramsdic["dims"])
+        # expand('result/replicate/boxplots/{b}.pdf', b=paramsdic["dims"]),
+        # expand('result/replicate/CI_boxplots/{b}.pdf', b=paramsdic["dims"]),
+        # expand('result/replicate/CI_boxplots_ylog/{b}.pdf', b=paramsdic["dims"]),
+        # expand('result/replicate/CI_plots/{b}.pdf', b=paramsdic["dims"]),
+        # expand('result/replicate/CI_line_plots/{b}.pdf', b=paramsdic["dims"]),
+        # expand('result/replicate/CI_line_ylinear_plots/{b}.pdf', b=paramsdic["dims"])
+        # 'results/replicate/RMSE_total.tsv',
+        # 'results/replicate/CI_total.tsv'
+        # expand('results/replicate/CI/{param}.tsv', param=replicates)
 
-rule junk7:
-    run:
-        # print(divide_dic(paramsdic))
-        # for i in format_dics(divide_dic(paramsdic)):
-        #     print(i)
-        for i in format_divide_dic(paramsdic):
-            print(i)
+# rule junk6:
+#     run:
+#         print(expand(\
+#         basedir +\
+#         "/obs_variance_{obs_variance}/obs_iteration_{obs_iteration}/dt_{dt}/duration_{duration}/replicates_{replicates}/iter_{iterations}/{dims}.tsv",
+#         obs_variance = paramsdic["obs_variance"],\
+#         obs_iteration = paramsdic["obs_iteration"],\
+#         dt = paramsdic["dt"],\
+#         duration = paramsdic["duration"],\
+#         replicates = paramsdic["replicates"],\
+#         iterations = paramsdic["iterations"],\
+#         dims = paramsdic["dims"]\
+#         ))
 
-rule junk8:
-    run:
-        print(shell_format_dic(paramsdics[0]))
+# rule junk7:
+#     run:
+#         # print(divide_dic(paramsdic))
+#         # for i in format_dics(divide_dic(paramsdic)):
+#         #     print(i)
+#         for i in format_divide_dic(paramsdic):
+#             print(i)
 
-rule junk9:
-    run:
-        # print(expand("dir={outdir} true_params='{true_params}' initial_lower_bounds='{initial_lower_bounds}' initial_upper_bounds='{initial_upper_bounds}' spinup={spinup} generation_seed={generation_seed} trials={trials} obs_variance={obs_variance} obs_iteration={obs_iteration} dt={dt} duration={duration} replicates={replicates} qsub -sync y -t 1:{maxiter}:1 array_qsub_experiment.sh",\
-        execcommand(expand("dir={outdir} true_params='{true_params}' initial_lower_bounds='{initial_lower_bounds}' initial_upper_bounds='{initial_upper_bounds}' spinup={spinup} generation_seed={generation_seed} trials={trials} obs_variance={obs_variance} obs_iteration={obs_iteration} dt={dt} duration={duration} replicates={replicates} ./array_qsub_experiment.sh",\
-        outdir = config["dir"],\
-        true_params = config["true_params"],\
-        initial_lower_bounds = config["initial_lower_bounds"],\
-        initial_upper_bounds = config["initial_upper_bounds"],\
-        spinup = str(config["spinup"]),\
-        generation_seed = str(config["generation_seed"]),\
-        trials = str(config["trials"]),\
-        obs_variance = paramsdic["obs_variance"],\
-        obs_iteration = paramsdic["obs_iteration"],\
-        dt = paramsdic["dt"],\
-        duration = paramsdic["duration"],\
-        replicates = paramsdic["replicates"],\
-        maxiter = 100\
-        ), "hoge1", "hoge2")
+# rule junk8:
+#     run:
+#         print(shell_format_dic(paramsdics[0]))
 
-rule junk10:
-    params:
-        1
-    # input:
-    #     'builddir/experiment_arguments'
-    # output:
-    #     format_divide_dic(paramsdic)
-    run:
-        # print(shell_format_dics(configformat, paramsdics))
-        # for item in format_divide_dic(basedir, alldic):
-        #     print(item)
-        pref = format_dic_wildcard(basedir, paramsdic)
-        for item in format_divide_dic(pref, arrayparam):
-            print(item)
-        # print(" ".join([configformat, shell_format_wildcard(paramsdic)]))
-        # execcommand(shell_format_dics_run(configformat, paramsdics, "array_qsub_experiment.sh")[0], "hoge1", "hoge2")
+# rule junk9:
+#     run:
+#         # print(expand("dir={outdir} true_params='{true_params}' initial_lower_bounds='{initial_lower_bounds}' initial_upper_bounds='{initial_upper_bounds}' spinup={spinup} generation_seed={generation_seed} trials={trials} obs_variance={obs_variance} obs_iteration={obs_iteration} dt={dt} duration={duration} replicates={replicates} qsub -sync y -t 1:{maxiter}:1 array_qsub_experiment.sh",\
+#         execcommand(expand("dir={outdir} true_params='{true_params}' initial_lower_bounds='{initial_lower_bounds}' initial_upper_bounds='{initial_upper_bounds}' spinup={spinup} generation_seed={generation_seed} trials={trials} obs_variance={obs_variance} obs_iteration={obs_iteration} dt={dt} duration={duration} replicates={replicates} ./array_qsub_experiment.sh",\
+#         outdir = config["dir"],\
+#         true_params = config["true_params"],\
+#         initial_lower_bounds = config["initial_lower_bounds"],\
+#         initial_upper_bounds = config["initial_upper_bounds"],\
+#         spinup = str(config["spinup"]),\
+#         generation_seed = str(config["generation_seed"]),\
+#         trials = str(config["trials"]),\
+#         obs_variance = paramsdic["obs_variance"],\
+#         obs_iteration = paramsdic["obs_iteration"],\
+#         dt = paramsdic["dt"],\
+#         duration = paramsdic["duration"],\
+#         replicates = paramsdic["replicates"],\
+#         maxiter = 100\
+#         ), "hoge1", "hoge2")
 
-rule junk11:
-    params:
-        1
-    # input:
-    #     'builddir/experiment_arguments'
-    # output:
-    #     format_divide_dic(paramsdic)
-    run:
-        # print(shell_format_dics(configformat, paramsdics))
-        # for item in format_divide_dic(basedir, alldic):
-        #     print(item)
-        for item in format_divide_alldics(dirdic, config_alldics):
-            print(item)
-        print(format_dic_with_wildcard_prefix(dirdic, config_paramsdic))
-        for item in format_divide_dic(format_dic_wildcard(dirdic, config_paramsdic), arrayparam):
-            print(item)
-        print(shell_format_dics_run_wildcard(dir_config_paramsdic, "array_qsub_experiment.sh", format_dic_with_wildcard_prefix(dirdic, config_paramsdic)))
-        # subprocess.Popen(shell_format_dics_run_wildcard(config_paramsdic, "array_qsub_experiment.sh"), shell=True, universal_newlines=True)
+# rule junk10:
+#     params:
+#         1
+#     # input:
+#     #     'builddir/experiment_arguments'
+#     # output:
+#     #     format_divide_dic(paramsdic)
+#     run:
+#         # print(shell_format_dics(configformat, paramsdics))
+#         # for item in format_divide_dic(basedir, alldic):
+#         #     print(item)
+#         pref = format_dic_wildcard(basedir, paramsdic)
+#         for item in format_divide_dic(pref, arrayparam):
+#             print(item)
+#         # print(" ".join([configformat, shell_format_wildcard(paramsdic)]))
+#         # execcommand(shell_format_dics_run(configformat, paramsdics, "array_qsub_experiment.sh")[0], "hoge1", "hoge2")
+
+# rule junk11:
+#     params:
+#         1
+#     # input:
+#     #     'builddir/experiment_arguments'
+#     # output:
+#     #     format_divide_dic(paramsdic)
+#     run:
+#         # print(shell_format_dics(configformat, paramsdics))
+#         # for item in format_divide_dic(basedir, alldic):
+#         #     print(item)
+#         for item in format_divide_alldics(dirdic, config_alldics):
+#             print(item)
+#         print(format_dic_with_wildcard_prefix(dirdic, config_paramsdic))
+#         for item in format_divide_dic(format_dic_wildcard(dirdic, config_paramsdic), arrayparam):
+#             print(item)
+#         print(shell_format_dics_run_wildcard(dir_config_paramsdic, "array_qsub_experiment.sh", format_dic_with_wildcard_prefix(dirdic, config_paramsdic)))
+#         # subprocess.Popen(shell_format_dics_run_wildcard(config_paramsdic, "array_qsub_experiment.sh"), shell=True, universal_newlines=True)
 
 rule experiment:
     params:
         1
-    # input:
-    #     'builddir/experiment_arguments'
+    input:
+        'builddir/experiment_arguments'
     output:
         format_divide_dic(format_dic_wildcard(dirdic, config_paramsdic), arrayparam)
     run:
-        subprocess.Popen(shell_format_dics_run_wildcard(config_paramsdic, "array_qsub_experiment.sh", format_dic_with_wildcard_prefix(dirdic, config_paramsdic)), shell=True, universal_newlines=True)
+        shell(shell_format_dics_run_wildcard(dir_config_paramsdic, "array_qsub_experiment.sh", format_dic_with_wildcard_prefix(dirdic, config_paramsdic)))
 
 # rule junk:
 #     run:
@@ -271,37 +287,22 @@ rule experiment:
 #         dims = dims\
 #         ))
 
-rule junk3:
-    run:
-        print(makepath())
-        # print(config["hoge"])
-        # print(type(config["hoge"]))
+# rule junk3:
+#     run:
+#         print(makepath())
+#         # print(config["hoge"])
+#         # print(type(config["hoge"]))
 
-rule junk4:
-    run:
-        # print(type(paramsdic))
-        # print(paramsdic)
-        print(format_dic(paramsdic))
+# rule junk4:
+#     run:
+#         # print(type(paramsdic))
+#         # print(paramsdic)
+#         print(format_dic(paramsdic))
 
-rule junk5:
-    run:
-        print(format_dics(paramsdics))
+# rule junk5:
+#     run:
+#         print(format_dics(paramsdics))
 
-rule all:
-    input:
-        format_divide_alldics(dirdic, config_alldics)
-        # expand('results/replicate/plots/{b}.pdf', b=paramsdic["dims"]),
-        # 'results/replicate/plots/RMSE.pdf'
-        # expand('result/replicate/iter_plots/{b}.pdf', b=paramsdic["dims"])
-        # expand('result/replicate/boxplots/{b}.pdf', b=paramsdic["dims"]),
-        # expand('result/replicate/CI_boxplots/{b}.pdf', b=paramsdic["dims"]),
-        # expand('result/replicate/CI_boxplots_ylog/{b}.pdf', b=paramsdic["dims"]),
-        # expand('result/replicate/CI_plots/{b}.pdf', b=paramsdic["dims"]),
-        # expand('result/replicate/CI_line_plots/{b}.pdf', b=paramsdic["dims"]),
-        # expand('result/replicate/CI_line_ylinear_plots/{b}.pdf', b=paramsdic["dims"])
-        # 'results/replicate/RMSE_total.tsv',
-        # 'results/replicate/CI_total.tsv'
-        # expand('results/replicate/CI/{param}.tsv', param=replicates)
 
 # rule build:
 #     params:
