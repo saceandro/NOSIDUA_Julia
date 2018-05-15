@@ -21,10 +21,6 @@ arrayparam = {\
 "iter":    np.arange(1,101,1)\
 }
 
-arrayparam_length = {\
-"maxiter":       len(arrayparam["iter"])\
-}
-
 def execcommand(cmd,stdout,stderr,input=""):
     with open(stdout, "w") as outf:
         with open (stderr, "w") as errf:
@@ -117,7 +113,7 @@ def _shell_format_wildcard(paramsdic):
     """
     return " ".join("{0}={{wildcards.{0}}}".format(key) for key in paramsdic.keys())
 
-def shell_format_dics_run_wildcard(config_paramsdic, shellfile, out):
+def shell_format_dics_run_wildcard(config_paramsdic, arrayparam, shellfile, out):
     """
     Make array qsub shell command given as wildcards using the lists-of-parameters dictionary.
     e.g.
@@ -134,13 +130,15 @@ def shell_format_dics_run_wildcard(config_paramsdic, shellfile, out):
      'dt':                      array([ 0.01]),
      'duration':                array([ 1.]),
      'replicates':              array([1, 2])}
-    shellfile = "./hoge.sh"
+    arrayparam =
+    {'iterations': array([1, 2])}
+    shellfile = "hoge.sh"
     out = "outfile"
         ->
-    shell_format_dics_run_wildcard(dir_config_paramsdic, shellfile, out) =
+    shell_format_dics_run_wildcard(dir_config_paramsdic, arrayparam, shellfile, out) =
     "dir={wildcards.dir} true_params={wildcards.true_params} initial_lower_bounds={wildcards.initial_lower_bounds} initial_upper_bounds={wildcards.initial_upper_bounds} spinup={wildcards.spinup} generation_seed={wildcards.generation_seed} trials={wildcards.trials} obs_variance={wildcards.obs_variance} obs_iteration={wildcards.obs_iteration} dt={wildcards.dt} duration={wildcards.duration} replicates={wildcards.replicates} qsub -sync y -t 1:2:1 ./hoge.sh outfile"
     """
-    return _shell_format_wildcard(config_paramsdic) + " qsub -sync y -t 1:{maxiter}:1 ./".format(**arrayparam_length) + shellfile + " " + out
+    return " ".join([_shell_format_wildcard(config_paramsdic), "qsub -sync y -t 1:{}:1".format(len(next(iter(arrayparam.values())))), "./{}".format(shellfile), out]) # get first arrayparam value non-destructively
 
 def format_dic_wildcard(dirdic, config_paramsdic):
     """
@@ -221,7 +219,7 @@ def wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam):
     """
     return format_divide_dic(format_dic_wildcard(dirdic, dict(config, **paramsdic)), arrayparam)
 
-def make_array_shellcommand(dirdic, config, paramsdic, shellfile):
+def make_array_shellcommand(dirdic, config, paramsdic, arrayparam, shellfile):
     """
     Make shellcommand for the array job rule.
     e.g.
@@ -240,13 +238,15 @@ def make_array_shellcommand(dirdic, config, paramsdic, shellfile):
      'dt':                      array([ 0.01]),
      'duration':                array([ 1.]),
      'replicates':              array([1, 2])}
+    arrayparam =
+    {'iterations': array([1, 2])}
         ->
-    make_array_shellcommand(dirdic, config, paramsdic, shellfile) =
+    make_array_shellcommand(dirdic, config, paramsdic, arrayparam, shellfile) =
     "dir={wildcards.dir} true_params={wildcards.true_params} initial_lower_bounds={wildcards.initial_lower_bounds} initial_upper_bounds={wildcards.initial_upper_bounds} spinup={wildcards.spinup} generation_seed={wildcards.generation_seed} trials={wildcards.trials} obs_variance={wildcards.obs_variance} obs_iteration={wildcards.obs_iteration} dt={wildcards.dt} duration={wildcards.duration} replicates={wildcards.replicates} qsub -sync y -t 1:2:1 ./array_qsub_experiment.sh {wildcards.dir}/true_params_{wildcards.true_params}/initial_lower_bounds_{wildcards.initial_lower_bounds}/initial_upper_bounds_{wildcards.initial_upper_bounds}/spinup_{wildcards.spinup}/generation_seed_{wildcards.generation_seed}/trials_{wildcards.trials}/obs_variance_{wildcards.obs_variance}/obs_iteration_{wildcards.obs_iteration}/dt_{wildcards.dt}/duration_{wildcards.duration}/replicates_{wildcards.replicates}"
     """
     config_paramsdic = dict(config, **paramsdic)
     dir_config_paramsdic = dict(dirdic, **config_paramsdic)
-    return shell_format_dics_run_wildcard(dir_config_paramsdic, shellfile, format_dic_with_wildcard_prefix(dirdic, config_paramsdic))
+    return shell_format_dics_run_wildcard(dir_config_paramsdic, arrayparam, shellfile, format_dic_with_wildcard_prefix(dirdic, config_paramsdic))
 
 def make_all_output_filenames(dirdic, config, paramsdic, arrayparam, filename):
     """
@@ -332,7 +332,9 @@ rule test_shell_format_dics_run_wildcard:
     run:
         dir_config_paramsdic = dict(dict(dirdic, **config), **paramsdic)
         print(dir_config_paramsdic)
-        print(shell_format_dics_run_wildcard(dir_config_paramsdic, "hoge.sh", "outfile"))
+        print(arrayparam)
+        print(shell_format_dics_run_wildcard(dir_config_paramsdic, arrayparam, "hoge.sh", "outfile"))
+        print(arrayparam)
 
 rule test_format_dic_wildcard:
     run:
@@ -361,7 +363,8 @@ rule test_make_array_shellcommand:
         print(dirdic)
         print(config)
         print(paramsdic)
-        print(make_array_shellcommand(dirdic, config, paramsdic, "array_qsub_experiment.sh"))
+        print(arrayparam)
+        print(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
 
 rule test_make_all_output_filenames:
     run:
@@ -377,7 +380,7 @@ rule test_experiment:
         for item in wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam):
             print(item)
         print("shell command:")
-        print(make_array_shellcommand(dirdic, config, paramsdic, "array_qsub_experiment.sh"))
+        print(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
 
 rule build:
     params:
@@ -399,7 +402,7 @@ rule experiment:
     output:
         wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam)
     run:
-        shell(make_array_shellcommand(dirdic, config, paramsdic, "array_qsub_experiment.sh"))
+        shell(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
 
 # rulename should not be begin by numbers
 
