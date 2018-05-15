@@ -8,7 +8,6 @@
 #$ -l s_vmem=2G,mem_req=2G
 #$ -r no
 
-SGE_TASK_ID=800
 remainder=$(($SGE_TASK_ID - 1))
 
 iter_array=(${(@s/ /)iter})
