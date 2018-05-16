@@ -43,7 +43,14 @@ rule build:
     params:
         1
     input:
-        'experiment_arguments.jl'
+        'experiment_arguments.jl',
+        'model.jl',
+        '../../util/experiment_ccompile.jl',
+        '../../util/check_args.jl',
+        '../../src/Adjoints.jl',
+        '../../src/types.jl',
+        '../../src/adjoint.jl',
+        '../../src/assimilate.jl'
     output:
         'builddir/experiment_arguments',
         'builddir/experiment_arguments.so',
