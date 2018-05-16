@@ -387,3 +387,14 @@ def bigarrayjob_run_nosync(dirdic, config, paramsdic, arrayparam, shellfile):
 def bigarrayjob_run_all(dirdic, config, paramsdics, arrayparam, shellfile):
     paramsdics_list = list(paramsdics.values())
     return [bigarrayjob_run_nosync(dirdic, config, paramsdic, arrayparam, shellfile) for paramsdic in paramsdics_list[:-1]] + [bigarrayjob_run(dirdic, config, paramsdics_list[-1], arrayparam, shellfile)]
+
+# def bigarrayjob_run_all(dirdic, config, paramsdics, arrayparam, shellfile):
+#     return [bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile) for paramsdic in paramsdics.values()]
+
+def bigarrayjob_run_all_hqw(dirdic, config, paramsdics, arrayparam, shellfile):
+    shellcommands = bigarrayjob_run_all(dirdic, config, paramsdics, arrayparam, shellfile)
+    for i in range(len(shellcommands)):
+        shellcommands[i] += "-N test" + str(i)
+    for i in range(1,len(shellcommands)):
+        shellcommands[i] += " -hold_jid test" + str(i-1)
+    return shellcommands

@@ -155,3 +155,13 @@ rule test_bigarrayjob_run_all:
         print(bigarrayjob_run_all(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
         for item in bigarrayjob_run_all(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
             print(item)
+
+rule test_bigarrayjob_run_all_hqw:
+    run:
+        print(dirdic)
+        print(config)
+        print(paramsdic)
+        print(arrayparam)
+        print(bigarrayjob_run_all_hqw(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
+        for item in bigarrayjob_run_all_hqw(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
+            print(item)

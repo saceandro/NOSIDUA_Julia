@@ -142,13 +142,13 @@ rule experiment_bigarray_all:
     output:
         make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
     run:
-        for shellcommand in bigarrayjob_run_all(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
+        for shellcommand in bigarrayjob_run_all_hqw(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
             shell(shellcommand)
 
 rule test_experiment_bigarray_all:
     run:
         print("shell command:")
-        for item in bigarrayjob_run_all(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
+        for item in bigarrayjob_run_all_hqw(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
             print(item)
         # subprocess.Popen(bigarrayjob_noqsub(dict(dirdic, **config), dict(paramsdic, **arrayparam), "bigarray_qsub_experiment.sh"), executable="/bin/zsh", shell=True, universal_newlines=True)
 
