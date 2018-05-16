@@ -254,7 +254,7 @@ end
 # end
 
 function twin_experiment!(outdir::String, a::Adjoint{N,L,K,T}, model::Model{N,L,T}, true_params::AbstractVector{T}, dists, trials=10) where {N,L,K,T<:AbstractFloat}
-    tob = copy(a.x)
+    tob = deepcopy(a.x) # fixed bug. copy() of >=2 dimensional array is implemented as reference. Thus, deepcopy() is needed.
     assimres, minres = assimilate!(a, model, dists, trials)
     write_twin_experiment_result(outdir, assimres, minres.minimum, true_params, tob)
 end

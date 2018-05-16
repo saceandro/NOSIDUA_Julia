@@ -84,7 +84,7 @@ function Adjoint(dt::T, total_T::T, obs_variance::T, x0::AbstractVector{T}, p::A
     dp = similar(p)
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
-    Adjoint{xdim, θdim, 1, T, typeof(p), typeof(x), typeof(obs)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ) # fixed bug. K=replicates.
 end
 
 function Adjoint(dt::T, obs_variance::T, obs::AbstractArray{T,3}, p::AbstractVector{T}) where {T<:AbstractFloat}
