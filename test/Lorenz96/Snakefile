@@ -12,11 +12,15 @@ dirdic = {\
 configfile: "snakeconfig.yaml"
 
 paramsdic = {\
-"obs_variance":  np.arange(1.,2.,1.),\
-"obs_iteration": np.arange(5,6,1),\
+"obs_variance":  pow(2., np.arange(-3,7,1)),\
+# np.arange(1.,2.,1.),\
+"obs_iteration": np.array([1,2,5,10]),\
+# np.arange(5,6,1),\
 "dt":            np.arange(0.01,0.02,0.01),\
-"duration":      np.arange(1.,2.,1.),\
-"replicates":    pow(2, np.arange(0,8,1))\
+"duration":      np.arange(0.1,1.1,0.1),\
+# np.arange(1.,2.,1.),\
+"replicates":    pow(2, np.arange(0,1,1))\
+# pow(2, np.arange(0,8,1))\
 }
 
 arrayparam = {\
