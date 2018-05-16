@@ -333,7 +333,8 @@ def bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile, jid, out="
     return bigarrayjob(dict(dirdic, **config), dict(paramsdic, **arrayparam), shellfile, jid, out=out, hold_jid=hold_jid, sync=sync, tc=tc)
 
 def bigarrayjob_run_all_hqw(dirdic, config, paramsdics, arrayparam, shellfile, tc=500):
+    test_cases = list(paramsdics.keys())
     paramsdics_list = list(paramsdics.values())
-    return [bigarrayjob_run(dirdic, config, paramsdics_list[0], arrayparam, shellfile, "test0", tc=tc)]\
-         + [bigarrayjob_run(dirdic, config, paramsdics_list[i], arrayparam, shellfile, "test{}".format(i), hold_jid="test{}".format(i-1), tc=tc) for i in range(1,len(paramsdics_list)-1)]\
-         + [bigarrayjob_run(dirdic, config, paramsdics_list[-1], arrayparam, shellfile, "test{}".format(len(paramsdics_list)-1), hold_jid="test{}".format(len(paramsdics_list)-2), sync='y', tc=tc)]
+    return [bigarrayjob_run(dirdic, config, paramsdics_list[0], arrayparam, shellfile, test_cases[0], tc=tc)]\
+         + [bigarrayjob_run(dirdic, config, paramsdics_list[i], arrayparam, shellfile, test_cases[i], hold_jid=test_cases[i-1], tc=tc) for i in range(1,len(paramsdics_list)-1)]\
+         + [bigarrayjob_run(dirdic, config, paramsdics_list[-1], arrayparam, shellfile, test_cases[-1], hold_jid=test_cases[-2], sync='y', tc=tc)]
