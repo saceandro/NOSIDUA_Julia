@@ -319,7 +319,6 @@ def bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile):
     shellfile = "bigarray_qsub_experiment.sh"
         ->
     bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile) =
-    "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -sync y -t 1:4:1 -tc 500
-    ./bigarray_qsub_experiment.sh "
+    "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -sync y -t 1:4:1 -tc 500 ./bigarray_qsub_experiment.sh "
     """
     return bigarrayjob(dict(dirdic, **config), dict(paramsdic, **arrayparam), shellfile, "")
