@@ -118,9 +118,9 @@ def shell_format_dics_run_wildcard(config_paramsdic, arrayparam, shellfile, out)
     out = "outfile"
         ->
     shell_format_dics_run_wildcard(dir_config_paramsdic, arrayparam, shellfile, out) =
-    "dir={wildcards.dir} true_params={wildcards.true_params} initial_lower_bounds={wildcards.initial_lower_bounds} initial_upper_bounds={wildcards.initial_upper_bounds} spinup={wildcards.spinup} generation_seed={wildcards.generation_seed} trials={wildcards.trials} obs_variance={wildcards.obs_variance} obs_iteration={wildcards.obs_iteration} dt={wildcards.dt} duration={wildcards.duration} replicates={wildcards.replicates} qsub -sync y -t 1:2:1 ./hoge.sh outfile"
+    "dir={wildcards.dir} true_params={wildcards.true_params} initial_lower_bounds={wildcards.initial_lower_bounds} initial_upper_bounds={wildcards.initial_upper_bounds} spinup={wildcards.spinup} generation_seed={wildcards.generation_seed} trials={wildcards.trials} obs_variance={wildcards.obs_variance} obs_iteration={wildcards.obs_iteration} dt={wildcards.dt} duration={wildcards.duration} replicates={wildcards.replicates} qsub -sync y -t 1:2:1 -tc 500 ./hoge.sh outfile"
     """
-    return " ".join([_shell_format_wildcard(config_paramsdic), "qsub -sync y -t 1:{}:1".format(len(next(iter(arrayparam.values())))), "./{}".format(shellfile), out]) # get first arrayparam value non-destructively
+    return " ".join([_shell_format_wildcard(config_paramsdic), "qsub -sync y -t 1:{}:1 -tc 500".format(len(next(iter(arrayparam.values())))), "./{}".format(shellfile), out]) # get first arrayparam value non-destructively
 
 def _bigarrayjob(dir_config, paramsdic):
     return " ".join([ " ".join("{}='{}'".format(*item) for item in dir_config.items()), " ".join("{}='{}'".format(key, " ".join(map(str, val))) for (key,val) in paramsdic.items()) ])
@@ -148,9 +148,9 @@ def bigarrayjob(dir_config, paramsdic, shellfile, out):
     out = "out"
         ->
     bigarrayjob(dir_config, alldic, shellfile, out) =
-    "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -sync y -t 1:4:1 ./bigarray_qsub_experiment.sh out"
+    "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -sync y -t 1:4:1 -tc 500 ./bigarray_qsub_experiment.sh out"
     """
-    return " ".join([ _bigarrayjob(dir_config, paramsdic), "qsub -sync y -t 1:{}:1".format(reduce(operator.mul, map(len, paramsdic.values()))), "./{}".format(shellfile), out ])
+    return " ".join([ _bigarrayjob(dir_config, paramsdic), "qsub -sync y -t 1:{}:1 -tc 500".format(reduce(operator.mul, map(len, paramsdic.values()))), "./{}".format(shellfile), out ])
 
 def bigarrayjob_noqsub(dir_config, paramsdic, shellfile):
     return " ".join([ _bigarrayjob(dir_config, paramsdic), "./{}".format(shellfile) ])
@@ -258,7 +258,7 @@ def make_array_shellcommand(dirdic, config, paramsdic, arrayparam, shellfile):
     {'iterations': array([1, 2])}
         ->
     make_array_shellcommand(dirdic, config, paramsdic, arrayparam, shellfile) =
-    "dir={wildcards.dir} true_params={wildcards.true_params} initial_lower_bounds={wildcards.initial_lower_bounds} initial_upper_bounds={wildcards.initial_upper_bounds} spinup={wildcards.spinup} generation_seed={wildcards.generation_seed} trials={wildcards.trials} obs_variance={wildcards.obs_variance} obs_iteration={wildcards.obs_iteration} dt={wildcards.dt} duration={wildcards.duration} replicates={wildcards.replicates} qsub -sync y -t 1:2:1 ./array_qsub_experiment.sh {wildcards.dir}/true_params_{wildcards.true_params}/initial_lower_bounds_{wildcards.initial_lower_bounds}/initial_upper_bounds_{wildcards.initial_upper_bounds}/spinup_{wildcards.spinup}/generation_seed_{wildcards.generation_seed}/trials_{wildcards.trials}/obs_variance_{wildcards.obs_variance}/obs_iteration_{wildcards.obs_iteration}/dt_{wildcards.dt}/duration_{wildcards.duration}/replicates_{wildcards.replicates}"
+    "dir={wildcards.dir} true_params={wildcards.true_params} initial_lower_bounds={wildcards.initial_lower_bounds} initial_upper_bounds={wildcards.initial_upper_bounds} spinup={wildcards.spinup} generation_seed={wildcards.generation_seed} trials={wildcards.trials} obs_variance={wildcards.obs_variance} obs_iteration={wildcards.obs_iteration} dt={wildcards.dt} duration={wildcards.duration} replicates={wildcards.replicates} qsub -sync y -t 1:2:1 -tc 500 ./array_qsub_experiment.sh {wildcards.dir}/true_params_{wildcards.true_params}/initial_lower_bounds_{wildcards.initial_lower_bounds}/initial_upper_bounds_{wildcards.initial_upper_bounds}/spinup_{wildcards.spinup}/generation_seed_{wildcards.generation_seed}/trials_{wildcards.trials}/obs_variance_{wildcards.obs_variance}/obs_iteration_{wildcards.obs_iteration}/dt_{wildcards.dt}/duration_{wildcards.duration}/replicates_{wildcards.replicates}"
     """
     config_paramsdic = dict(config, **paramsdic)
     dir_config_paramsdic = dict(dirdic, **config_paramsdic)
@@ -319,6 +319,7 @@ def bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile):
     shellfile = "bigarray_qsub_experiment.sh"
         ->
     bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile) =
-    "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -sync y -t 1:4:1 ./bigarray_qsub_experiment.sh "
+    "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -sync y -t 1:4:1 -tc 500
+    ./bigarray_qsub_experiment.sh "
     """
     return bigarrayjob(dict(dirdic, **config), dict(paramsdic, **arrayparam), shellfile, "")
