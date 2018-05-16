@@ -41,7 +41,7 @@ rule all:
 
 rule build:
     params:
-        2
+        4
     input:
         'experiment_arguments.jl',
         'model.jl',
