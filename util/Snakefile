@@ -103,3 +103,11 @@ rule test_make_all_output_filenames:
         print(paramsdic)
         print(arrayparam)
         print(make_all_output_filenames(dirdic, config, paramsdic, arrayparam, "estimates.tsv"))
+
+rule test_bigarrayjob_run:
+    run:
+        print(dirdic)
+        print(config)
+        print(paramsdic)
+        print(arrayparam)
+        print(bigarrayjob_run(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
