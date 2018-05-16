@@ -27,7 +27,9 @@
     diff = assimilation_results.θ .- CatView(tob[:,1], true_params)
     println(STDERR, "diff:\t", diff)
     println(sqrt(mapreduce(abs2, +, diff) / L)) # output RSME to STDOUT
-    if !(isnull(assimilation_results.stddev))
+    if isnull(assimilation_results.stddev)
+        writedlm(dir * "estimates.tsv", reshape(CatView(diff, fill(NaN, L)), L, 2))
+    else
         println(STDERR, "CI:\t", get(assimilation_results.stddev))
         writedlm(dir * "estimates.tsv", reshape(CatView(diff, get(assimilation_results.stddev)), L, 2))
     end
@@ -255,6 +257,8 @@ end
 
 function twin_experiment!(outdir::String, a::Adjoint{N,L,K,T}, model::Model{N,L,T}, true_params::AbstractVector{T}, dists, trials=10) where {N,L,K,T<:AbstractFloat}
     tob = deepcopy(a.x) # fixed bug. copy() of >=2 dimensional array is implemented as reference. Thus, deepcopy() is needed.
+    println(STDERR, "====================================================================================================================")
+    println(STDERR, outdir)
     assimres, minres = assimilate!(a, model, dists, trials)
     write_twin_experiment_result(outdir, assimres, minres.minimum, true_params, tob)
 end
