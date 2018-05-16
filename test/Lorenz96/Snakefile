@@ -11,25 +11,58 @@ dirdic = {\
 # snakeconfig.yaml contains fixed parameters
 configfile: "snakeconfig.yaml"
 
+# paramsdic = {\
+# "obs_variance":  pow(2., np.arange(-3,7,1)),\
+# # np.arange(1.,2.,1.),\
+# "obs_iteration": np.array([1,2,5,10]),\
+# # np.arange(5,6,1),\
+# "dt":            np.arange(0.01,0.02,0.01),\
+# "duration":      np.arange(0.1,1.1,0.1),\
+# # np.arange(1.,2.,1.),\
+# "replicates":    pow(2, np.arange(0,1,1))\
+# # pow(2, np.arange(0,8,1))\
+# }
+
 paramsdic = {\
-"obs_variance":  pow(2., np.arange(-3,7,1)),\
-# np.arange(1.,2.,1.),\
-"obs_iteration": np.array([1,2,5,10]),\
-# np.arange(5,6,1),\
-"dt":            np.arange(0.01,0.02,0.01),\
-"duration":      np.arange(0.1,1.1,0.1),\
-# np.arange(1.,2.,1.),\
-"replicates":    pow(2, np.arange(0,1,1))\
-# pow(2, np.arange(0,8,1))\
+    "obs_variance_test": {\
+        "obs_variance":  np.around(pow(2., np.arange(-3,7,1)), decimals=3),\
+        "obs_iteration": np.array([5]),\
+        "dt":            np.array([0.01]),\
+        "duration":      np.array([1.]),\
+        "replicates":    np.array([1])\
+        },\
+    "obs_iteration_test": {\
+        "obs_variance":  np.array([1.]),\
+        "obs_iteration": np.array([1,2,10,20,50,100]),\
+        "dt":            np.array([0.01]),\
+        "duration":      np.array([1.]),\
+        "replicates":    np.array([1])\
+        },\
+    "duration_test": {\
+        "obs_variance":  np.array([1.]),\
+        "obs_iteration": np.array([5]),\
+        "dt":            np.array([0.01]),\
+        "duration":      np.around(np.arange(0.1,1.0,0.1), decimals=1),\
+        "replicates":    np.array([1])\
+        },\
+    "replicates_test": {\
+        "obs_variance":  np.array([1.]),\
+        "obs_iteration": np.array([5]),\
+        "dt":            np.array([0.01]),\
+        "duration":      np.array([1.]),\
+        "replicates":    pow(2, np.arange(1,8,1))\
+        }\
 }
 
 arrayparam = {\
 "iter":    np.arange(1,101,1)\
 }
 
+localrules: all, experiment_bigarray_all
+
 rule all:
     input:
-        make_all_output_filenames(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+        make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
         # expand('results/replicate/plots/{b}.pdf', b=paramsdic["dims"]),
         # 'results/replicate/plots/RMSE.pdf'
         # expand('result/replicate/iter_plots/{b}.pdf', b=paramsdic["dims"])
@@ -42,6 +75,11 @@ rule all:
         # 'results/replicate/RMSE_total.tsv',
         # 'results/replicate/CI_total.tsv'
         # expand('results/replicate/CI/{param}.tsv', param=replicates)
+
+rule test_all:
+    run:
+        for item in make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv"):
+            print(item)
 
 rule build:
     params:
@@ -72,28 +110,46 @@ rule build:
 #     run:
 #         shell(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
 
-rule test_experiment:
-    run:
-        print("output:")
-        for item in wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam, "estimates.tsv"):
-            print(item)
-        print("\nshell command:")
-        print(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
+# rule test_experiment:
+#     run:
+#         print("output:")
+#         for item in wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam, "estimates.tsv"):
+#             print(item)
+#         print("\nshell command:")
+#         print(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
+#
+# rule experiment_bigarray:
+#     params:
+#         1
+#     input:
+#         'builddir/experiment_arguments'
+#     output:
+#         make_all_output_filenames(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+#     run:
+#         shell(bigarrayjob_run(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
+#
+# rule test_experiment_bigarray:
+#     run:
+#         print("shell command:")
+#         print(bigarrayjob_run(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
+#         # subprocess.Popen(bigarrayjob_noqsub(dict(dirdic, **config), dict(paramsdic, **arrayparam), "bigarray_qsub_experiment.sh"), executable="/bin/zsh", shell=True, universal_newlines=True)
 
-rule experiment_bigarray:
+rule experiment_bigarray_all:
     params:
         1
     input:
         'builddir/experiment_arguments'
     output:
-        make_all_output_filenames(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+        make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
     run:
-        shell(bigarrayjob_run(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
+        for shellcommand in bigarrayjob_run_all(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
+            shell(shellcommand)
 
-rule test_experiment_bigarray:
+rule test_experiment_bigarray_all:
     run:
         print("shell command:")
-        print(bigarrayjob_run(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
+        for item in bigarrayjob_run_all(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
+            print(item)
         # subprocess.Popen(bigarrayjob_noqsub(dict(dirdic, **config), dict(paramsdic, **arrayparam), "bigarray_qsub_experiment.sh"), executable="/bin/zsh", shell=True, universal_newlines=True)
 
 # rulename should not be begin by numbers

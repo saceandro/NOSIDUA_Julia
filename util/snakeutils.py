@@ -152,6 +152,33 @@ def bigarrayjob(dir_config, paramsdic, shellfile, out):
     """
     return " ".join([ _bigarrayjob(dir_config, paramsdic), "qsub -sync y -t 1:{}:1 -tc 500".format(reduce(operator.mul, map(len, paramsdic.values()))), "./{}".format(shellfile), out ])
 
+def bigarrayjob_nosync(dir_config, paramsdic, shellfile, out):
+    """
+    Make bigarray qsub shell command using the lists-of-parameters dictionary.
+    e.g.
+    dir_config =
+    {'dir': 'result1',
+     'true_params': '8.0 1.0',
+     'initial_lower_bounds': '-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0',
+     'initial_upper_bounds': '10.0 10.0 10.0 10.0 10.0 16.0 2.0',
+     'spinup': 73.0,
+     'generation_seed': 0,
+     'trials': 50}
+    alldic =
+    {'obs_variance':    array([ 1.]),
+     'obs_iteration':   array([5]),
+     'dt':              array([ 0.01]),
+     'duration':        array([ 1.]),
+     'replicates':      array([1, 2]),
+     'iter':            array([1, 2])}
+    shellfile = "bigarray_qsub_experiment.sh"
+    out = "out"
+        ->
+    bigarrayjob(dir_config, alldic, shellfile, out) =
+    "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -t 1:4:1 -tc 500 ./bigarray_qsub_experiment.sh out"
+    """
+    return " ".join([ _bigarrayjob(dir_config, paramsdic), "qsub -t 1:{}:1 -tc 500".format(reduce(operator.mul, map(len, paramsdic.values()))), "./{}".format(shellfile), out ])
+
 def bigarrayjob_noqsub(dir_config, paramsdic, shellfile):
     return " ".join([ _bigarrayjob(dir_config, paramsdic), "./{}".format(shellfile) ])
 
@@ -295,6 +322,12 @@ def make_all_output_filenames(dirdic, config, paramsdic, arrayparam, filename):
     """
     return format_divide_dic_file(makepath(dirdic, config), dict(paramsdic, **arrayparam), filename)
 
+def make_all_output_filenames_all(dirdic, config, paramsdics, arrayparam, filename):
+    output_files = []
+    for paramsdic in paramsdics.values():
+        output_files += make_all_output_filenames(dirdic, config, paramsdic, arrayparam, filename)
+    return output_files
+
 def bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile):
     """
     Make bigarray qsub shell command using the lists-of-parameters dictionary.
@@ -322,3 +355,35 @@ def bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile):
     "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -sync y -t 1:4:1 -tc 500 ./bigarray_qsub_experiment.sh "
     """
     return bigarrayjob(dict(dirdic, **config), dict(paramsdic, **arrayparam), shellfile, "")
+
+def bigarrayjob_run_nosync(dirdic, config, paramsdic, arrayparam, shellfile):
+    """
+    Make bigarray qsub shell command using the lists-of-parameters dictionary.
+    e.g.
+    dirdic =
+    {'dir': 'result1'}
+    config =
+    {'true_params':             '8.0 1.0',
+     'initial_lower_bounds':    '-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0',
+     'initial_upper_bounds':    '10.0 10.0 10.0 10.0 10.0 16.0 2.0',
+     'spinup':                  73.0,
+     'generation_seed':         0,
+     'trials':                  50}
+    paramsdic =
+    {'obs_variance':            array([ 1.]),
+     'obs_iteration':           array([5]),
+     'dt':                      array([ 0.01]),
+     'duration':                array([ 1.]),
+     'replicates':              array([1, 2])}
+    arrayparam =
+    {'iterations': array([1, 2])}
+    shellfile = "bigarray_qsub_experiment.sh"
+        ->
+    bigarrayjob_run_nosync(dirdic, config, paramsdic, arrayparam, shellfile) =
+    "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -t 1:4:1 -tc 500 ./bigarray_qsub_experiment.sh "
+    """
+    return bigarrayjob_nosync(dict(dirdic, **config), dict(paramsdic, **arrayparam), shellfile, "")
+
+def bigarrayjob_run_all(dirdic, config, paramsdics, arrayparam, shellfile):
+    paramsdics_list = list(paramsdics.values())
+    return [bigarrayjob_run_nosync(dirdic, config, paramsdic, arrayparam, shellfile) for paramsdic in paramsdics_list[:-1]] + [bigarrayjob_run(dirdic, config, paramsdics_list[-1], arrayparam, shellfile)]
