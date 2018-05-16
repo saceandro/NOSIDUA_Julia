@@ -88,7 +88,7 @@ rule test_bigarrayjob:
         alldic = dict(paramsdic["replicates_test"], **arrayparam)
         print(dir_config)
         print(alldic)
-        print(bigarrayjob(dir_config, alldic, "foo.sh", "outfile"))
+        print(bigarrayjob(dir_config, alldic, "foo.sh", "test0", out="outfile", hold_jid=None, sync='n', tc=500))
 
 rule test_format_dic_wildcard:
     run:
@@ -144,17 +144,7 @@ rule test_bigarrayjob_run:
         print(config)
         print(paramsdic["replicates_test"])
         print(arrayparam)
-        print(bigarrayjob_run(dirdic, config, paramsdic["replicates_test"], arrayparam, "bigarray_qsub_experiment.sh"))
-
-rule test_bigarrayjob_run_all:
-    run:
-        print(dirdic)
-        print(config)
-        print(paramsdic)
-        print(arrayparam)
-        print(bigarrayjob_run_all(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
-        for item in bigarrayjob_run_all(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
-            print(item)
+        print(bigarrayjob_run(dirdic, config, paramsdic["replicates_test"], arrayparam, "bigarray_qsub_experiment.sh", "test0", out="", hold_jid=None, sync='n', tc=500))
 
 rule test_bigarrayjob_run_all_hqw:
     run:

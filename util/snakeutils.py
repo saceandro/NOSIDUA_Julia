@@ -125,7 +125,7 @@ def shell_format_dics_run_wildcard(config_paramsdic, arrayparam, shellfile, out)
 def _bigarrayjob(dir_config, paramsdic):
     return " ".join([ " ".join("{}='{}'".format(*item) for item in dir_config.items()), " ".join("{}='{}'".format(key, " ".join(map(str, val))) for (key,val) in paramsdic.items()) ])
 
-def bigarrayjob(dir_config, paramsdic, shellfile, out):
+def bigarrayjob(dir_config, paramsdic, shellfile, jid, out="", hold_jid=None, sync='n', tc=500):
     """
     Make bigarray qsub shell command using the lists-of-parameters dictionary.
     e.g.
@@ -150,34 +150,10 @@ def bigarrayjob(dir_config, paramsdic, shellfile, out):
     bigarrayjob(dir_config, alldic, shellfile, out) =
     "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -sync y -t 1:4:1 -tc 500 ./bigarray_qsub_experiment.sh out"
     """
-    return " ".join([ _bigarrayjob(dir_config, paramsdic), "qsub -sync y -t 1:{}:1 -tc 500".format(reduce(operator.mul, map(len, paramsdic.values()))), "./{}".format(shellfile), out ])
-
-def bigarrayjob_nosync(dir_config, paramsdic, shellfile, out):
-    """
-    Make bigarray qsub shell command using the lists-of-parameters dictionary.
-    e.g.
-    dir_config =
-    {'dir': 'result1',
-     'true_params': '8.0 1.0',
-     'initial_lower_bounds': '-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0',
-     'initial_upper_bounds': '10.0 10.0 10.0 10.0 10.0 16.0 2.0',
-     'spinup': 73.0,
-     'generation_seed': 0,
-     'trials': 50}
-    alldic =
-    {'obs_variance':    array([ 1.]),
-     'obs_iteration':   array([5]),
-     'dt':              array([ 0.01]),
-     'duration':        array([ 1.]),
-     'replicates':      array([1, 2]),
-     'iter':            array([1, 2])}
-    shellfile = "bigarray_qsub_experiment.sh"
-    out = "out"
-        ->
-    bigarrayjob(dir_config, alldic, shellfile, out) =
-    "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -t 1:4:1 -tc 500 ./bigarray_qsub_experiment.sh out"
-    """
-    return " ".join([ _bigarrayjob(dir_config, paramsdic), "qsub -t 1:{}:1 -tc 500".format(reduce(operator.mul, map(len, paramsdic.values()))), "./{}".format(shellfile), out ])
+    if hold_jid is None:
+        return " ".join([ _bigarrayjob(dir_config, paramsdic), "qsub", "-N {}".format(jid), "-sync {}".format(sync), "-t 1:{}:1".format(reduce(operator.mul, map(len, paramsdic.values()))), "-tc {}".format(tc), "./{}".format(shellfile), out ])
+    else:
+        return " ".join([ _bigarrayjob(dir_config, paramsdic), "qsub", "-N {}".format(jid), "-hold_jid {}".format(hold_jid), "-sync {}".format(sync), "-t 1:{}:1".format(reduce(operator.mul, map(len, paramsdic.values()))), "-tc {}".format(tc), "./{}".format(shellfile), out ])
 
 def bigarrayjob_noqsub(dir_config, paramsdic, shellfile):
     return " ".join([ _bigarrayjob(dir_config, paramsdic), "./{}".format(shellfile) ])
@@ -328,7 +304,7 @@ def make_all_output_filenames_all(dirdic, config, paramsdics, arrayparam, filena
         output_files += make_all_output_filenames(dirdic, config, paramsdic, arrayparam, filename)
     return output_files
 
-def bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile):
+def bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile, jid, out="", hold_jid=None, sync='n', tc=500):
     """
     Make bigarray qsub shell command using the lists-of-parameters dictionary.
     e.g.
@@ -354,47 +330,10 @@ def bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile):
     bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile) =
     "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -sync y -t 1:4:1 -tc 500 ./bigarray_qsub_experiment.sh "
     """
-    return bigarrayjob(dict(dirdic, **config), dict(paramsdic, **arrayparam), shellfile, "")
+    return bigarrayjob(dict(dirdic, **config), dict(paramsdic, **arrayparam), shellfile, jid, out=out, hold_jid=hold_jid, sync=sync, tc=tc)
 
-def bigarrayjob_run_nosync(dirdic, config, paramsdic, arrayparam, shellfile):
-    """
-    Make bigarray qsub shell command using the lists-of-parameters dictionary.
-    e.g.
-    dirdic =
-    {'dir': 'result1'}
-    config =
-    {'true_params':             '8.0 1.0',
-     'initial_lower_bounds':    '-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0',
-     'initial_upper_bounds':    '10.0 10.0 10.0 10.0 10.0 16.0 2.0',
-     'spinup':                  73.0,
-     'generation_seed':         0,
-     'trials':                  50}
-    paramsdic =
-    {'obs_variance':            array([ 1.]),
-     'obs_iteration':           array([5]),
-     'dt':                      array([ 0.01]),
-     'duration':                array([ 1.]),
-     'replicates':              array([1, 2])}
-    arrayparam =
-    {'iterations': array([1, 2])}
-    shellfile = "bigarray_qsub_experiment.sh"
-        ->
-    bigarrayjob_run_nosync(dirdic, config, paramsdic, arrayparam, shellfile) =
-    "dir='result1' true_params='8.0 1.0' initial_lower_bounds='-10.0 -10.0 -10.0 -10.0 -10.0 0.0 0.0' initial_upper_bounds='10.0 10.0 10.0 10.0 10.0 16.0 2.0' spinup='73.0' generation_seed='0' trials='50' obs_variance='1.0' obs_iteration='5' dt='0.01' duration='1.0' replicates='1 2' iter='1 2' qsub -t 1:4:1 -tc 500 ./bigarray_qsub_experiment.sh "
-    """
-    return bigarrayjob_nosync(dict(dirdic, **config), dict(paramsdic, **arrayparam), shellfile, "")
-
-def bigarrayjob_run_all(dirdic, config, paramsdics, arrayparam, shellfile):
+def bigarrayjob_run_all_hqw(dirdic, config, paramsdics, arrayparam, shellfile, tc=500):
     paramsdics_list = list(paramsdics.values())
-    return [bigarrayjob_run_nosync(dirdic, config, paramsdic, arrayparam, shellfile) for paramsdic in paramsdics_list[:-1]] + [bigarrayjob_run(dirdic, config, paramsdics_list[-1], arrayparam, shellfile)]
-
-# def bigarrayjob_run_all(dirdic, config, paramsdics, arrayparam, shellfile):
-#     return [bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile) for paramsdic in paramsdics.values()]
-
-def bigarrayjob_run_all_hqw(dirdic, config, paramsdics, arrayparam, shellfile):
-    shellcommands = bigarrayjob_run_all(dirdic, config, paramsdics, arrayparam, shellfile)
-    for i in range(len(shellcommands)):
-        shellcommands[i] += "-N test" + str(i)
-    for i in range(1,len(shellcommands)):
-        shellcommands[i] += " -hold_jid test" + str(i-1)
-    return shellcommands
+    return [bigarrayjob_run(dirdic, config, paramsdics_list[0], arrayparam, shellfile, "test0", tc=tc)]\
+         + [bigarrayjob_run(dirdic, config, paramsdics_list[i], arrayparam, shellfile, "test{}".format(i), hold_jid="test{}".format(i-1), tc=tc) for i in range(1,len(paramsdics_list)-1)]\
+         + [bigarrayjob_run(dirdic, config, paramsdics_list[-1], arrayparam, shellfile, "test{}".format(len(paramsdics_list)-1), hold_jid="test{}".format(len(paramsdics_list)-2), sync='y', tc=tc)]
