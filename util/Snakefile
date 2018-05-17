@@ -3,11 +3,14 @@
 
 import sys, os
 import numpy as np
-from snakemake.utils import R
 from snakeutils import *
 
 dirdic = {\
 "dir": "result1"\
+}
+
+plotdir = {\
+"dir": "plots"
 }
 
 # snakeconfig.yaml contains fixed parameters. They are packed in a dictionary named config by the following declaration.
@@ -15,28 +18,28 @@ configfile: "../test/Lorenz96/snakeconfig.yaml"
 
 # Be careful to be disjoint parameter sets.
 paramsdic = {\
-    "obs_variance_test": {\
+    "obs_variance": {\
         "obs_variance":  np.around(pow(2., np.arange(-3,7,1)), decimals=3),\
         "obs_iteration": np.array([5]),\
         "dt":            np.array([0.01]),\
         "duration":      np.array([1.]),\
         "replicates":    np.array([1])\
         },\
-    "obs_iteration_test": {\
+    "obs_iteration": {\
         "obs_variance":  np.array([1.]),\
         "obs_iteration": np.array([1,2,10,20,50,100]),\
         "dt":            np.array([0.01]),\
         "duration":      np.array([1.]),\
         "replicates":    np.array([1])\
         },\
-    "duration_test": {\
+    "duration": {\
         "obs_variance":  np.array([1.]),\
         "obs_iteration": np.array([5]),\
         "dt":            np.array([0.01]),\
         "duration":      np.around(np.arange(0.1,1.0,0.1), decimals=1),\
         "replicates":    np.array([1])\
         },\
-    "replicates_test": {\
+    "replicates": {\
         "obs_variance":  np.array([1.]),\
         "obs_iteration": np.array([5]),\
         "dt":            np.array([0.01]),\
@@ -49,16 +52,25 @@ arrayparam = {\
 "iter":    np.arange(1,101,1)\
 }
 
+variables = ["x1", "x2", "x3", "x4", "x5", "p1", "p2"]
+
 rule test_makepath:
     run:
         print(dirdic)
         print(config)
         print(makepath(dirdic, config))
 
+rule test_divide_dic:
+    run:
+        print(paramsdic)
+        print(divide_dic(paramsdic["obs_variance"]))
+        for item in divide_dic(paramsdic["obs_variance"]):
+            print(item)
+
 rule test_format_divide_dic:
     run:
         basedir = makepath(dirdic, config)
-        alldic = dict(paramsdic["replicates_test"], **arrayparam)
+        alldic = dict(paramsdic["replicates"], **arrayparam)
         print(basedir)
         print(alldic)
         print(format_divide_dic(basedir, alldic))
@@ -68,7 +80,7 @@ rule test_format_divide_dic:
 rule test_format_divide_dic_file:
     run:
         basedir = makepath(dirdic, config)
-        alldic = dict(paramsdic["replicates_test"], **arrayparam)
+        alldic = dict(paramsdic["replicates"], **arrayparam)
         print(basedir)
         print(alldic)
         print(format_divide_dic_file(basedir, alldic, "estimates.tsv"))
@@ -77,7 +89,7 @@ rule test_format_divide_dic_file:
 
 rule test_shell_format_dics_run_wildcard:
     run:
-        dir_config_paramsdic = dict(dict(dirdic, **config), **paramsdic["replicates_test"])
+        dir_config_paramsdic = dict(dict(dirdic, **config), **paramsdic["replicates"])
         print(dir_config_paramsdic)
         print(arrayparam)
         print(shell_format_dics_run_wildcard(dir_config_paramsdic, arrayparam, "hoge.sh", "outfile"))
@@ -85,21 +97,21 @@ rule test_shell_format_dics_run_wildcard:
 rule test_bigarrayjob:
     run:
         dir_config = dict(dirdic, **config)
-        alldic = dict(paramsdic["replicates_test"], **arrayparam)
+        alldic = dict(paramsdic["replicates"], **arrayparam)
         print(dir_config)
         print(alldic)
         print(bigarrayjob(dir_config, alldic, "foo.sh", "test0", out="outfile", hold_jid=None, sync='n', tc=500))
 
 rule test_format_dic_wildcard:
     run:
-        config_paramsdic = dict(config, **paramsdic["replicates_test"])
+        config_paramsdic = dict(config, **paramsdic["replicates"])
         print(dirdic)
         print(config_paramsdic)
         print(format_dic_wildcard(dirdic, config_paramsdic))
 
 rule test_format_dic_with_wildcard_prefix:
     run:
-        config_paramsdic = dict(config, **paramsdic["replicates_test"])
+        config_paramsdic = dict(config, **paramsdic["replicates"])
         print(dirdic)
         print(config_paramsdic)
         print(format_dic_with_wildcard_prefix(dirdic, config_paramsdic))
@@ -108,25 +120,25 @@ rule test_wildcardparams_expandarrayparams:
     run:
         print(dirdic)
         print(config)
-        print(paramsdic["replicates_test"])
+        print(paramsdic["replicates"])
         print(arrayparam)
-        print(wildcardparams_expandarrayparams(dirdic, config, paramsdic["replicates_test"], arrayparam, "estimates.tsv"))
+        print(wildcardparams_expandarrayparams(dirdic, config, paramsdic["replicates"], arrayparam, "estimates.tsv"))
 
 rule test_make_array_shellcommand:
     run:
         print(dirdic)
         print(config)
-        print(paramsdic["replicates_test"])
+        print(paramsdic["replicates"])
         print(arrayparam)
-        print(make_array_shellcommand(dirdic, config, paramsdic["replicates_test"], arrayparam, "array_qsub_experiment.sh"))
+        print(make_array_shellcommand(dirdic, config, paramsdic["replicates"], arrayparam, "array_qsub_experiment.sh"))
 
 rule test_make_all_output_filenames:
     run:
         print(dirdic)
         print(config)
-        print(paramsdic["replicates_test"])
+        print(paramsdic["replicates"])
         print(arrayparam)
-        print(make_all_output_filenames(dirdic, config, paramsdic["replicates_test"], arrayparam, "estimates.tsv"))
+        print(make_all_output_filenames(dirdic, config, paramsdic["replicates"], arrayparam, "estimates.tsv"))
 
 rule test_make_all_output_filenames_all:
     run:
@@ -142,9 +154,9 @@ rule test_bigarrayjob_run:
     run:
         print(dirdic)
         print(config)
-        print(paramsdic["replicates_test"])
+        print(paramsdic["replicates"])
         print(arrayparam)
-        print(bigarrayjob_run(dirdic, config, paramsdic["replicates_test"], arrayparam, "bigarray_qsub_experiment.sh", "test0", out="", hold_jid=None, sync='n', tc=500))
+        print(bigarrayjob_run(dirdic, config, paramsdic["replicates"], arrayparam, "bigarray_qsub_experiment.sh", "test0", out="", hold_jid=None, sync='n', tc=500))
 
 rule test_bigarrayjob_run_all_hqw:
     run:
@@ -154,4 +166,22 @@ rule test_bigarrayjob_run_all_hqw:
         print(arrayparam)
         print(bigarrayjob_run_all_hqw(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
         for item in bigarrayjob_run_all_hqw(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
+            print(item)
+
+rule test_plotdic:
+    run:
+        print(plotdic(paramsdic))
+        for (key, val) in plotdic(paramsdic).items():
+            print(key,":",val)
+
+rule test_plotnames:
+    run:
+        print(plotnames(plotdir, config, paramsdic, variables, "boxplot"))
+        for item in plotnames(plotdir, config, paramsdic, variables, "boxplot"):
+            print(item)
+
+rule test_totalnames:
+    run:
+        print(totalnames(plotdir, config, paramsdic, variables))
+        for item in totalnames(plotdir, config, paramsdic, variables):
             print(item)

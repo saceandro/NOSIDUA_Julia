@@ -2,6 +2,7 @@
 
 import subprocess, itertools, operator
 from functools import reduce
+from snakemake.utils import R
 
 def execcommand(cmd,stdout,stderr,input=""):
     with open(stdout, "w") as outf:
@@ -28,6 +29,15 @@ def makepath(dirdic, config):
     "result1/true_params_8.0_1.0/initial_lower_bounds_-10.0_-10.0_-10.0_-10.0_-10.0_0.0_0.0/initial_upper_bounds_10.0_10.0_10.0_10.0_10.0_16.0_2.0/spinup_73.0/generation_seed_0/trials_50"
     """
     return "/".join(["/".join("{}".format(val) for val in dirdic.values()), "/".join("{}_{}".format(key,str(val).replace(" ", "_")) for (key,val) in config.items())])
+
+def make_param_path(paramdic):
+    return "/".join("{}_{}".format(*item) for item in paramdic.items())
+
+def divide_dic(paramsdic):
+    return [dict(zip(paramsdic.keys(), item)) for item in itertools.product(*paramsdic.values())]
+
+# def format_dic(basedir, paramdic):
+#     return "/".join([basedir, "/".join("{}_{}".format(*item) for item in paramdic.items())])
 
 def format_divide_dic(basedir, paramsdic):
     """
@@ -338,3 +348,42 @@ def bigarrayjob_run_all_hqw(dirdic, config, paramsdics, arrayparam, shellfile, t
     return [bigarrayjob_run(dirdic, config, paramsdics_list[0], arrayparam, shellfile, test_cases[0], tc=tc)]\
          + [bigarrayjob_run(dirdic, config, paramsdics_list[i], arrayparam, shellfile, test_cases[i], hold_jid=test_cases[i-1], tc=tc) for i in range(1,len(paramsdics_list)-1)]\
          + [bigarrayjob_run(dirdic, config, paramsdics_list[-1], arrayparam, shellfile, test_cases[-1], hold_jid=test_cases[-2], sync='y', tc=tc)]
+
+def plotdic(paramsdics):
+    return {meta_key: {key: val for (key,val) in paramsdics[meta_key].items() if key is not meta_key} for meta_key in paramsdics.keys()}
+
+def totalnames(plotdir, config, paramsdic, variables):
+    return list(itertools.chain.from_iterable(format_divide_dic_file(makepath( dict(plotdir, **{"testcase": testcase}), config), paramdic, item) for (testcase, paramdic) in plotdic(paramsdic).items() for item in variables) )
+
+def plotnames(plotdir, config, paramsdic, variables, kindofplot):
+    return list(itertools.chain.from_iterable(format_divide_dic_file(makepath( dict(plotdir, **{"testcase": testcase}), config), paramdic, "/".join([kindofplot, item + ".pdf"])) for (testcase, paramdic) in plotdic(paramsdic).items() for item in variables) )
+
+def total(dirdic, plotdir, config, paramsdic, variables, resultfilename):
+    for (testcase, paramdic) in plotdic(paramsdic).items():
+        plotbase = format_divide_dic(makepath( dict(plotdir, **{"testcase": testcase}), config), paramdic)[0]
+        totalfiles = ["/".join([plotbase, item]) for item in variables]
+        totalfiles_stream = [open(totalfile, "w") for totalfile in totalfiles]
+        for paramdic_all in divide_dic(paramsdic[testcase]):
+            resultbase = makepath( dirdic, dict(config, **paramdic_all) )
+            for _iter in divide_dic(arrayparam):
+                resultfile = "/".join([resultbase, make_param_path(_iter), resultfilename])
+                with open(resultfile, "r") as resultf:
+                    for i in range(len(variables)):
+                        totalfiles_stream[i].write("%f\t%s" % (paramdic_all[testcase], resultf.readline()))
+                    resultf.close()
+        for item in totalfiles_stream:
+            item.close()
+
+def boxplot(totalfiles, plotfiles):
+    for i in range(len(totalfiles)):
+        R("""
+        library(ggplot2)
+        library(scales)
+        d <- read.delim("{}", header=T)
+        g <- ggplot(d, aes(x=replicates, y=diff, group=replicates))
+        g <- g + geom_boxplot()
+        g <- g + scale_x_continuous(
+            trans = 'log2',
+            labels = trans_format('log2', math_format(2^.x)))
+        ggsave(file="{}", plot=g)
+        """.format(totalfiles[i], plotfiles[i]))
