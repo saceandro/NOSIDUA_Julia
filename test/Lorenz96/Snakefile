@@ -68,7 +68,8 @@ localrules: all, experiment_bigarray_all
 
 rule all:
     input:
-        make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+        totalnames(plotdir, config, paramsdic, variables)
+        # make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
         # expand('results/replicate/plots/{b}.pdf', b=paramsdic["dims"]),
         # 'results/replicate/plots/RMSE.pdf'
         # expand('result/replicate/iter_plots/{b}.pdf', b=paramsdic["dims"])
@@ -496,4 +497,8 @@ rule CI_plot_line_ylinear:
 
 rule clean:
     shell:
-        "rm -rf result log"
+        """
+        rm -rf result1 log/experiment .snakemake
+        :> ~/.ugeout
+        :> ~/.ugeerr
+        """
