@@ -68,7 +68,9 @@ localrules: all, experiment_bigarray_all
 
 rule all:
     input:
-        plotnames(plotdir, config, paramsdic, variables, "boxplot")
+        plotnames(plotdir, config, paramsdic, variables, "diff_boxplot"),
+        plotnames(plotdir, config, paramsdic, variables, "CI_boxplot"),
+        plotnames(plotdir, config, paramsdic, variables, "CI_lineplot")
         # totalnames(plotdir, config, paramsdic, variables)
         # make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
         # expand('results/replicate/plots/{b}.pdf', b=paramsdic["dims"]),
@@ -150,35 +152,60 @@ rule experiment_bigarray_all:
     output:
         make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
     run:
-        for shellcommand in bigarrayjob_run_all_hqw(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
-            shell(shellcommand)
+        bigarrayjob_run_all_hqw(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh")
 
-rule test_experiment_bigarray_all:
-    run:
-        print("shell command:")
-        for item in bigarrayjob_run_all_hqw(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
-            print(item)
-        # subprocess.Popen(bigarrayjob_noqsub(dict(dirdic, **config), dict(paramsdic, **arrayparam), "bigarray_qsub_experiment.sh"), executable="/bin/zsh", shell=True, universal_newlines=True)
+# rule test_experiment_bigarray_all:
+#     run:
+#         print("shell command:")
+#         for item in bigarrayjob_run_all_hqw(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"):
+#             print(item)
+#         subprocess.Popen(bigarrayjob_noqsub(dict(dirdic, **config), dict(paramsdic, **arrayparam), "bigarray_qsub_experiment.sh"), executable="/bin/zsh", shell=True, universal_newlines=True)
 
 rule total:
-    # params:
-    #     1
-    # input:
-    #     make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+    params:
+        1
+    input:
+        make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
     output:
         totalnames(plotdir, config, paramsdic, variables)
     run:
         total(dirdic, plotdir, config, paramsdic, arrayparam, variables, "estimates.tsv")
 
-rule boxplot:
+rule diff_boxplot:
     params:
         1
     input:
-        "plots/{testcase}/{wc}/{variable}"
+        make_plot_wildcard(plotdir, "{testcase}", "{wc}", "{variable}")
     output:
-        "plots/{testcase}/{wc}/boxplot/{variable}.pdf"
+        make_plot_wildcard(plotdir, "{testcase}", "{wc}", "diff_boxplot", "{variable}.pdf")
+    wildcard_constraints:
+        testcase="[^/]+"
     run:
-        boxplot("{input}", "{wildcards.testcase}", "{output}")
+        boxplot(input, output, wildcards.testcase, "diff", x_log_scale_base=10, remove_na=True)
+
+rule CI_boxplot:
+    params:
+        1
+    input:
+        make_plot_wildcard(plotdir, "{testcase}", "{wc}", "{variable}")
+    output:
+        make_plot_wildcard(plotdir, "{testcase}", "{wc}", "CI_boxplot", "{variable}.pdf")
+    wildcard_constraints:
+        testcase="[^/]+"
+    run:
+        boxplot(input, output, wildcards.testcase, "CI", x_log_scale_base=10, y_log_scale_base=10, remove_na=True)
+
+rule CI_lineplot:
+    params:
+        1
+    input:
+        make_plot_wildcard(plotdir, "{testcase}", "{wc}", "{variable}")
+    output:
+        make_plot_wildcard(plotdir, "{testcase}", "{wc}", "CI_lineplot", "{variable}.pdf")
+    wildcard_constraints:
+        testcase="[^/]+"
+    run:
+        summmarized_plot(input, output, wildcards.testcase, "diff", "CI", y1_op="sd", y2_op="mean", x_log_scale_base=10, y_log_scale_base=10, remove_na=True)
 
 
 # rulename should not be begin by numbers
@@ -354,50 +381,50 @@ rule boxplot:
 #         ggsave(file="{output}", plot=g)
 #         """)
 
-rule CI_boxplot:
-    params:
-        1
-    input:
-        'result/replicate/{b}.tsv'
-    output:
-        'result/replicate/CI_boxplots/{b}.pdf'
-    run:
-        R("""
-        library(ggplot2)
-        library(scales)
-        d <- read.delim("{input[0]}", header=T)
-        g <- ggplot(d, aes(x=replicates, y=CI, group=replicates))
-        g <- g + geom_boxplot()
-        g <- g + scale_x_continuous(
-            trans = 'log2',
-            labels = trans_format('log2', math_format(2^.x)))
-        g <- g + scale_y_continuous(
-            limits=c(0,NA)
-            )
-        ggsave(file="{output}", plot=g)
-        """)
-
-rule CI_boxplot_ylog:
-    params:
-        1
-    input:
-        'result/replicate/{b}.tsv'
-    output:
-        'result/replicate/CI_boxplots_ylog/{b}.pdf'
-    run:
-        R("""
-        library(ggplot2)
-        library(scales)
-        d <- read.delim("{input[0]}", header=T)
-        g <- ggplot(d, aes(x=replicates, y=CI, group=replicates))
-        g <- g + geom_boxplot()
-        g <- g + scale_x_continuous(
-            trans = 'log2',
-            labels = trans_format('log2', math_format(2^.x)))
-        g <- g + scale_y_continuous(
-            trans = 'log2')
-        ggsave(file="{output}", plot=g)
-        """)
+# rule CI_boxplot:
+#     params:
+#         1
+#     input:
+#         'result/replicate/{b}.tsv'
+#     output:
+#         'result/replicate/CI_boxplots/{b}.pdf'
+#     run:
+#         R("""
+#         library(ggplot2)
+#         library(scales)
+#         d <- read.delim("{input[0]}", header=T)
+#         g <- ggplot(d, aes(x=replicates, y=CI, group=replicates))
+#         g <- g + geom_boxplot()
+#         g <- g + scale_x_continuous(
+#             trans = 'log2',
+#             labels = trans_format('log2', math_format(2^.x)))
+#         g <- g + scale_y_continuous(
+#             limits=c(0,NA)
+#             )
+#         ggsave(file="{output}", plot=g)
+#         """)
+#
+# rule CI_boxplot_ylog:
+#     params:
+#         1
+#     input:
+#         'result/replicate/{b}.tsv'
+#     output:
+#         'result/replicate/CI_boxplots_ylog/{b}.pdf'
+#     run:
+#         R("""
+#         library(ggplot2)
+#         library(scales)
+#         d <- read.delim("{input[0]}", header=T)
+#         g <- ggplot(d, aes(x=replicates, y=CI, group=replicates))
+#         g <- g + geom_boxplot()
+#         g <- g + scale_x_continuous(
+#             trans = 'log2',
+#             labels = trans_format('log2', math_format(2^.x)))
+#         g <- g + scale_y_continuous(
+#             trans = 'log2')
+#         ggsave(file="{output}", plot=g)
+#         """)
 
 rule CI_plot2:
     params:

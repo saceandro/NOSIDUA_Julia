@@ -3,6 +3,7 @@
 import subprocess, itertools, operator
 from functools import reduce
 from snakemake.utils import R
+from snakemake import shell
 
 def execcommand(cmd,stdout,stderr,input=""):
     with open(stdout, "w") as outf:
@@ -29,6 +30,12 @@ def makepath(dirdic, config):
     "result1/true_params_8.0_1.0/initial_lower_bounds_-10.0_-10.0_-10.0_-10.0_-10.0_0.0_0.0/initial_upper_bounds_10.0_10.0_10.0_10.0_10.0_16.0_2.0/spinup_73.0/generation_seed_0/trials_50"
     """
     return "/".join(["/".join("{}".format(val) for val in dirdic.values()), "/".join("{}_{}".format(key,str(val).replace(" ", "_")) for (key,val) in config.items())])
+
+def make_dir_path(dirdic):
+    return "/".join("{}".format(val) for val in dirdic.values())
+
+def make_plot_wildcard(dirdic, *args):
+    return "/".join([make_dir_path(dirdic), "/".join(args)])
 
 def make_param_path(paramdic):
     return "/".join("{}_{}".format(*item) for item in paramdic.items())
@@ -345,9 +352,13 @@ def bigarrayjob_run(dirdic, config, paramsdic, arrayparam, shellfile, jid, out="
 def bigarrayjob_run_all_hqw(dirdic, config, paramsdics, arrayparam, shellfile, tc=500):
     test_cases = list(paramsdics.keys())
     paramsdics_list = list(paramsdics.values())
-    return [bigarrayjob_run(dirdic, config, paramsdics_list[0], arrayparam, shellfile, test_cases[0], tc=tc)]\
-         + [bigarrayjob_run(dirdic, config, paramsdics_list[i], arrayparam, shellfile, test_cases[i], hold_jid=test_cases[i-1], tc=tc) for i in range(1,len(paramsdics_list)-1)]\
-         + [bigarrayjob_run(dirdic, config, paramsdics_list[-1], arrayparam, shellfile, test_cases[-1], hold_jid=test_cases[-2], sync='y', tc=tc)]
+    shell(bigarrayjob_run(dirdic, config, paramsdics_list[0], arrayparam, shellfile, test_cases[0], tc=tc))
+    for i in range(1,len(paramsdics_list)-1):
+        shell(bigarrayjob_run(dirdic, config, paramsdics_list[i], arrayparam, shellfile, test_cases[i], hold_jid=test_cases[i-1], tc=tc))
+    shell(bigarrayjob_run(dirdic, config, paramsdics_list[-1], arrayparam, shellfile, test_cases[-1], hold_jid=test_cases[-2], sync='y', tc=tc))
+    # return [bigarrayjob_run(dirdic, config, paramsdics_list[0], arrayparam, shellfile, test_cases[0], tc=tc)]\
+    #      + [bigarrayjob_run(dirdic, config, paramsdics_list[i], arrayparam, shellfile, test_cases[i], hold_jid=test_cases[i-1], tc=tc) for i in range(1,len(paramsdics_list)-1)]\
+    #      + [bigarrayjob_run(dirdic, config, paramsdics_list[-1], arrayparam, shellfile, test_cases[-1], hold_jid=test_cases[-2], sync='y', tc=tc)]
 
 def plotdic(paramsdics):
     return {meta_key: {key: val for (key,val) in paramsdics[meta_key].items() if key is not meta_key} for meta_key in paramsdics.keys()}
@@ -376,15 +387,79 @@ def total(dirdic, plotdir, config, paramsdic, arrayparam, variables, resultfilen
         for item in totalfiles_stream:
             item.close()
 
-def boxplot(wc1, wc2, wc3):
-    R("""
+def boxplot(input, output, x, y, x_log_scale_base=None, y_log_scale_base=None, remove_na=False):
+    command = """
     library(ggplot2)
     library(scales)
-    d <- read.delim("{0}", header=T)
-    g <- ggplot(d, aes(x={1}, y=diff, group={1}))
+    d <- read.delim("{input}", header=T)
+    """
+    if remove_na:
+        command += """
+        d <- d[complete.cases(d),]
+        """
+    command += """
+    g <- ggplot(d, aes(x={x}, y={y}, group={x}))
     g <- g + geom_boxplot()
-    g <- g + scale_x_continuous(
-        trans = 'log2',
-        labels = trans_format('log2', math_format(2^.x)))
-    ggsave(file="{2}", plot=g)
-    """.format(wc1, wc2, wc3))
+    """
+    if x_log_scale_base is not None:
+        command += """
+        g <- g + scale_x_continuous(
+            trans = 'log{x_log_scale_base}',
+            labels = trans_format('log{x_log_scale_base}', math_format({x_log_scale_base}^.x)))
+        """
+    if y_log_scale_base is not None:
+        command += """
+        g <- g + scale_y_continuous(
+            trans = 'log{y_log_scale_base}',
+            labels = trans_format('log{y_log_scale_base}', math_format({y_log_scale_base}^.x)))
+        """
+    command += """
+    ggsave(file="{output}", plot=g)
+    """
+    command = command.format(input=input, output=output, x=x, y=y, x_log_scale_base=x_log_scale_base, y_log_scale_base=y_log_scale_base)
+    print(command)
+    R(command)
+
+def summmarized_plot(input, output, x, y1, y2, y1_op="sd", y2_op="mean", x_log_scale_base=None, y_log_scale_base=None, remove_na=False):
+    command = """
+    library(ggplot2)
+    library(scales)
+    library(plyr)
+    d <- read.delim("{input}", header=T)
+    """
+    if remove_na:
+        command += """
+        d <- d[complete.cases(d),]
+        """
+    command += """
+    d_stat <- ddply(d, .({x}), summarize, "{y1_op}_{y1}"={y1_op}({y1}), "{y2_op}_{y2}"={y2_op}({y2}))
+    d1 <- data.frame(d_stat${x}, d_stat${y1_op}_{y1}, "{y1_op}_{y1}")
+    colnames(d1) <- c("{x}", "{y1}", "group")
+    d2 <- data.frame(d_stat${x}, d_stat${y2_op}_{y2}, "{y2_op}_{y2}")
+    colnames(d2) <- c("{x}", "{y1}", "group")
+    d_merged <- rbind(d1, d2)
+    g <- ggplot(d_merged, aes(x={x}, y={y1}, group=group, color=group))
+    g <- g + geom_point()
+    g <- g + geom_line()
+    """
+    if x_log_scale_base is not None:
+        command += """
+        g <- g + scale_x_continuous(
+            trans = 'log{x_log_scale_base}',
+            breaks = trans_breaks('log{x_log_scale_base}', function(x) {x_log_scale_base}^(x/2)),
+            labels = trans_format('log{x_log_scale_base}', math_format({x_log_scale_base}^.x)))
+        """
+    if y_log_scale_base is not None:
+        command += """
+        g <- g + scale_y_continuous(
+            trans = 'log{y_log_scale_base}',
+            breaks = trans_breaks('log{y_log_scale_base}', function(x) {y_log_scale_base}^(x/2)),
+            labels = trans_format('log{y_log_scale_base}', math_format({y_log_scale_base}^.x)))
+        """
+    command += """
+    g <- g + scale_color_hue(name="", labels=c({y1_op}_{y1}="{y1_op}({y1})", {y2_op}_{y2}="{y2_op}({y2})"))
+    ggsave(file="{output}", plot=g)
+    """
+    command = command.format(input=input, output=output, x=x, y1=y1, y2=y2, y1_op=y1_op, y2_op=y2_op, x_log_scale_base=x_log_scale_base, y_log_scale_base=y_log_scale_base)
+    print(command)
+    R(command)

@@ -60,6 +60,16 @@ rule test_makepath:
         print(config)
         print(makepath(dirdic, config))
 
+rule test_make_dir_path:
+    run:
+        print(dirdic)
+        print(make_dir_path(dirdic))
+
+rule test_make_plot_wildcard:
+    run:
+        print(plotdir)
+        print(make_plot_wildcard(plotdir, "{testcase}", "{wc}", "boxplot", "{variable}.pdf"))
+
 rule test_divide_dic:
     run:
         print(paramsdic)
@@ -174,14 +184,14 @@ rule test_plotdic:
         for (key, val) in plotdic(paramsdic).items():
             print(key,":",val)
 
-rule test_plotnames:
-    run:
-        print(plotnames(plotdir, config, paramsdic, variables, "boxplot"))
-        for item in plotnames(plotdir, config, paramsdic, variables, "boxplot"):
-            print(item)
-
 rule test_totalnames:
     run:
         print(totalnames(plotdir, config, paramsdic, variables))
         for item in totalnames(plotdir, config, paramsdic, variables):
+            print(item)
+
+rule test_plotnames:
+    run:
+        print(plotnames(plotdir, config, paramsdic, variables, "boxplot"))
+        for item in plotnames(plotdir, config, paramsdic, variables, "boxplot"):
             print(item)
