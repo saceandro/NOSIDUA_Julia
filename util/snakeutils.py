@@ -358,7 +358,7 @@ def totalnames(plotdir, config, paramsdic, variables):
 def plotnames(plotdir, config, paramsdic, variables, kindofplot):
     return list(itertools.chain.from_iterable(format_divide_dic_file(makepath( dict(plotdir, **{"testcase": testcase}), config), paramdic, "/".join([kindofplot, item + ".pdf"])) for (testcase, paramdic) in plotdic(paramsdic).items() for item in variables) )
 
-def total(dirdic, plotdir, config, paramsdic, variables, resultfilename):
+def total(dirdic, plotdir, config, paramsdic, arrayparam, variables, resultfilename):
     for (testcase, paramdic) in plotdic(paramsdic).items():
         plotbase = format_divide_dic(makepath( dict(plotdir, **{"testcase": testcase}), config), paramdic)[0]
         totalfiles = ["/".join([plotbase, item]) for item in variables]

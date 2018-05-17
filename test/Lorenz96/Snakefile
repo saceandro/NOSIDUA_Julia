@@ -160,14 +160,14 @@ rule test_experiment_bigarray_all:
         # subprocess.Popen(bigarrayjob_noqsub(dict(dirdic, **config), dict(paramsdic, **arrayparam), "bigarray_qsub_experiment.sh"), executable="/bin/zsh", shell=True, universal_newlines=True)
 
 rule total:
-    params:
-        1
-    input:
-        make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+    # params:
+    #     1
+    # input:
+    #     make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
     output:
         totalnames(plotdir, config, paramsdic, variables)
     run:
-        total(dirdic, plotdir, config, paramsdic, variables, "estimates.tsv")
+        total(dirdic, plotdir, config, paramsdic, arrayparam, variables, "estimates.tsv")
 
 
 # rulename should not be begin by numbers
