@@ -400,18 +400,27 @@ def boxplot(input, output, x, y, x_log_scale_base=None, y_log_scale_base=None, r
     command += """
     g <- ggplot(d, aes(x={x}, y={y}, group={x}))
     g <- g + geom_boxplot()
+    # g <- g + geom_point()
     """
+    # if ((x_log_scale_base=="10") and (y_log_scale_base=="10")):
+    #     command += """
+    #     g <- g + coord_trans(x = "log10", y = "log10")
+    #     """
     if x_log_scale_base is not None:
         command += """
         g <- g + scale_x_continuous(
             trans = 'log{x_log_scale_base}',
-            labels = trans_format('log{x_log_scale_base}', math_format({x_log_scale_base}^.x)))
+            breaks = pretty_breaks()
+            # labels = trans_format('log{x_log_scale_base}', math_format({x_log_scale_base}^.x))
+            )
         """
     if y_log_scale_base is not None:
         command += """
         g <- g + scale_y_continuous(
             trans = 'log{y_log_scale_base}',
-            labels = trans_format('log{y_log_scale_base}', math_format({y_log_scale_base}^.x)))
+            breaks = pretty_breaks()
+            # labels = trans_format('log{y_log_scale_base}', math_format({y_log_scale_base}^.x))
+            )
         """
     command += """
     ggsave(file="{output}", plot=g)
@@ -442,19 +451,27 @@ def summmarized_plot(input, output, x, y1, y2, y1_op="sd", y2_op="mean", x_log_s
     g <- g + geom_point()
     g <- g + geom_line()
     """
+    # if ((x_log_scale_base=="10") and (y_log_scale_base=="10")):
+    #     command += """
+    #     g <- g + coord_trans(x = "log10", y = "log10")
+    #     """
     if x_log_scale_base is not None:
         command += """
         g <- g + scale_x_continuous(
             trans = 'log{x_log_scale_base}',
-            breaks = trans_breaks('log{x_log_scale_base}', function(x) {x_log_scale_base}^(x/2)),
-            labels = trans_format('log{x_log_scale_base}', math_format({x_log_scale_base}^.x)))
+            breaks = pretty_breaks()
+            # breaks = trans_breaks('log{x_log_scale_base}', function(x) {x_log_scale_base}^(x/2)),
+            # labels = trans_format('log{x_log_scale_base}', math_format({x_log_scale_base}^.x))
+            )
         """
     if y_log_scale_base is not None:
         command += """
         g <- g + scale_y_continuous(
             trans = 'log{y_log_scale_base}',
-            breaks = trans_breaks('log{y_log_scale_base}', function(x) {y_log_scale_base}^(x/2)),
-            labels = trans_format('log{y_log_scale_base}', math_format({y_log_scale_base}^.x)))
+            breaks = pretty_breaks()
+            # breaks = trans_breaks('log{y_log_scale_base}', function(x) {y_log_scale_base}^(x/2)),
+            # labels = trans_format('log{y_log_scale_base}', math_format({y_log_scale_base}^.x))
+            )
         """
     command += """
     g <- g + scale_color_hue(name="", labels=c({y1_op}_{y1}="{y1_op}({y1})", {y2_op}_{y2}="{y2_op}({y2})"))
