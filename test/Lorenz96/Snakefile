@@ -68,7 +68,8 @@ localrules: all, experiment_bigarray_all
 
 rule all:
     input:
-        totalnames(plotdir, config, paramsdic, variables)
+        plotnames(plotdir, config, paramsdic, variables, "boxplot")
+        # totalnames(plotdir, config, paramsdic, variables)
         # make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
         # expand('results/replicate/plots/{b}.pdf', b=paramsdic["dims"]),
         # 'results/replicate/plots/RMSE.pdf'
@@ -168,6 +169,16 @@ rule total:
         totalnames(plotdir, config, paramsdic, variables)
     run:
         total(dirdic, plotdir, config, paramsdic, arrayparam, variables, "estimates.tsv")
+
+rule boxplot:
+    params:
+        1
+    input:
+        "plots/{testcase}/{wc}/{variable}"
+    output:
+        "plots/{testcase}/{wc}/boxplot/{variable}.pdf"
+    run:
+        boxplot("{input}", "{wildcards.testcase}", "{output}")
 
 
 # rulename should not be begin by numbers

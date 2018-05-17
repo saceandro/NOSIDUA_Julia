@@ -363,6 +363,8 @@ def total(dirdic, plotdir, config, paramsdic, arrayparam, variables, resultfilen
         plotbase = format_divide_dic(makepath( dict(plotdir, **{"testcase": testcase}), config), paramdic)[0]
         totalfiles = ["/".join([plotbase, item]) for item in variables]
         totalfiles_stream = [open(totalfile, "w") for totalfile in totalfiles]
+        for totalfile_s in totalfiles_stream:
+            totalfile_s.write("%s\tdiff\tCI\n" % testcase)
         for paramdic_all in divide_dic(paramsdic[testcase]):
             resultbase = makepath( dirdic, dict(config, **paramdic_all) )
             for _iter in divide_dic(arrayparam):
@@ -374,16 +376,15 @@ def total(dirdic, plotdir, config, paramsdic, arrayparam, variables, resultfilen
         for item in totalfiles_stream:
             item.close()
 
-def boxplot(totalfiles, plotfiles):
-    for i in range(len(totalfiles)):
-        R("""
-        library(ggplot2)
-        library(scales)
-        d <- read.delim("{}", header=T)
-        g <- ggplot(d, aes(x=replicates, y=diff, group=replicates))
-        g <- g + geom_boxplot()
-        g <- g + scale_x_continuous(
-            trans = 'log2',
-            labels = trans_format('log2', math_format(2^.x)))
-        ggsave(file="{}", plot=g)
-        """.format(totalfiles[i], plotfiles[i]))
+def boxplot(wc1, wc2, wc3):
+    R("""
+    library(ggplot2)
+    library(scales)
+    d <- read.delim("{0}", header=T)
+    g <- ggplot(d, aes(x={1}, y=diff, group={1}))
+    g <- g + geom_boxplot()
+    g <- g + scale_x_continuous(
+        trans = 'log2',
+        labels = trans_format('log2', math_format(2^.x)))
+    ggsave(file="{2}", plot=g)
+    """.format(wc1, wc2, wc3))
