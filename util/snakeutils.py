@@ -389,8 +389,6 @@ def total(dirdic, plotdir, config, paramsdic, arrayparam, variables, resultfilen
 
 def boxplot(input, output, x, y, x_log_scale_base=None, y_log_scale_base=None, remove_na=False):
     command = """
-    install.packages("ggplot2")
-    install.packages("scales")
     library(ggplot2)
     library(scales)
     d <- read.delim("{input}", header=T)
@@ -433,9 +431,6 @@ def boxplot(input, output, x, y, x_log_scale_base=None, y_log_scale_base=None, r
 
 def summmarized_plot(input, output, x, y1, y2, y1_op="sd", y2_op="mean", x_log_scale_base=None, y_log_scale_base=None, remove_na=False):
     command = """
-    install.packages("ggplot2")
-    install.packages("scales")
-    install.packages("plyr")
     library(ggplot2)
     library(scales)
     library(plyr)
