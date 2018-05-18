@@ -479,6 +479,7 @@ def summmarized_plot(input, output, x, y1, y2, y1_op="sd", y2_op="mean", x_log_s
             )
         """
     command += """
+    g <- g + ylab(NULL)
     g <- g + scale_color_hue(name="", labels=c({y1_op}_{y1}="{y1_op}({y1})", {y2_op}_{y2}="{y2_op}({y2})"))
     ggsave(file="{output}", plot=g)
     """
