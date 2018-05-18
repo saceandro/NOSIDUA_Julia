@@ -179,4 +179,6 @@ rule clean:
         rm -rf result1 plots log/experiment .snakemake
         :> ~/.ugeout
         :> ~/.ugeerr
+        :> ~/.snakeout
+        :> ~/.snakeerr
         """
