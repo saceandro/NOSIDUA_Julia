@@ -64,7 +64,7 @@ arrayparam = {\
 
 variables = ["x1", "x2", "x3", "x4", "x5", "p1", "p2"]
 
-localrules: all, experiment_bigarray_all
+localrules: all, experiment_bigarray_all, total
 
 rule all:
     input:
@@ -150,7 +150,8 @@ rule experiment_bigarray_all:
     input:
         'builddir/experiment_arguments'
     output:
-        make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+        touch("experiment_bigarray_all.done")
+        # make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
     run:
         bigarrayjob_run_all_hqw(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh")
 
@@ -165,7 +166,8 @@ rule total:
     params:
         1
     input:
-        make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+        "experiment_bigarray_all.done"
+        # make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
     output:
         totalnames(plotdir, config, paramsdic, variables)
     run:
