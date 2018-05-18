@@ -93,7 +93,7 @@ rule test_all:
 
 rule build:
     params:
-        4
+        mem="3G"
     input:
         'experiment_arguments.jl',
         'model.jl',
@@ -145,8 +145,6 @@ rule build:
 #         # subprocess.Popen(bigarrayjob_noqsub(dict(dirdic, **config), dict(paramsdic, **arrayparam), "bigarray_qsub_experiment.sh"), executable="/bin/zsh", shell=True, universal_newlines=True)
 
 rule experiment_bigarray_all:
-    params:
-        1
     input:
         'builddir/experiment_arguments'
     output:
@@ -163,8 +161,6 @@ rule experiment_bigarray_all:
 #         subprocess.Popen(bigarrayjob_noqsub(dict(dirdic, **config), dict(paramsdic, **arrayparam), "bigarray_qsub_experiment.sh"), executable="/bin/zsh", shell=True, universal_newlines=True)
 
 rule total:
-    params:
-        1
     input:
         "experiment_bigarray_all.done"
         # make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
@@ -175,7 +171,7 @@ rule total:
 
 rule diff_boxplot:
     params:
-        1
+        mem="500M"
     input:
         make_plot_wildcard(plotdir, "{testcase}", "{wc}", "{variable}")
     output:
@@ -187,7 +183,7 @@ rule diff_boxplot:
 
 rule CI_boxplot:
     params:
-        1
+        mem="500M"
     input:
         make_plot_wildcard(plotdir, "{testcase}", "{wc}", "{variable}")
     output:
@@ -199,7 +195,7 @@ rule CI_boxplot:
 
 rule CI_lineplot:
     params:
-        1
+        mem="500M"
     input:
         make_plot_wildcard(plotdir, "{testcase}", "{wc}", "{variable}")
     output:
@@ -209,6 +205,13 @@ rule CI_lineplot:
     run:
         summmarized_plot(input, output, wildcards.testcase, "diff", "CI", y1_op="sd", y2_op="mean", x_log_scale_base=10, y_log_scale_base=10, remove_na=True)
 
+rule clean:
+    shell:
+        """
+        rm -rf result1 plots log/experiment .snakemake
+        :> ~/.ugeout
+        :> ~/.ugeerr
+        """
 
 # rulename should not be begin by numbers
 
@@ -428,88 +431,88 @@ rule CI_lineplot:
 #         ggsave(file="{output}", plot=g)
 #         """)
 
-rule CI_plot2:
-    params:
-        1
-    input:
-        'result/replicate/{b}.tsv'
-    output:
-        'result/replicate/CI_plots/{b}.pdf'
-    run:
-        R("""
-        library(ggplot2)
-        library(scales)
-        library(plyr)
-        d <- read.delim("{input[0]}", header=T)
-        d_stat <- ddply(d, .(replicates), summarize, "mean_diff"=mean(diff), "sd_diff"=sd(diff), "mean_CI"=mean(CI))
-        g <- ggplot(d_stat, aes(x=replicates, y=mean_diff))
-        g <- g + geom_point(aes())
-        g <- g + geom_errorbar(aes(ymin=mean_diff-sd_diff, ymax=mean_diff+sd_diff), width=.2, position=position_dodge(.9))
-        g <- g + geom_errorbar(aes(ymin=mean_diff-mean_CI, ymax=mean_diff+mean_CI), width=.2, position=position_dodge(.9), color="red")
-        g <- g + scale_x_continuous(
-            trans = 'log2',
-            labels = trans_format('log2', math_format(2^.x)))
-        ggsave(file="{output}", plot=g)
-        """)
-
-rule CI_plot_line:
-    params:
-        1
-    input:
-        'result/replicate/{b}.tsv'
-    output:
-        'result/replicate/CI_line_plots/{b}.pdf'
-    run:
-        R("""
-        library(ggplot2)
-        library(scales)
-        library(plyr)
-        d <- read.delim("{input[0]}", header=T)
-        d_stat <- ddply(d, .(replicates), summarize, "sd_diff"=sd(diff), "mean_CI"=mean(CI))
-        d1 <- data.frame(d_stat$replicates, d_stat$sd_diff, "sd_diff")
-        colnames(d1) <- c("replicates", "diff", "group")
-        d2 <- data.frame(d_stat$replicates, d_stat$mean_CI, "mean_CI")
-        colnames(d2) <- c("replicates", "diff", "group")
-        d_merged <- rbind(d1, d2)
-        g <- ggplot(d_merged, aes(x=replicates, y=diff, group=group, color=group))
-        g <- g + geom_point()
-        g <- g + geom_line()
-        g <- g + scale_x_continuous(
-            trans = 'log2',
-            labels = trans_format('log2', math_format(2^.x)))
-        g <- g + scale_y_continuous(
-            trans = 'log2')
-        g <- g + scale_color_hue(name="", labels=c(sd_diff="SD(diff)", mean_CI="mean(CI)"))
-        ggsave(file="{output}", plot=g)
-        """)
-
-rule CI_plot_line_ylinear:
-    params:
-        1
-    input:
-        'result/replicate/{b}.tsv'
-    output:
-        'result/replicate/CI_line_ylinear_plots/{b}.pdf'
-    run:
-        R("""
-        library(ggplot2)
-        library(scales)
-        library(plyr)
-        d <- read.delim("{input[0]}", header=T)
-        d_stat <- ddply(d, .(replicates), summarize, "sd_diff"=sd(diff), "mean_CI"=mean(CI))
-        g <- ggplot(d_stat, aes(x=replicates, y))
-        g <- g + geom_point(aes(y=sd_diff), color="blue")
-        g <- g + geom_line(aes(y=sd_diff), color="blue")
-        g <- g + geom_point(aes(y=mean_CI), color="red")
-        g <- g + geom_line(aes(y=mean_CI), color="red")
-        g <- g + scale_x_continuous(
-            trans = 'log2',
-            labels = trans_format('log2', math_format(2^.x)))
-        g <- g + scale_y_continuous(
-        limits=c(0,NA)
-        )
-        ggsave(file="{output}", plot=g)
-        """)
+# rule CI_plot2:
+#     params:
+#         1
+#     input:
+#         'result/replicate/{b}.tsv'
+#     output:
+#         'result/replicate/CI_plots/{b}.pdf'
+#     run:
+#         R("""
+#         library(ggplot2)
+#         library(scales)
+#         library(plyr)
+#         d <- read.delim("{input[0]}", header=T)
+#         d_stat <- ddply(d, .(replicates), summarize, "mean_diff"=mean(diff), "sd_diff"=sd(diff), "mean_CI"=mean(CI))
+#         g <- ggplot(d_stat, aes(x=replicates, y=mean_diff))
+#         g <- g + geom_point(aes())
+#         g <- g + geom_errorbar(aes(ymin=mean_diff-sd_diff, ymax=mean_diff+sd_diff), width=.2, position=position_dodge(.9))
+#         g <- g + geom_errorbar(aes(ymin=mean_diff-mean_CI, ymax=mean_diff+mean_CI), width=.2, position=position_dodge(.9), color="red")
+#         g <- g + scale_x_continuous(
+#             trans = 'log2',
+#             labels = trans_format('log2', math_format(2^.x)))
+#         ggsave(file="{output}", plot=g)
+#         """)
+#
+# rule CI_plot_line:
+#     params:
+#         1
+#     input:
+#         'result/replicate/{b}.tsv'
+#     output:
+#         'result/replicate/CI_line_plots/{b}.pdf'
+#     run:
+#         R("""
+#         library(ggplot2)
+#         library(scales)
+#         library(plyr)
+#         d <- read.delim("{input[0]}", header=T)
+#         d_stat <- ddply(d, .(replicates), summarize, "sd_diff"=sd(diff), "mean_CI"=mean(CI))
+#         d1 <- data.frame(d_stat$replicates, d_stat$sd_diff, "sd_diff")
+#         colnames(d1) <- c("replicates", "diff", "group")
+#         d2 <- data.frame(d_stat$replicates, d_stat$mean_CI, "mean_CI")
+#         colnames(d2) <- c("replicates", "diff", "group")
+#         d_merged <- rbind(d1, d2)
+#         g <- ggplot(d_merged, aes(x=replicates, y=diff, group=group, color=group))
+#         g <- g + geom_point()
+#         g <- g + geom_line()
+#         g <- g + scale_x_continuous(
+#             trans = 'log2',
+#             labels = trans_format('log2', math_format(2^.x)))
+#         g <- g + scale_y_continuous(
+#             trans = 'log2')
+#         g <- g + scale_color_hue(name="", labels=c(sd_diff="SD(diff)", mean_CI="mean(CI)"))
+#         ggsave(file="{output}", plot=g)
+#         """)
+#
+# rule CI_plot_line_ylinear:
+#     params:
+#         1
+#     input:
+#         'result/replicate/{b}.tsv'
+#     output:
+#         'result/replicate/CI_line_ylinear_plots/{b}.pdf'
+#     run:
+#         R("""
+#         library(ggplot2)
+#         library(scales)
+#         library(plyr)
+#         d <- read.delim("{input[0]}", header=T)
+#         d_stat <- ddply(d, .(replicates), summarize, "sd_diff"=sd(diff), "mean_CI"=mean(CI))
+#         g <- ggplot(d_stat, aes(x=replicates, y))
+#         g <- g + geom_point(aes(y=sd_diff), color="blue")
+#         g <- g + geom_line(aes(y=sd_diff), color="blue")
+#         g <- g + geom_point(aes(y=mean_CI), color="red")
+#         g <- g + geom_line(aes(y=mean_CI), color="red")
+#         g <- g + scale_x_continuous(
+#             trans = 'log2',
+#             labels = trans_format('log2', math_format(2^.x)))
+#         g <- g + scale_y_continuous(
+#         limits=c(0,NA)
+#         )
+#         ggsave(file="{output}", plot=g)
+#         """)
 
 # rule iter_plot:
 #     params:
@@ -534,11 +537,3 @@ rule CI_plot_line_ylinear:
 #         g <- g + geom_errorbar(aes(ymin=median_diff-median_CI, ymax=median_diff+median_CI), width=.2, position=position_dodge(.9), color="red")
 #         ggsave(file="{output}", plot=g)
 #         """)
-
-rule clean:
-    shell:
-        """
-        rm -rf result1 log/experiment .snakemake
-        :> ~/.ugeout
-        :> ~/.ugeerr
-        """
