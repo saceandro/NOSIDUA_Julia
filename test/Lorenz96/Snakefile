@@ -139,7 +139,7 @@ rule total:
 
 rule diff_boxplot:
     params:
-        mem="500M"
+        mem="1G"
     input:
         make_plot_wildcard(plotdir, "{testcase}", "{wc}", "{variable}")
     output:
@@ -151,7 +151,7 @@ rule diff_boxplot:
 
 rule CI_boxplot:
     params:
-        mem="500M"
+        mem="1G"
     input:
         make_plot_wildcard(plotdir, "{testcase}", "{wc}", "{variable}")
     output:
@@ -163,7 +163,7 @@ rule CI_boxplot:
 
 rule CI_lineplot:
     params:
-        mem="500M"
+        mem="1G"
     input:
         make_plot_wildcard(plotdir, "{testcase}", "{wc}", "{variable}")
     output:
