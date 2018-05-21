@@ -68,7 +68,7 @@ rule all:
 
 rule build:
     params:
-        mem="3G"
+        mem="4G"
     input:
         'experiment_arguments.jl',
         'model.jl',
