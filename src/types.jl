@@ -16,39 +16,39 @@ function Model(t::Type{T}, N, L, dxdt!::F, jacobian!::G, hessian!::H) where {T<:
 end
 
 
-mutable struct Adjoint{N, L, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix}
+mutable struct Adjoint{N, L, K, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix, C<:AbstractArray}
     dt::T
     steps::Int
     obs_variance::T
-    obs::B
+    obs::C
     x::B # dim(x) = N * (steps+1)
     p::A
     dx::B
     dp::A
     λ::B
     dλ::B
-    Adjoint{N, L, T, A, B}(dt::T, steps::Int, obs_variance::T, obs::AbstractMatrix{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {N,L,T,A,B} = new{N,L,T,A,B}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    Adjoint{N, L, K, T, A, B, C}(dt::T, steps::Int, obs_variance::T, obs::AbstractArray{T,3}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {N,L,K,T,A,B,C} = new{N,L,K,T,A,B,C}(dt, steps, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {T<:AbstractFloat}
-    xdim, steps = size(x)
+function Adjoint(dt::T, obs_variance::T, obs::AbstractArray{T,3}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {T<:AbstractFloat}
+    xdim, steps, replicates = size(obs)
     θdim = xdim + length(p)
-    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, x0::AbstractVector{T}, p::AbstractVector{T}, dx0::AbstractVector{T}, dp::AbstractVector{T}) where {T<:AbstractFloat}
-    xdim, steps = size(obs)
+function Adjoint(dt::T, obs_variance::T, obs::AbstractArray{T,3}, x0::AbstractVector{T}, p::AbstractVector{T}, dx0::AbstractVector{T}, dp::AbstractVector{T}) where {T<:AbstractFloat}
+    xdim, steps, replicates = size(obs)
     θdim = xdim + length(p)
     x = similar(x0, xdim, steps)
     @views copy!(x[:,1], x0)
     dx = similar(dx0, xdim, steps)
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
-    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, x0::AbstractVector{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
-    xdim, steps = size(obs)
+function Adjoint(dt::T, obs_variance::T, obs::AbstractArray{T,3}, x0::AbstractVector{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
+    xdim, steps, replicates = size(obs)
     θdim = xdim + length(p)
     x = similar(x0, xdim, steps)
     @views copy!(x[:,1], x0)
@@ -56,36 +56,50 @@ function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, x0::AbstractVec
     dp = similar(p)
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
-    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
 function Adjoint(dt::T, total_T::T, obs_variance::T, x0::AbstractVector{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
     steps = Int(total_T/dt) + 1
     xdim = length(x0)
     θdim = xdim + length(p)
-    obs = similar(x0, xdim, steps)
+    obs = similar(x0, xdim, steps, 1)
     x = similar(x0, xdim, steps)
     @views copy!(x[:,1], x0)
     dx = similar(x0, xdim, steps)
     dp = similar(p)
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
-    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, 1, T, typeof(p), typeof(x), typeof(obs)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
-    xdim, steps = size(obs)
+function Adjoint(dt::T, total_T::T, obs_variance::T, x0::AbstractVector{T}, p::AbstractVector{T}, replicates::Int) where {T<:AbstractFloat}
+    steps = Int(total_T/dt) + 1
+    xdim = length(x0)
+    θdim = xdim + length(p)
+    obs = similar(x0, xdim, steps, replicates)
+    x = similar(x0, xdim, steps)
+    @views copy!(x[:,1], x0)
+    dx = similar(x0, xdim, steps)
+    dp = similar(p)
+    λ = zeros(T, θdim, steps)
+    dλ = zeros(T, θdim, steps)
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ) # fixed bug. K=replicates.
+end
+
+function Adjoint(dt::T, obs_variance::T, obs::AbstractArray{T,3}, p::AbstractVector{T}) where {T<:AbstractFloat}
+    xdim, steps, replicates = size(obs)
     θdim = xdim + length(p)
     x = similar(obs, xdim, steps)
     dx = similar(obs, xdim, steps)
     dp = similar(p)
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
-    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, M::Int) where {T<:AbstractFloat}
-    xdim, steps = size(obs)
+function Adjoint(dt::T, obs_variance::T, obs::AbstractArray{T,3}, M::Int) where {T<:AbstractFloat}
+    xdim, steps, replicates = size(obs)
     θdim = xdim + M
     x = similar(obs, xdim, steps)
     p = similar(obs, M)
@@ -93,7 +107,7 @@ function Adjoint(dt::T, obs_variance::T, obs::AbstractMatrix{T}, M::Int) where {
     dp = similar(p)
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
-    Adjoint{xdim, θdim, T, typeof(p), typeof(x)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
 
 
