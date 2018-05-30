@@ -182,3 +182,13 @@ rule clean:
         :> ~/.snakeout
         :> ~/.snakeerr
         """
+
+rule logclean:
+    shell:
+        """
+        rm -rf .snakemake
+        :> ~/.ugeout
+        :> ~/.ugeerr
+        :> ~/.snakeout
+        :> ~/.snakeerr
+        """
