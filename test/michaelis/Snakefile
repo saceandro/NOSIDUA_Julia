@@ -12,32 +12,32 @@ configfile: "snakeconfig.yaml" # snakeconfig.yaml contains fixed parameters
 
 paramsdic = {\
     "obs_variance": {\
-        "obs_variance":  np.around(pow(2., np.arange(-3,7,1)), decimals=3),\
+        "obs_variance":  pow(2., np.arange(-15,-5,1)),\
         "obs_iteration": np.array([5]),\
         "dt":            np.array([0.01]),\
-        "duration":      np.array([1.]),\
+        "duration":      np.array([10.]),\
         "replicates":    np.array([1])\
         },\
     "obs_iteration": {\
-        "obs_variance":  np.array([1.]),\
+        "obs_variance":  np.array([pow(2, -13)]),\
         "obs_iteration": np.array([1,2,10,20,50,100]),\
         "dt":            np.array([0.01]),\
-        "duration":      np.array([1.]),\
+        "duration":      np.array([10.]),\
         "replicates":    np.array([1])\
         },\
     "duration": {\
-        "obs_variance":  np.array([1.]),\
+        "obs_variance":  np.array([pow(2, -13)]),\
         "obs_iteration": np.array([5]),\
         "dt":            np.array([0.01]),\
-        "duration":      np.around(np.arange(0.1,1.0,0.1), decimals=1),\
+        "duration":      np.around(np.arange(1.,10.,1.), decimals=1),\
         "replicates":    np.array([1])\
         },\
     "replicates": {\
         "obs_variance":  np.array([1.]),\
         "obs_iteration": np.array([5]),\
         "dt":            np.array([0.01]),\
-        "duration":      np.array([1.]),\
-        "replicates":    pow(2, np.arange(1,8,1))\
+        "duration":      np.array([10.]),\
+        "replicates":    pow(2, np.arange(1,5,1))\
         }\
 }
 
@@ -45,7 +45,7 @@ arrayparam = {\
 "iter":    np.arange(1,101,1)\
 }
 
-variables = ["x1", "x2", "x3", "x4", "x5", "p1", "p2"]
+variables = ["x", "m", "k1", "Km1", "Vmax1", "k2", "Km2", "Vmax2"]
 
 include: "../../util/snakerules"
 
