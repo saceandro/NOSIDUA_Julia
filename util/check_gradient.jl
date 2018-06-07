@@ -314,8 +314,8 @@ function plot_twin_experiment_result(dir, a::Adjoint{N}, tob, stddev) where {N}
         p_stack = vcat(p_stack,
         Gadfly.plot(
         layer(df_tob, x="t", y="x", color=:data_type, Geom.line),
-        layer(df_obs, x="t", y="x", color=:data_type, Geom.point),
         layer(df_assim, x="t", y="x", ymin="xmin", ymax="xmax", color=:data_type, Geom.line, Geom.errorbar),
+        layer(df_obs, x="t", y="x", color=:data_type, Geom.point),
         Guide.xlabel("<i>t</i>"),
         Guide.ylabel("<i>x<sub>$_i</sub></i>"),
         white_panel))

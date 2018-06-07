@@ -31,14 +31,15 @@ paramsdic = {\
         "dt":            np.array([0.01]),\
         "duration":      np.around(np.arange(1.,10.,1.), decimals=1),\
         "replicates":    np.array([1])\
-        },\
-    "replicates": {\
-        "obs_variance":  np.array([1.]),\
-        "obs_iteration": np.array([5]),\
-        "dt":            np.array([0.01]),\
-        "duration":      np.array([10.]),\
-        "replicates":    pow(2, np.arange(1,5,1))\
         }\
+    # ,\
+    # "replicates": {\
+    #     "obs_variance":  np.array([1.]),\
+    #     "obs_iteration": np.array([5]),\
+    #     "dt":            np.array([0.01]),\
+    #     "duration":      np.array([10.]),\
+    #     "replicates":    pow(2, np.arange(1,5,1))\
+    #     }\
 }
 
 arrayparam = {\
