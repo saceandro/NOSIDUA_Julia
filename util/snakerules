@@ -99,7 +99,7 @@ rule CI_lineplot:
 rule clean:
     shell:
         """
-        rm -rf result1 plots log/experiment .snakemake
+        rm -rf result plots experiment_bigarray_all.done log/experiment .snakemake
         :> ~/.ugeout
         :> ~/.ugeerr
         :> ~/.snakeout

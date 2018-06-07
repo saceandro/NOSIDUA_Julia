@@ -377,7 +377,7 @@ def total(dirdic, plotdir, config, paramsdic, arrayparam, variables, resultfilen
         for totalfile_s in totalfiles_stream:
             totalfile_s.write("%s\tdiff\tCI\n" % testcase)
         for paramdic_all in divide_dic(paramsdic[testcase]):
-            resultbase = makepath( dirdic, dict(config, **paramdic_all) )
+            resultbase = makepath( dirdic, dict(config, **paramdic_all) ).replace("e-0", "e-")
             for _iter in divide_dic(arrayparam):
                 resultfile = "/".join([resultbase, make_param_path(_iter), resultfilename])
                 with open(resultfile, "r") as resultf:
