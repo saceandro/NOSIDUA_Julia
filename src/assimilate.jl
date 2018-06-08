@@ -5,7 +5,7 @@ function covariance_from_θ0!(a::Adjoint, m::Model, θ0)
     covariance!(a, m)
 end
 
-function assimilate!(a::Adjoint, m::Model, dists, trials=10)
+function assimilate!(a::Adjoint, m::Model, initial_lower_bounds, initial_upper_bounds, dists, trials=10)
     mincost = Inf
     local minres # we cannot define a new variable within for loop.
     for _i in 1:trials
@@ -13,7 +13,8 @@ function assimilate!(a::Adjoint, m::Model, dists, trials=10)
         try
             res = minimize!(x0_p, a, m)
             println(STDERR, "trial $_i: $(res.minimum)")
-            if res.minimum < mincost
+            println(STDERR, res.minimizer)
+            if (res.minimum < mincost) && all(initial_lower_bounds .<= res.minimizer) && all(res.minimizer .<= initial_upper_bounds)
                 mincost = res.minimum
                 minres = res
             end

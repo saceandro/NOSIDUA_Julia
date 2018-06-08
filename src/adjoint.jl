@@ -18,6 +18,7 @@ next_dx!(       a::Adjoint,       m::Model,       t, x,        dx, dx_nxt)      
     for _i in 1:a.steps
         next_x!(a, m, a.dt*(_i-1), a.x[:,_i], a.x[:,_i+1])
     end
+    obs_variance!(a)
     nothing
 end
 
@@ -25,6 +26,22 @@ end
     for _i in 1:a.steps
         next_dx!(a, m, a.dt*(_i-1), a.x[:,_i],            a.dx[:,_i], a.dx[:,_i+1])
     end
+    nothing
+end
+
+@views function obs_variance!(a::Adjoint{N,L,K}) where {N,L,K}
+    fill!(a.obs_variance, 0.)
+    for _replicate in 1:K
+        for _i in 1:N
+            a.obs_variance[_i] += mapreduce(abs2, +, (a.x[_i,:] .- a.obs[_i,:,_replicate])[isfinite.(a.obs[_i,:,_replicate])])
+        end
+        # println(STDERR, "obsvar unnormalized:\t", a.obs_variance)
+    end
+    for _i in 1:N
+        a.obs_variance[_i] /= count(isfinite.(a.obs[_i,:,:]))
+    end
+    # println(STDERR, "notnan count:\t", count(isfinite.(a.obs[1,:,:])), "\t", count(isfinite.(a.obs[2,:,:])))
+    # println(STDERR, "obsvar:\t", a.obs_variance)
     nothing
 end
 
@@ -57,12 +74,33 @@ function hessian_vector_product!(a::Adjoint{N,L,K}, m::Model{N,L}) where {N,L,K}
 end
 
 
+# @views function cost(a::Adjoint{N,L,K}) where {N,L,K} # assuming x[:,1] .= x0; orbit!(dxdt, t, x, p, dt); is already run
+#     c = zero(a.dt)
+#     for _i in 1:N
+#         observations = count(isfinite.(a.obs[_i,:,:]))
+#         if observations > 0
+#             c += observations * log(a.obs_variance[_i])
+#         end
+#     end
+#     for _replicate in 1:K
+#         for _i in 1:N
+#             if count(isfinite.(a.obs[_i,:,_replicate])) > 0
+#                 c += mapreduce(abs2, +, (a.x[_i,:] .- a.obs[_i,:,_replicate])[isfinite.(a.obs[_i,:,_replicate])]) / a.obs_variance[_i]
+#             end
+#         end
+#     end
+#     c / oftype(a.dt, 2.)
+# end
+
 @views function cost(a::Adjoint{N,L,K}) where {N,L,K} # assuming x[:,1] .= x0; orbit!(dxdt, t, x, p, dt); is already run
-    c = zero(a.obs_variance)
-    for _replicate in 1:K
-        c += mapreduce(abs2, +, (a.x .- a.obs[:,:,_replicate])[isfinite.(a.obs[:,:,_replicate])])
+    c = zero(a.dt)
+    for _i in 1:N
+        observations = count(isfinite.(a.obs[_i,:,:]))
+        if  observations > 0
+            c += observations * log(a.obs_variance[_i])
+        end
     end
-    c / a.obs_variance / oftype(a.obs_variance, 2.)
+    c / oftype(a.dt, 2.)
 end
 
 @views function initialize!(a::Adjoint{N}, θ) where {N}
@@ -127,7 +165,7 @@ end
         covariance = inv(hessian)
     catch message
         println(STDERR, "CI calculation failed.\nReason: Hessian inversion failed due to $message")
-        return AssimilationResults(θ)
+        return AssimilationResults(θ, a.obs_variance)
     end
     stddev = nothing
     try
@@ -138,7 +176,7 @@ end
         else
             println(STDERR, "CI calculation failed.\nReason: Taking sqrt of variance failed due to $message")
         end
-        return AssimilationResults(θ, covariance)
+        return AssimilationResults(θ, a.obs_variance, covariance)
     end
-    return AssimilationResults(θ, stddev, covariance)
+    return AssimilationResults(θ, a.obs_variance, stddev, covariance)
 end

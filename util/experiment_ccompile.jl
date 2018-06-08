@@ -13,6 +13,7 @@
         println(STDERR, "CI:\t", get(assimilation_results.stddev))
         writedlm(dir * "estimates.tsv", reshape(CatView(diff, get(assimilation_results.stddev)), L, 2))
     end
+    println(STDERR, "obs variance:\t", assimilation_results.obs_variance)
     nothing
 end
 
@@ -36,7 +37,7 @@ end
 
 # twin_experiment!(outdir::String, model::Model{N,L,T}, obs_variance::T, obs_iteration::Int, dt::T, true_params::AbstractVector{T}, true_file::String, dists, replicates::Int, iter::Int, trials=10) where {N,L,T} = twin_experiment!(outdir, model, obs_variance, obs_iteration, dt, true_params, readdlm(true_file)', dists, replicates, iter, trials)
 
-function twin_experiment!(
+@views function twin_experiment!(
     dxdt!::Function,
     jacobian!::Function,
     hessian!::Function;
@@ -57,24 +58,26 @@ function twin_experiment!(
 
     L = length(initial_lower_bounds)
     N = L - length(true_params)
-    model = Model(typeof(obs_variance), N, L, dxdt!, jacobian!, hessian!)
+    model = Model(typeof(dt), N, L, dxdt!, jacobian!, hessian!)
     srand(generation_seed)
     dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L]
     x0 = rand.(view(dists, 1:N))
-    a = Adjoint(dt, duration, obs_variance, x0, copy(true_params), replicates)
+    a = Adjoint(dt, duration, copy(obs_variance), x0, copy(true_params), replicates)
     orbit!(a, model)
     srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, obs_variance, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
-    d = Normal(0., sqrt(obs_variance))
+    d = Normal.(0., sqrt.(obs_variance))
     for _replicate in 1:replicates
-        a.obs[:,:,_replicate] .= a.x .+ rand(d, N, a.steps+1)
+        for _i in 1:N
+            a.obs[_i,:,_replicate] .= a.x[_i,:] .+ rand(d[_i], a.steps+1)
+        end
         for _i in 1:obs_iteration:a.steps
             for _k in 1:obs_iteration-1
                 a.obs[:, _i + _k, _replicate] .= NaN
             end
         end
     end
-    dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/spinup_$spinup/generation_seed_$generation_seed/trials_$trials/obs_variance_$obs_variance/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
-    twin_experiment!(dir, a, model, true_params, dists, trials)
+    dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/spinup_$spinup/generation_seed_$generation_seed/trials_$trials/obs_variance_$(join(obs_variance, "_"))/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
+    twin_experiment!(dir, a, model, true_params, initial_lower_bounds, initial_upper_bounds, dists, trials)
 end
 
 function twin_experiment_logging!( # twin experiment with true and obs data logging
@@ -122,11 +125,11 @@ function twin_experiment_logging!( # twin experiment with true and obs data logg
 end
 
 
-function twin_experiment!(outdir::String, a::Adjoint{N,L,K,T}, model::Model{N,L,T}, true_params::AbstractVector{T}, dists, trials=10) where {N,L,K,T<:AbstractFloat}
+function twin_experiment!(outdir::String, a::Adjoint{N,L,K,T}, model::Model{N,L,T}, true_params::AbstractVector{T}, initial_lower_bounds::AbstractVector{T}, initial_upper_bounds::AbstractVector{T}, dists, trials=10) where {N,L,K,T<:AbstractFloat}
     tob = deepcopy(a.x) # fixed bug. copy() of >=2 dimensional array is implemented as reference. Thus, deepcopy() is needed.
     println(STDERR, "====================================================================================================================")
     println(STDERR, outdir)
-    assimres, minres = assimilate!(a, model, dists, trials)
+    assimres, minres = assimilate!(a, model, initial_lower_bounds, initial_upper_bounds, dists, trials)
     write_twin_experiment_result(outdir, assimres, minres.minimum, true_params, tob)
 end
 

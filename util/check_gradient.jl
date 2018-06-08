@@ -15,6 +15,7 @@ using DataFrames, Gadfly
         println(STDERR, "CI:\t", get(assimilation_results.stddev))
         writedlm(dir * "estimates.tsv", reshape(CatView(diff, get(assimilation_results.stddev)), L, 2))
     end
+    println(STDERR, "obs variance:\t", assimilation_results.obs_variance)
     nothing
 end
 
@@ -76,7 +77,7 @@ function twin_experiment!(
         end
     end
     dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/spinup_$spinup/generation_seed_$generation_seed/trials_$trials/obs_variance_$obs_variance/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
-    twin_experiment!(dir, a, model, true_params, dists, trials)
+    twin_experiment!(dir, a, model, true_params, initial_lower_bounds, initial_upper_bounds, dists, trials)
 end
 
 function twin_experiment_logging!( # twin experiment with true and obs data logging
@@ -120,15 +121,15 @@ function twin_experiment_logging!( # twin experiment with true and obs data logg
         end
         writedlm(dir * "observed$_replicate.tsv", view(a.obs, :, :, _replicate)')
     end
-    twin_experiment!(dir, a, model, true_params, dists, trials)
+    twin_experiment!(dir, a, model, true_params, initial_lower_bounds, initial_upper_bounds, dists, trials)
 end
 
 
-function twin_experiment!(outdir::String, a::Adjoint{N,L,K,T}, model::Model{N,L,T}, true_params::AbstractVector{T}, dists, trials=10) where {N,L,K,T<:AbstractFloat}
+function twin_experiment!(outdir::String, a::Adjoint{N,L,K,T}, model::Model{N,L,T}, true_params::AbstractVector{T}, initial_lower_bounds::AbstractVector{T}, initial_upper_bounds::AbstractVector{T}, dists, trials=10) where {N,L,K,T<:AbstractFloat}
     tob = deepcopy(a.x) # fixed bug. copy() of >=2 dimensional array is implemented as reference. Thus, deepcopy() is needed.
     println(STDERR, "====================================================================================================================")
     println(STDERR, outdir)
-    assimres, minres = assimilate!(a, model, dists, trials)
+    assimres, minres = assimilate!(a, model, initial_lower_bounds, initial_upper_bounds, dists, trials)
     write_twin_experiment_result(outdir, assimres, minres.minimum, true_params, tob)
 end
 
@@ -183,7 +184,7 @@ function numerical_covariance!(a::Adjoint{N,L,K,T}, m::Model{N,L}, h) where {N,L
         covariance = inv(hessian)
     catch message
         println(STDERR, "CI calculation failed.\nReason: Hessian inversion failed due to $message")
-        return AssimilationResults(θ)
+        return AssimilationResults(θ, a.obs_variance)
     end
     stddev = nothing
     try
@@ -194,9 +195,9 @@ function numerical_covariance!(a::Adjoint{N,L,K,T}, m::Model{N,L}, h) where {N,L
         else
             println(STDERR, "CI calculation failed.\nReason: Taking sqrt of variance failed due to $message")
         end
-        return AssimilationResults(θ, covariance)
+        return AssimilationResults(θ, a.obs_variance, covariance)
     end
-    return AssimilationResults(θ, stddev, covariance)
+    return AssimilationResults(θ, a.obs_variance, stddev, covariance)
 end
 
 @views function gradient_covariance_check!(
@@ -338,8 +339,8 @@ function plot_twin_experiment_result_wo_errorbar(dir, a::Adjoint{N}, tob) where 
         p_stack = vcat(p_stack,
         Gadfly.plot(
         layer(df_tob, x="t", y="x", color=:data_type, Geom.line),
-        layer(df_obs, x="t", y="x", color=:data_type, Geom.point),
         layer(df_assim, x="t", y="x", color=:data_type, Geom.line),
+        layer(df_obs, x="t", y="x", color=:data_type, Geom.point),
         Guide.xlabel("<i>t</i>"),
         Guide.ylabel("<i>x<sub>$_i</sub></i>"),
         white_panel))
