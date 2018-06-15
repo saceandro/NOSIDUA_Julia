@@ -144,7 +144,7 @@ end
 
 orbit_cost!(a, m) = (orbit!(a, m); cost(a))
 
-orbit_gradient!(a, m) = (orbit!(a, m); gradient!(a, m); a.λ[:,1])
+orbit_gradient!(a, m) = (orbit!(a, m); gradient!(a, m))
 
 function numerical_gradient!(a::Adjoint{N,L,K,T}, m::Model{N,L}, h) where {N,L,K,T}
     gr = Vector{T}(L)
