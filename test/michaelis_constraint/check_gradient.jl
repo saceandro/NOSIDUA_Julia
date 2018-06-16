@@ -87,10 +87,14 @@ include("model.jl")
             end
         end
     end
+    for _j in 1:N
+        a.Nobs[_j] .= count(isfinite.(a.obs[_j,:,:]))
+    end
 
     x0_p = rand.(dists)
     initialize!(a, x0_p)
-    gr_ana = orbit_gradient!(a, model)
+    gr_ana = Vector{typeof(dt)}(L)
+    orbit_gradient!(a, model, gr_ana)
     gr_num = numerical_gradient!(a, model, numerical_differentiation_delta)
     println("analytical gradient:\t", gr_ana)
     println("numerical gradient:\t", gr_num)
@@ -183,7 +187,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
         "--dt"
             help = "Δt"
             arg_type = Float64
-            default = 0.01
+            default = 1.
         "--spinup"
             help = "spinup"
             arg_type = Float64

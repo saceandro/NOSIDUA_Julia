@@ -7,8 +7,16 @@ innovation_λ(  x, obs, obs_variance) = isnan(obs) ? zero(x)  : (x - obs)/obs_va
 # innovation_dλ(dx, obs, obs_variance) = isnan(obs) ? zero(dx) : dx/obs_variance        # element-wise innovation of dλ.
 
 # @views innovation_dλ(a::Adjoint{N,L,K}, i) where {N,L,K} = [any(isnan.(a.obs[k,i,:])) ? zero(a.dt) : K / a.obs_variance[k] * (a.dx[k,i] - K / a.obs_variance[k] * 2. / count(isfinite.(a.obs[k,:,:])) * (a.x[k,i] - mean(a.obs[k,i,:])) * dot( (a.x[k,:] .- [mean(a.obs[k,_i,:]) for _i in 1:a.steps+1] )[[ all(isfinite.(a.obs[1,_j,:])) for _j in 1:a.steps+1 ]] , a.dx[k,:][[all(isfinite.(a.obs[1,_j,:])) for _j in 1:a.steps+1 ]]) ) for k in 1:N]
-@views innovation_dλ(a::Adjoint{N,L,K}, i) where {N,L,K} = [any(isnan.(a.obs[k,i,:])) ? zero(a.dt) : 1. / a.obs_variance[k] * (a.dx[k,i] - 1. / a.obs_variance[k] * 2. / count(isfinite.(a.obs[k,:,:])) * (a.x[k,i] - mean(a.obs[k,i,:])) * dot( (a.x[k,:] .- [mean(a.obs[k,_i,:]) for _i in 1:a.steps+1] )[[ all(isfinite.(a.obs[1,_j,:])) for _j in 1:a.steps+1 ]] , a.dx[k,:][[all(isfinite.(a.obs[1,_j,:])) for _j in 1:a.steps+1 ]]) ) for k in 1:N]
+# @views innovation_dλ(a::Adjoint{N,L,K}, i) where {N,L,K} = [any(isnan.(a.obs[k,i,:])) ? zero(a.dt) : 1. / a.obs_variance[k] * (a.dx[k,i] - 1. / a.obs_variance[k] * 2. / count(isfinite.(a.obs[k,:,:])) * (a.x[k,i] - mean(a.obs[k,i,:])) * dot( (a.x[k,:] .- [mean(a.obs[k,_i,:]) for _i in 1:a.steps+1] )[[ all(isfinite.(a.obs[1,_j,:])) for _j in 1:a.steps+1 ]] , a.dx[k,:][[all(isfinite.(a.obs[1,_j,:])) for _j in 1:a.steps+1 ]]) ) for k in 1:N]
 
+@views function innovation_dλ(a::Adjoint{N,L,K}, i, x_minus_mean_obs, x_minus_mean_obs_times_dx, acc) where {N,L,K}
+    for k in 1:N
+        if all(isfinite.(a.obs[k,i,:]))
+            K_over_obs_variance = K / a.obs_variance[k]
+            acc[k] += K_over_obs_variance * (a.dx[k,i] - K_over_obs_variance * 2. / a.Nobs[k] * x_minus_mean_obs[k,i] * x_minus_mean_obs_times_dx[k])
+        end
+    end
+end
 
 next_x!(        a::Adjoint,       m::Model,       i0, i)                                    = (m.dxdt!(     m, i0, i, a.t, a.x, a.p);                                                                        a.x[:,i+1] .= a.x[:,i] .+ m.dxdt .* a.dt;                                                                                                        nothing)
 
@@ -50,14 +58,14 @@ end
         # println(STDERR, "obsvar unnormalized:\t", a.obs_variance)
     end
     for _i in 1:N
-        a.obs_variance[_i] /= count(isfinite.(a.obs[_i,:,:]))
+        a.obs_variance[_i] /= a.Nobs[_i]
     end
     # println(STDERR, "notnan count:\t", count(isfinite.(a.obs[1,:,:])), "\t", count(isfinite.(a.obs[2,:,:])))
     # println(STDERR, "obsvar:\t", a.obs_variance)
     nothing
 end
 
-function gradient!(a::Adjoint{N,L,K}, m::Model{N,L}) where {N,L,K} # assuming x[:,1] .= x0; p .= p; orbit!(dxdt, t, x, p, dt); is already run. λ[:,1] is the gradient.
+function gradient!(a::Adjoint{N,L,K}, m::Model{N,L}, gr) where {N,L,K} # assuming x[:,1] .= x0; p .= p; orbit!(dxdt, t, x, p, dt); is already run. λ[:,1] is the gradient.
     a.λ[1:N,end] .= innovation_λ.(view(a.x, :, a.steps+1), view(a.obs, :, a.steps+1, 1), a.obs_variance)
     for _replicate in 2:K
         a.λ[1:N,end] .+= innovation_λ.(view(a.x, :, a.steps+1), view(a.obs, :, a.steps+1, _replicate), a.obs_variance)
@@ -68,28 +76,25 @@ function gradient!(a::Adjoint{N,L,K}, m::Model{N,L}) where {N,L,K} # assuming x[
             a.λ[1:N,_i] .+= innovation_λ.(view(a.x, :, _i), view(a.obs, :, _i, _replicate), a.obs_variance)
         end
     end
-    acc = zeros(N)
+    gr .= view(a.λ, :, 1)
     for _i in a.steps:-1:1
-        jacobian0_λ!(a, m, 1, _i, acc)
+        jacobian0_λ!(a, m, 1, _i, view(gr, 1:N))
     end
-    # println("acc:\t", acc, "\tgrad:\t", CatView(acc .+ a.λ[1:N,1], a.λ[N+1:L,1]))
-    [acc .+ a.λ[1:N,1]; a.λ[N+1:L,1]]
+    nothing
 end
 
-function hessian_vector_product!(a::Adjoint{N,L,K}, m::Model{N,L}) where {N,L,K} # assuming dx[:,1] .= dx0; dp .= dp; neighboring!(jacobian, dt, t, x, p, dx, dp); is already run. dλ[:,1] is the hessian_vector_product.
-    a.dλ[1:N,end] .= innovation_dλ(a, a.steps+1)
+function hessian_vector_product!(a::Adjoint{N}, m::Model{N}, x_minus_mean_obs, x_minus_mean_obs_times_dx, hv) where {N} # assuming dx[:,1] .= dx0; dp .= dp; neighboring!(jacobian, dt, t, x, p, dx, dp); is already run. dλ[:,1] is the hessian_vector_product.
+    fill!(view(a.dλ, 1:N, a.steps+1), 0.)
+    innovation_dλ(a, a.steps+1, x_minus_mean_obs, x_minus_mean_obs_times_dx, view(a.dλ, 1:N, a.steps+1))
     for _i in a.steps:-1:1
         prev_dλ!(a, m, 1, _i, view(a.λ, :, _i+1), view(a.dλ, :, _i+1), view(a.dλ, :, _i)) # fix me! a.dt*_i?
-        for _replicate in 1:K
-            a.dλ[1:N,_i] .+= innovation_dλ(a, _i)
-        end
+        innovation_dλ(a, _i, x_minus_mean_obs, x_minus_mean_obs_times_dx, view(a.dλ, 1:N, _i))
     end
-    acc = zeros(N)
+    hv .= view(a.dλ, :, 1)
     for _i in a.steps:-1:1
-        residual_dλ!(a, m, 1, _i, view(a.λ, :, _i+1), view(a.dλ, :, _i+1), acc)
+        residual_dλ!(a, m, 1, _i, view(a.λ, :, _i+1), view(a.dλ, :, _i+1), view(hv, 1:N))
     end
-    println("acc:\t", acc, "\tdλ[:,1]:\t", a.dλ[:,1])
-    [acc .+ a.dλ[1:N,1]; a.dλ[N+1:L,1]]
+    nothing
 end
 
 
@@ -114,9 +119,8 @@ end
 @views function cost(a::Adjoint{N,L,K}) where {N,L,K} # assuming x[:,1] .= x0; orbit!(dxdt, t, x, p, dt); is already run
     c = zero(a.dt)
     for _i in 1:N
-        observations = count(isfinite.(a.obs[_i,:,:]))
-        if  observations > 0
-            c += observations * log(a.obs_variance[_i])
+        if a.Nobs[_i] > 0
+            c += a.Nobs[_i] * log(a.obs_variance[_i])
         end
     end
     c / oftype(a.dt, 2.)
@@ -132,8 +136,7 @@ end
     initialize!(a, θ)
     orbit!(a, m)
     if !(∇θ == nothing)
-        ∇θ .= gradient!(a, m)
-        nothing
+        gradient!(a, m, ∇θ)
     end
     if !(F == nothing)
         F = cost(a)
@@ -145,12 +148,13 @@ end
 #     Optim.optimize(df, initial_θ, LBFGS())
 # end
 
-@views function minimize!(initial_θ, a::Adjoint{N,L}, m::Model{N,L}) where {N,L} # Fixed. views is definitely needed for copy!
+@views function minimize!(initial_θ, a::Adjoint{N,L,K,T}, m::Model{N,L,T}) where {N,L,K,T<:AbstractFloat} # Fixed. views is definitely needed for copy!
     initialize!(a, initial_θ)
     orbit!(a, m)
     F = cost(a)
 
-    ∇θ = gradient!(a, m)
+    ∇θ = Vector{T}(L)
+    gradient!(a, m, ∇θ)
 
     df = OnceDifferentiable(θ -> fg!(F, nothing, θ, a, m), (∇θ, θ) -> fg!(nothing, ∇θ, θ, a, m), (∇θ, θ) -> fg!(F, ∇θ, θ, a, m), initial_θ, F, ∇θ, inplace=true)
     options = Optim.Options(;x_tol=1e-32, f_tol=1e-32, g_tol=1e-8, iterations=1_000, store_trace=true, show_trace=false, show_every=1)
@@ -161,16 +165,27 @@ end
     fill!(a.dx[:,1], 0.)
     fill!(a.dp, 0.)
     hessian = Matrix{T}(L,L)
+
+    x_minus_mean_obs = a.x .- mean(a.obs, 3)
+    observed = isfinite.(x_minus_mean_obs)
+    x_minus_mean_obs_times_dx = Vector{T}(N)
+
     for i in 1:N
         a.dx[i,1] = 1.
         neighboring!(a, m)
-        hessian[:,i] .= hessian_vector_product!(a, m)
+        for _j in 1:N
+            x_minus_mean_obs_times_dx[_j] .= dot(view(x_minus_mean_obs, _j, :)[observed[_j]], view(a.dx, _j, :)[observed[_j]])
+        end
+        hessian_vector_product!(a, m, x_minus_mean_obs, x_minus_mean_obs_times_dx, hessian[:,i])
         a.dx[i,1] = 0.
     end
     for i in N+1:L
         a.dp[i-N] = 1.
         neighboring!(a, m)
-        hessian[:,i] .= hessian_vector_product!(a, m)
+        for _j in 1:N
+            x_minus_mean_obs_times_dx[_j] .= dot(view(x_minus_mean_obs, _j, :)[observed[_j]], view(a.dx, _j, :)[observed[_j]])
+        end
+        hessian_vector_product!(a, m, x_minus_mean_obs, x_minus_mean_obs_times_dx, hessian[:,i])
         a.dp[i-N] = 0.
     end
     θ = vcat(a.x[:,1], a.p)

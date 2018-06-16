@@ -144,7 +144,7 @@ end
 
 orbit_cost!(a, m) = (orbit!(a, m); cost(a))
 
-orbit_gradient!(a, m) = (orbit!(a, m); gradient!(a, m))
+orbit_gradient!(a, m, gr) = (orbit!(a, m); gradient!(a, m, gr))
 
 function numerical_gradient!(a::Adjoint{N,L,K,T}, m::Model{N,L}, h) where {N,L,K,T}
     gr = Vector{T}(L)
@@ -163,20 +163,25 @@ function numerical_gradient!(a::Adjoint{N,L,K,T}, m::Model{N,L}, h) where {N,L,K
     gr
 end
 
-function numerical_covariance!(a::Adjoint{N,L,K,T}, m::Model{N,L}, h) where {N,L,K,T}
+@views function numerical_covariance!(a::Adjoint{N,L,K,T}, m::Model{N,L}, h) where {N,L,K,T}
     hessian = Matrix{T}(L, L)
-    gr = orbit_gradient!(a, m)
+    gr = Vector{T}(L)
+    orbit_gradient!(a, m, gr)
     for _i in 1:N
         a.x[_i,1] += h
-        hessian[:,_i] .= (orbit_gradient!(a, m) .- gr)/h
+        orbit_gradient!(a, m, hessian[:,_i])
+        hessian[:,_i] .-= gr
+        hessian[:,_i] ./= h
         a.x[_i,1] -= h
     end
     for _i in N+1:L
         a.p[_i-N] += h
-        hessian[:,_i] .= (orbit_gradient!(a, m) .- gr)/h
+        orbit_gradient!(a, m, hessian[:,_i])
+        hessian[:,_i] .-= gr
+        hessian[:,_i] ./= h
         a.p[_i-N] -= h
     end
-    orbit_gradient!(a, m)
+    orbit_gradient!(a, m, gr)
 
     θ = vcat(a.x[:,1], a.p)
     covariance = nothing
@@ -297,17 +302,19 @@ end
     end
 end
 
-function plot_twin_experiment_result(dir, a::Adjoint{N}, tob, stddev) where {N}
+function plot_twin_experiment_result(dir, a::Adjoint{N,L,K}, tob, stddev) where {N,L,K}
     white_panel = Theme(panel_fill="white")
     p_stack = Array{Gadfly.Plot}(0)
     t = collect(0.:a.dt:a.steps*a.dt)
     for _i in 1:N
         df_tob = DataFrame(t=t, x=tob[_i,:], data_type="true orbit")
-        _mask = isfinite.(a.obs[_i,:,1])
-        df_obs = DataFrame(t=t[_mask], x=a.obs[_i,:,1][_mask], data_type="observed") # plot one replicate for example
-        xmin = similar(a.x[_i,:], a.steps+1)
+        # _mask = isfinite.(a.obs[_i,:,1])
+        _mask = isfinite.(view(a.obs, _i, :))
+        # df_obs = DataFrame(t=t[_mask], x=a.obs[_i,:,1][_mask], data_type="observed") # plot one replicate for example
+        df_obs = DataFrame(t=view(repeat(t; outer=[K]), :)[_mask], x=view(a.obs, _i, :)[_mask], data_type="observed")
+        xmin = similar(view(a.x, _i, :), a.steps+1)
         xmin .= NaN
-        xmax = similar(a.x[_i,:], a.steps+1)
+        xmax = similar(view(a.x, _i, :), a.steps+1)
         xmax .= NaN
         xmin[1] = a.x[_i,1]-stddev[_i]
         xmax[1] = a.x[_i,1]+stddev[_i]
@@ -333,8 +340,10 @@ function plot_twin_experiment_result_wo_errorbar(dir, a::Adjoint{N}, tob) where 
     t = collect(0.:a.dt:a.steps*a.dt)
     for _i in 1:N
         df_tob = DataFrame(t=t, x=tob[_i,:], data_type="true orbit")
-        _mask = isfinite.(a.obs[_i,:,1])
-        df_obs = DataFrame(t=t[_mask], x=a.obs[_i,:,1][_mask], data_type="observed") # plot one replicate for example
+        # _mask = isfinite.(a.obs[_i,:,1])
+        _mask = isfinite.(a.obs[_i,:,:])
+        # df_obs = DataFrame(t=t[_mask], x=a.obs[_i,:,1][_mask], data_type="observed") # plot one replicate for example
+        df_obs = DataFrame(t=t[_mask], x=a.obs[_i,:,:][_mask], data_type="observed")
         df_assim = DataFrame(t=t, x=a.x[_i,:], data_type="assimilated")
         p_stack = vcat(p_stack,
         Gadfly.plot(

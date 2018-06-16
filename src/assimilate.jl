@@ -1,7 +1,7 @@
-function covariance_from_θ0!(a::Adjoint, m::Model, θ0)
+function covariance_from_θ0!(a::Adjoint{N,L,K,T}, m::Model{N,L,T}, θ0) where {N,L,K,T<:AbstractFloat}
     initialize!(a, θ0)
     orbit!(a, m)
-    gradient!(a, m)
+    gradient!(a, m, Vector{T}(L))
     covariance!(a, m)
 end
 
