@@ -39,6 +39,8 @@ include("model.jl")
     true_params = nothing,
     initial_lower_bounds = nothing,
     initial_upper_bounds = nothing,
+    pseudo_obs = nothing,
+    pseudo_obs_TSS = nothing,
     obs_variance = nothing,
     obs_iteration = nothing,
     dt = nothing,
@@ -59,14 +61,14 @@ include("model.jl")
     model = Model(typeof(dt), N, L, dxdt!, jacobian!, jacobian0!, hessian!, hessian0!, hessian00!)
     srand(generation_seed)
     dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L]
-    a = Adjoint(dt, duration, obs_variance, x0, copy(true_params), replicates)
+    a = Adjoint(dt, duration, obs_variance, pseudo_obs, pseudo_obs_TSS, x0, copy(true_params), replicates)
     orbit!(a, model)
     tob = deepcopy(a.x)
-    dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/spinup_$spinup/generation_seed_$generation_seed/trials_$trials/obs_variance_$(join(obs_variance_bak, "_"))/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
+    dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/pseudo_obs_$(join(pseudo_obs, "_"))/pseudo_obs_TSS_$(join(pseudo_obs_TSS, "_"))/spinup_$spinup/generation_seed_$generation_seed/trials_$trials/obs_variance_$(join(obs_variance_bak, "_"))/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
     # mkpath(dir)
     # plot_orbit(dir, a, tob)
 
-    srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, obs_variance_bak, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
+    srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_TSS, obs_variance_bak, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
     d = Normal.(0., sqrt.(obs_variance_bak))
     # a.obs[1,:,:] .= NaN
     # for _replicate in 1:replicates
@@ -88,7 +90,7 @@ include("model.jl")
         end
     end
     for _j in 1:N
-        a.Nobs[_j] .= count(isfinite.(a.obs[_j,:,:]))
+        a.Nobs[_j] .+= count(isfinite.(a.obs[_j,:,:]))
     end
 
     x0_p = rand.(dists)
@@ -175,6 +177,16 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             arg_type = Float64
             nargs = '+'
             default = [2., 2., 4., 5.]
+        "--pseudo-obs"
+            help = "#pseudo observations"
+            arg_type = Int
+            nargs = '+'
+            default = [0, 0]
+        "--pseudo-obs-TSS"
+            help = "TSS of pseudo observations"
+            arg_type = Float64
+            nargs = '+'
+            default = [0., 0.]
         "--obs-variance"
             help = "observation variance"
             arg_type = Float64

@@ -50,7 +50,7 @@ end
 end
 
 @views function obs_variance!(a::Adjoint{N,L,K}) where {N,L,K}
-    fill!(a.obs_variance, 0.)
+    copy!(a.obs_variance, a.pseudo_obs_TSS)
     for _replicate in 1:K
         for _i in 1:N
             a.obs_variance[_i] += mapreduce(abs2, +, (a.x[_i,:] .- a.obs[_i,:,_replicate])[isfinite.(a.obs[_i,:,_replicate])])

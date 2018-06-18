@@ -32,111 +32,112 @@ mutable struct Adjoint{N, L, K, T<:AbstractFloat, A<:AbstractVector, B<:Abstract
     obs_variance::A
     obs::C
     Nobs::D
+    pseudo_obs_TSS::A
     x::B # dim(x) = N * (steps+1)
     p::A
     dx::B
     dp::A
     λ::B
     dλ::B
-    Adjoint{N, L, K, T, A, B, C, D}(dt::T, steps::Int, t::AbstractVector{T}, obs_variance::AbstractVector{T}, obs::AbstractArray{T,3}, Nobs::AbstractVector{Int}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {N,L,K,T,A,B,C,D} = new{N,L,K,T,A,B,C,D}(dt, steps, t, obs_variance, obs, Nobs, x, p, dx, dp, λ, dλ)
+    Adjoint{N, L, K, T, A, B, C, D}(dt::T, steps::Int, t::AbstractVector{T}, obs_variance::AbstractVector{T}, obs::AbstractArray{T,3}, Nobs::AbstractVector{Int}, pseudo_obs_TSS::AbstractVector{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {N,L,K,T,A,B,C,D} = new{N,L,K,T,A,B,C,D}(dt, steps, t, obs_variance, obs, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, obs_variance::AbstractVector{T}, obs::AbstractArray{T,3}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {T<:AbstractFloat}
+function Adjoint(dt::T, obs_variance::AbstractVector{T}, obs::AbstractArray{T,3}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_TSS::AbstractVector{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {T<:AbstractFloat}
     xdim, steps, replicates = size(obs)
     θdim = xdim + length(p)
     t = collect(0.:dt:dt*(steps-1))
-    Nobs = [count(isfinite.(obs[_i,:,:])) for _i in 1:xdim]
-    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, x, p, dx, dp, λ, dλ)
+    Nobs = [pseudo_Nobs[_i] + count(isfinite.(obs[_i,:,:])) for _i in 1:xdim]
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, obs::AbstractArray{T,3}, x0::AbstractVector{T}, p::AbstractVector{T}, dx0::AbstractVector{T}, dp::AbstractVector{T}) where {T<:AbstractFloat}
+function Adjoint(dt::T, obs::AbstractArray{T,3}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_TSS::AbstractVector{T}, x0::AbstractVector{T}, p::AbstractVector{T}, dx0::AbstractVector{T}, dp::AbstractVector{T}) where {T<:AbstractFloat}
     xdim, steps, replicates = size(obs)
     θdim = xdim + length(p)
     t = collect(0.:dt:dt*(steps-1))
     obs_variance = similar(x0)
-    Nobs = [count(isfinite.(obs[_i,:,:])) for _i in 1:xdim]
+    Nobs = [pseudo_Nobs[_i] + count(isfinite.(obs[_i,:,:])) for _i in 1:xdim]
     x = similar(x0, xdim, steps)
     @views copy!(x[:,1], x0)
     dx = similar(dx0, xdim, steps)
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
-    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, obs::AbstractArray{T,3}, x0::AbstractVector{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
+function Adjoint(dt::T, obs::AbstractArray{T,3}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_TSS::AbstractVector{T}, x0::AbstractVector{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
     xdim, steps, replicates = size(obs)
     θdim = xdim + length(p)
     t = collect(0.:dt:dt*(steps-1))
     obs_variance = similar(x0)
-    Nobs = [count(isfinite.(obs[_i,:,:])) for _i in 1:xdim]
+    Nobs = [pseudo_Nobs[_i] + count(isfinite.(obs[_i,:,:])) for _i in 1:xdim]
     x = similar(x0, xdim, steps)
     @views copy!(x[:,1], x0)
     dx = similar(x0, xdim, steps)
     dp = similar(p)
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
-    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, total_T::T, obs_variance::AbstractVector{T}, x0::AbstractVector{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
+function Adjoint(dt::T, total_T::T, obs_variance::AbstractVector{T}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_TSS::AbstractVector{T}, x0::AbstractVector{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
     steps = Int(total_T/dt) + 1
     xdim = length(x0)
     θdim = xdim + length(p)
     t = collect(0.:dt:dt*(steps-1))
     obs = similar(x0, xdim, steps, 1)
-    Nobs = Vector{Int}(xdim)
+    Nobs = copy(pseudo_Nobs)
     x = similar(x0, xdim, steps)
     @views copy!(x[:,1], x0)
     dx = similar(x0, xdim, steps)
     dp = similar(p)
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
-    Adjoint{xdim, θdim, 1, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, 1, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, total_T::T, obs_variance::AbstractVector{T}, x0::AbstractVector{T}, p::AbstractVector{T}, replicates::Int) where {T<:AbstractFloat}
+function Adjoint(dt::T, total_T::T, obs_variance::AbstractVector{T}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_TSS::AbstractVector{T}, x0::AbstractVector{T}, p::AbstractVector{T}, replicates::Int) where {T<:AbstractFloat}
     steps = Int(total_T/dt) + 1
     xdim = length(x0)
     θdim = xdim + length(p)
     t = collect(0.:dt:dt*(steps-1))
     obs = similar(x0, xdim, steps, replicates)
-    Nobs = Vector{Int}(xdim)
+    Nobs = copy(pseudo_Nobs)
     x = similar(x0, xdim, steps)
     @views copy!(x[:,1], x0)
     dx = similar(x0, xdim, steps)
     dp = similar(p)
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
-    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, x, p, dx, dp, λ, dλ) # fixed bug. K=replicates.
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ) # fixed bug. K=replicates.
 end
 
-function Adjoint(dt::T, obs::AbstractArray{T,3}, p::AbstractVector{T}) where {T<:AbstractFloat}
+function Adjoint(dt::T, obs::AbstractArray{T,3}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_TSS::AbstractVector{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
     xdim, steps, replicates = size(obs)
     θdim = xdim + length(p)
     t = collect(0.:dt:dt*(steps-1))
     obs_variance = similar(obs, xdim)
-    Nobs = [count(isfinite.(obs[_i,:,:])) for _i in 1:xdim]
+    Nobs = [pseudo_Nobs[_i] + count(isfinite.(obs[_i,:,:])) for _i in 1:xdim]
     x = similar(obs, xdim, steps)
     dx = similar(obs, xdim, steps)
     dp = similar(p)
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
-    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ)
 end
 
-function Adjoint(dt::T, obs::AbstractArray{T,3}, M::Int) where {T<:AbstractFloat}
+function Adjoint(dt::T, obs::AbstractArray{T,3}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_TSS::AbstractVector{T}, M::Int) where {T<:AbstractFloat}
     xdim, steps, replicates = size(obs)
     θdim = xdim + M
     t = collect(0.:dt:dt*(steps-1))
     obs_variance = similar(obs, xdim)
-    Nobs = [count(isfinite.(obs[_i,:,:])) for _i in 1:xdim]
+    Nobs = [pseudo_Nobs[_i] + count(isfinite.(obs[_i,:,:])) for _i in 1:xdim]
     x = similar(obs, xdim, steps)
     p = similar(obs, M)
     dx = similar(x)
     dp = similar(p)
     λ = zeros(T, θdim, steps)
     dλ = zeros(T, θdim, steps)
-    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, x, p, dx, dp, λ, dλ)
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs)}(dt, steps-1, t, obs_variance, obs, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ)
 end
 
 
