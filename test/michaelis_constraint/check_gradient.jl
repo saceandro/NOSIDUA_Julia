@@ -28,6 +28,12 @@ include("model.jl")
 #     # vstack(p_stack)
 # end
 
+@views function obs_mean_var!(a::Adjoint{N}, m::Model{N}, obs) where {N}
+    all!(a.finite, isfinite.(obs))
+    a.obs_mean = reshape(mean(obs, 3), N, a.steps+1)
+    a.obs_filterd_var = reshape(sum(reshape(reshape(var(obs, 3; corrected=false), N, a.steps+1)[a.finite], N, :), 2), N)
+end
+
 @views function gradient_covariance_check_obs_m!(
     dxdt!::Function,
     jacobian!::Function,
@@ -40,7 +46,7 @@ include("model.jl")
     initial_lower_bounds = nothing,
     initial_upper_bounds = nothing,
     pseudo_obs = nothing,
-    pseudo_obs_TSS = nothing,
+    pseudo_obs_var = nothing,
     obs_variance = nothing,
     obs_iteration = nothing,
     dt = nothing,
@@ -61,15 +67,16 @@ include("model.jl")
     model = Model(typeof(dt), N, L, dxdt!, jacobian!, jacobian0!, hessian!, hessian0!, hessian00!)
     srand(generation_seed)
     dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L]
-    a = Adjoint(dt, duration, obs_variance, pseudo_obs, pseudo_obs_TSS, x0, copy(true_params), replicates)
+    a = Adjoint(dt, duration, obs_variance, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates)
     orbit!(a, model)
     tob = deepcopy(a.x)
-    dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/pseudo_obs_$(join(pseudo_obs, "_"))/pseudo_obs_TSS_$(join(pseudo_obs_TSS, "_"))/spinup_$spinup/generation_seed_$generation_seed/trials_$trials/obs_variance_$(join(obs_variance_bak, "_"))/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
+    dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/pseudo_obs_$(join(pseudo_obs, "_"))/pseudo_obs_var_$(join(pseudo_obs_var, "_"))/spinup_$spinup/generation_seed_$generation_seed/trials_$trials/obs_variance_$(join(obs_variance_bak, "_"))/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
     # mkpath(dir)
     # plot_orbit(dir, a, tob)
 
-    srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_TSS, obs_variance_bak, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
+    srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_var, obs_variance_bak, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
     d = Normal.(0., sqrt.(obs_variance_bak))
+    obs = Array{typeof(dt)}(N, a.steps+1, replicates)
     # a.obs[1,:,:] .= NaN
     # for _replicate in 1:replicates
     #     a.obs[2,:,_replicate] .= view(a.x, 2, :) .+ rand(d[2], a.steps+1)
@@ -81,18 +88,18 @@ include("model.jl")
     # end
     for _j in 1:N
         for _replicate in 1:replicates
-            a.obs[_j,:,_replicate] .= view(a.x, _j, :) .+ rand(d[_j], a.steps+1)
+            obs[_j,:,_replicate] .= view(a.x, _j, :) .+ rand(d[_j], a.steps+1)
             for _i in 1:obs_iteration:a.steps
                 for _k in 1:obs_iteration-1
-                    a.obs[_j, _i + _k, _replicate] = NaN
+                    obs[_j, _i + _k, _replicate] = NaN
                 end
             end
         end
     end
     for _j in 1:N
-        a.Nobs[_j] .+= count(isfinite.(a.obs[_j,:,:]))
+        a.Nobs[_j] .+= count(isfinite.(obs[_j,:,:]))
     end
-    obs_mean_var!(a, model)
+    obs_mean_var!(a, model, obs)
 
     x0_p = rand.(dists)
     initialize!(a, x0_p)
@@ -146,7 +153,7 @@ include("model.jl")
             println("relative difference:\t", rel_diff)
             println("max_relative_difference:\t", maximum(abs, rel_diff))
         end
-        plot_twin_experiment_result(dir, a, tob, cov_ana)
+        plot_twin_experiment_result(dir, a, tob, obs, cov_ana)
     else
         plot_twin_experiment_result_wo_errorbar(dir, a, tob)
     end
@@ -183,11 +190,11 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             arg_type = Int
             nargs = '+'
             default = [0, 0]
-        "--pseudo-obs-TSS"
-            help = "TSS of pseudo observations"
+        "--pseudo-obs-var"
+            help = "variance of pseudo observations"
             arg_type = Float64
             nargs = '+'
-            default = [0., 0.]
+            default = [1., 1.]
         "--obs-variance"
             help = "observation variance"
             arg_type = Float64
