@@ -92,6 +92,7 @@ include("model.jl")
     for _j in 1:N
         a.Nobs[_j] .+= count(isfinite.(a.obs[_j,:,:]))
     end
+    obs_mean_var!(a, model)
 
     x0_p = rand.(dists)
     initialize!(a, x0_p)

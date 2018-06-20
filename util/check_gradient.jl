@@ -309,9 +309,9 @@ function plot_twin_experiment_result(dir, a::Adjoint{N,L,K}, tob, stddev) where 
     for _i in 1:N
         df_tob = DataFrame(t=t, x=tob[_i,:], data_type="true orbit")
         # _mask = isfinite.(a.obs[_i,:,1])
-        _mask = isfinite.(view(a.obs, _i, :))
+        _mask = isfinite.(view(reshape(a.obs, N, :), _i, :))
         # df_obs = DataFrame(t=t[_mask], x=a.obs[_i,:,1][_mask], data_type="observed") # plot one replicate for example
-        df_obs = DataFrame(t=view(repeat(t; outer=[K]), :)[_mask], x=view(a.obs, _i, :)[_mask], data_type="observed")
+        df_obs = DataFrame(t=view(repeat(t; outer=[K]), :)[_mask], x=view(reshape(a.obs, N, :), _i, :)[_mask], data_type="observed")
         xmin = similar(view(a.x, _i, :), a.steps+1)
         xmin .= NaN
         xmax = similar(view(a.x, _i, :), a.steps+1)
