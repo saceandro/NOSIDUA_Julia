@@ -1,9 +1,6 @@
 u(t) = 0.1 + 0.099*t
-# u(t) = 1. + sin(t)
 
 function dxdt!(m::Model, i0, i, t, x, p) # i0 = 1
-    # println("t[i0]:\t", t[i0])
-    # println("t[i]:\t", t[i])
     I = u(t[i])
     I0 = u(t[i0])
     k1 = I0 / (1. + I0) / x[1,i0]
@@ -13,7 +10,6 @@ function dxdt!(m::Model, i0, i, t, x, p) # i0 = 1
 end
 
 function jacobian!(m::Model, i0, i, t, x, p) # might be faster if SparseMatrixCSC is used. L=N+M. need to write in one line
-    # print("t[i0]:\t", t[i0])
     I0 = u(t[i0])
     k1 = I0 / (1. + I0) / x[1,i0]
     k2 = p[2] * x[1,i0] / (p[1] + x[1,i0]) / x[2,i0]
@@ -28,7 +24,6 @@ function jacobian!(m::Model, i0, i, t, x, p) # might be faster if SparseMatrixCS
 end
 
 function jacobian0!(m::Model, i0, i, t, x, p)
-    # print("t[i0]:\t", t[i0])
     I0 = u(t[i0])
 
     @inbounds m.jacobian0[1,1] = I0 / (1. + I0) / x[1,i0]^2 * x[1,i]

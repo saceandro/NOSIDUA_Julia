@@ -113,11 +113,12 @@ end
 #     Adjoint{xdim, θdim, 1, T, typeof(p), typeof(x), typeof(obs), typeof(Nobs), typeof(finite)}(dt, steps-1, t, obs_variance, obs, obs_filterd_mean, obs_filterd_var, finite, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ)
 # end
 
-function Adjoint(dt::T, total_T::T, obs_variance::AbstractVector{T}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_var::AbstractVector{T}, x0::AbstractVector{T}, p::AbstractVector{T}, replicates::Int) where {T<:AbstractFloat}
+function Adjoint(dt::T, total_T::T, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_var::AbstractVector{T}, x0::AbstractVector{T}, p::AbstractVector{T}, replicates::Int) where {T<:AbstractFloat}
     steps = Int(total_T/dt) + 1
     xdim = length(x0)
     θdim = xdim + length(p)
     t = collect(0.:dt:dt*(steps-1))
+    obs_variance = Vector{T}(xdim)
     Nobs = copy(pseudo_Nobs)
     pseudo_obs_TSS = pseudo_Nobs .* pseudo_obs_var
     finite = Matrix{Bool}(xdim, steps)

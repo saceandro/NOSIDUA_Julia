@@ -1,3 +1,13 @@
+@views function obs_mean_var!(a::Adjoint{N}, m::Model{N}, obs) where {N}
+    all!(a.finite, isfinite.(obs))
+    a.obs_mean = reshape(mean(obs, 3), N, a.steps+1)
+    a.obs_filterd_var = reshape(sum(reshape(reshape(var(obs, 3; corrected=false), N, a.steps+1)[a.finite], N, :), 2), N)
+    for _j in 1:N
+        a.Nobs[_j] .+= count(isfinite.(obs[_j,:,:]))
+    end
+    nothing
+end
+
 @views function write_twin_experiment_result(dir, assimilation_results, minimum, true_params, tob)
     mkpath(dir)
     L = length(assimilation_results.θ)

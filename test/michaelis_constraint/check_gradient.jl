@@ -10,30 +10,6 @@ include("../../util/optparser.jl")
 include("../../util/check_gradient.jl")
 include("model.jl")
 
-# function plot_orbit(dir, a::Adjoint{N}, tob) where {N}
-#     white_panel = Theme(panel_fill="white")
-#     p_stack = Array{Gadfly.Plot}(0)
-#     for _i in 1:N
-#         df_tob = DataFrame(t=a.t, x=tob[_i,:], data_type="true orbit")
-#         p_stack = vcat(p_stack,
-#         Gadfly.plot(
-#         layer(df_tob, x="t", y="x", color=:data_type, Geom.line),
-#         Guide.xlabel("<i>t</i>"),
-#         Guide.ylabel("<i>x<sub>$_i</sub></i>"),
-#         white_panel))
-#     end
-#     draw(PDF(dir * "true_orbit.pdf", 24cm, 40cm), vstack(p_stack))
-#     nothing
-#     # set_default_plot_size(24cm, 40cm)
-#     # vstack(p_stack)
-# end
-
-@views function obs_mean_var!(a::Adjoint{N}, m::Model{N}, obs) where {N}
-    all!(a.finite, isfinite.(obs))
-    a.obs_mean = reshape(mean(obs, 3), N, a.steps+1)
-    a.obs_filterd_var = reshape(sum(reshape(reshape(var(obs, 3; corrected=false), N, a.steps+1)[a.finite], N, :), 2), N)
-end
-
 @views function gradient_covariance_check_obs_m!(
     dxdt!::Function,
     jacobian!::Function,
@@ -67,12 +43,10 @@ end
     model = Model(typeof(dt), N, L, dxdt!, jacobian!, jacobian0!, hessian!, hessian0!, hessian00!)
     srand(generation_seed)
     dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L]
-    a = Adjoint(dt, duration, obs_variance, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates)
+    a = Adjoint(dt, duration, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates)
     orbit!(a, model)
     tob = deepcopy(a.x)
     dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/pseudo_obs_$(join(pseudo_obs, "_"))/pseudo_obs_var_$(join(pseudo_obs_var, "_"))/spinup_$spinup/generation_seed_$generation_seed/trials_$trials/obs_variance_$(join(obs_variance_bak, "_"))/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
-    # mkpath(dir)
-    # plot_orbit(dir, a, tob)
 
     srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_var, obs_variance_bak, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
     d = Normal.(0., sqrt.(obs_variance_bak))
@@ -96,9 +70,6 @@ end
             end
         end
     end
-    for _j in 1:N
-        a.Nobs[_j] .+= count(isfinite.(obs[_j,:,:]))
-    end
     obs_mean_var!(a, model, obs)
 
     x0_p = rand.(dists)
@@ -120,25 +91,6 @@ end
     res_ana, minres = assimilate!(a, model, initial_lower_bounds, initial_upper_bounds, dists, trials)
     res_num = numerical_covariance!(a, model, numerical_differentiation_delta)
     write_twin_experiment_result(dir, res_ana, minres.minimum, true_params, tob)
-
-    # if !isnull(res_ana.covariance) && !isnull(res_num.covariance)
-    #     cov_ana = get(res_ana.covariance)
-    #     cov_num = get(res_num.covariance)
-    #     println("analytical covariance:")
-    #     println(cov_ana)
-    #     println("numerical covariance:")
-    #     println(cov_num)
-    #     diff = cov_ana .- cov_num
-    #     println("absolute difference:")
-    #     println(diff)
-    #     println("max absolute difference: ", maximum(abs, diff))
-    #     if !any(res_num.covariance == 0)
-    #         rel_diff = diff ./ cov_num
-    #         println("relative difference")
-    #         println(rel_diff)
-    #         println("max_relative_difference:\t", maximum(abs, rel_diff))
-    #     end
-    # end
 
     if !isnull(res_ana.stddev) && !isnull(res_num.stddev)
         cov_ana = get(res_ana.stddev)
