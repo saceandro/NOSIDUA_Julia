@@ -2,7 +2,7 @@ include("../../src/AdjointsConstraint.jl")
 
 module Michaelis
 
-using ArgParse, AdjointsConstraint, Distributions, CatViews.CatView
+using ArgParse, AdjointsConstraint, Distributions, CatViews.CatView, Juno
 
 export julia_main
 
@@ -48,26 +48,26 @@ include("model.jl")
     d = Normal.(0., sqrt.([obs_variance*10., obs_variance]))
     obs = Array{typeof(dt)}(N, a.steps+1, replicates)
 
-    for _j in 1:N
-        for _replicate in 1:replicates
-            obs[_j,:,_replicate] .= a.x[_j,:] .+ rand(d[_j], a.steps+1)
-            for _i in 1:obs_iteration:a.steps
-                for _k in 1:obs_iteration-1
-                    obs[_j, _i + _k, _replicate] = NaN
-                end
-            end
-        end
-    end
-
-    # obs[1,:,:] .= NaN
-    # for _replicate in 1:replicates
-    #     obs[2,:,_replicate] .= a.x[2,:] .+ rand(d, a.steps+1)
-    #     for _i in 1:obs_iteration:a.steps
-    #         for _k in 1:obs_iteration-1
-    #             obs[2, _i + _k, _replicate] = NaN
+    # for _j in 1:N
+    #     for _replicate in 1:replicates
+    #         obs[_j,:,_replicate] .= a.x[_j,:] .+ rand(d[_j], a.steps+1)
+    #         for _i in 1:obs_iteration:a.steps
+    #             for _k in 1:obs_iteration-1
+    #                 obs[_j, _i + _k, _replicate] = NaN
+    #             end
     #         end
     #     end
     # end
+
+    obs[1,:,:] .= NaN
+    for _replicate in 1:replicates
+        obs[2,:,_replicate] .= a.x[2,:] .+ rand(d[2], a.steps+1)
+        for _i in 1:obs_iteration:a.steps
+            for _k in 1:obs_iteration-1
+                obs[2, _i + _k, _replicate] = NaN
+            end
+        end
+    end
 
     obs_mean_var!(a, model, obs)
     twin_experiment!(dir, a, model, true_params, initial_lower_bounds, initial_upper_bounds, dists, trials)

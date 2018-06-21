@@ -51,25 +51,26 @@ include("model.jl")
     srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_var, obs_variance_bak, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
     d = Normal.(0., sqrt.(obs_variance_bak))
     obs = Array{typeof(dt)}(N, a.steps+1, replicates)
-    # a.obs[1,:,:] .= NaN
-    # for _replicate in 1:replicates
-    #     a.obs[2,:,_replicate] .= view(a.x, 2, :) .+ rand(d[2], a.steps+1)
-    #     for _i in 1:obs_iteration:a.steps
-    #         for _k in 1:obs_iteration-1
-    #             a.obs[2, _i + _k, _replicate] = NaN
-    #         end
-    #     end
-    # end
-    for _j in 1:N
-        for _replicate in 1:replicates
-            obs[_j,:,_replicate] .= view(a.x, _j, :) .+ rand(d[_j], a.steps+1)
-            for _i in 1:obs_iteration:a.steps
-                for _k in 1:obs_iteration-1
-                    obs[_j, _i + _k, _replicate] = NaN
-                end
+
+    obs[1,:,:] .= NaN
+    for _replicate in 1:replicates
+        obs[2,:,_replicate] .= view(a.x, 2, :) .+ rand(d[2], a.steps+1)
+        for _i in 1:obs_iteration:a.steps
+            for _k in 1:obs_iteration-1
+                obs[2, _i + _k, _replicate] = NaN
             end
         end
     end
+    # for _j in 1:N
+    #     for _replicate in 1:replicates
+    #         obs[_j,:,_replicate] .= view(a.x, _j, :) .+ rand(d[_j], a.steps+1)
+    #         for _i in 1:obs_iteration:a.steps
+    #             for _k in 1:obs_iteration-1
+    #                 obs[_j, _i + _k, _replicate] = NaN
+    #             end
+    #         end
+    #     end
+    # end
     obs_mean_var!(a, model, obs)
 
     x0_p = rand.(dists)

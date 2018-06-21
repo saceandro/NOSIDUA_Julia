@@ -1,10 +1,13 @@
 using DataFrames, Gadfly
 
+nanzero(x) = isnan(x) ? zero(x) : x
+
 @views function obs_mean_var!(a::Adjoint{N}, m::Model{N}, obs) where {N}
     all!(a.finite, isfinite.(obs))
     a.obs_mean = reshape(mean(obs, 3), N, a.steps+1)
-    a.obs_filterd_var = reshape(sum(reshape(reshape(var(obs, 3; corrected=false), N, a.steps+1)[a.finite], N, :), 2), N)
+    # a.obs_filterd_var = reshape(sum(reshape(reshape(var(obs, 3; corrected=false), N, a.steps+1)[a.finite], N, :), 2), N)
     for _j in 1:N
+        a.obs_filterd_var[_j] = mapreduce(nanzero, +, var(obs[_j,:,:], 2; corrected=false))
         a.Nobs[_j] .+= count(isfinite.(obs[_j,:,:]))
     end
     nothing
