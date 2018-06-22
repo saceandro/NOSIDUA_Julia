@@ -42,7 +42,7 @@ paramsdic = {\
 }
 
 arrayparam = {\
-"iter":    np.arange(1,101,1)\
+"iter":    np.arange(1,201,1)\
 }
 
 variables = ["x", "m", "Km1", "Km2"]
