@@ -20,7 +20,7 @@ paramsdic = {\
     #     },\
     "obs_iteration": {\
         "obs_variance":  np.array([pow(2, -10)]),\
-        "obs_iteration": np.array([1,2,10,20,50,100]),\
+        "obs_iteration": np.array([1,2,10,20]),\
         "dt":            np.array([1.]),\
         "duration":      np.array([100.]),\
         "replicates":    np.array([100])\
@@ -29,7 +29,7 @@ paramsdic = {\
         "obs_variance":  np.array([pow(2, -10)]),\
         "obs_iteration": np.array([5]),\
         "dt":            np.array([1.]),\
-        "duration":      np.around(np.arange(10.,100.,10.), decimals=1),\
+        "duration":      np.around(np.arange(20.,100.,10.), decimals=1),\
         "replicates":    np.array([100])\
         },\
     "replicates": {\
@@ -42,7 +42,7 @@ paramsdic = {\
 }
 
 arrayparam = {\
-"iter":    np.arange(1,11,1)\
+"iter":    np.arange(1,101,1)\
 }
 
 variables = ["x", "m", "Km1", "Km2"]
