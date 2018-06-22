@@ -2,6 +2,6 @@ true_params: 0.5 2.
 initial_lower_bounds: 0. 0. 0. 1.
 initial_upper_bounds: 2. 2. 1. 3.
 pseudo_obs: 0 0
-pseudo-obs-var: 1. 1.
+pseudo_obs_var: 1. 1.
 spinup: 0.0
 trials: 20
