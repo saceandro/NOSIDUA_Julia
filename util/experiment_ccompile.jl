@@ -11,13 +11,17 @@ nanzero(x) = isnan(x) ? zero(x) : x
     nothing
 end
 
-@views function write_twin_experiment_result(dir, assimilation_results, minimum, true_params, tob)
+@views function write_twin_experiment_result(dir, assimilation_results::AssimilationResults{L}, minimum, true_params, tob) where {L}
     mkpath(dir)
-    L = length(assimilation_results.θ)
+    if isnull(assimilation_results.θ)
+        writedlm(dir * "estimates.tsv", reshape(CatView(fill(NaN, L), fill(NaN, L)), L, 2))
+        return nothing
+    end
+    # L = length(assimilation_results.θ)
     println(STDERR, "mincost:\t", minimum)
-    println(STDERR, "θ:\t", assimilation_results.θ)
+    println(STDERR, "θ:\t", get(assimilation_results.θ))
     println(STDERR, "ans:\t", CatView(tob[:,1], true_params))
-    diff = assimilation_results.θ .- CatView(tob[:,1], true_params)
+    diff = get(assimilation_results.θ) .- CatView(tob[:,1], true_params)
     println(STDERR, "diff:\t", diff)
     println(sqrt(mapreduce(abs2, +, diff) / L)) # output RSME to STDOUT
     if isnull(assimilation_results.stddev)
@@ -26,7 +30,7 @@ end
         println(STDERR, "CI:\t", get(assimilation_results.stddev))
         writedlm(dir * "estimates.tsv", reshape(CatView(diff, get(assimilation_results.stddev)), L, 2))
     end
-    println(STDERR, "obs variance:\t", assimilation_results.obs_variance)
+    println(STDERR, "obs variance:\t", get(assimilation_results.obs_variance))
     nothing
 end
 
@@ -143,7 +147,11 @@ function twin_experiment!(outdir::String, a::Adjoint{N,L,K,T}, model::Model{N,L,
     println(STDERR, "====================================================================================================================")
     println(STDERR, outdir)
     assimres, minres = assimilate!(a, model, initial_lower_bounds, initial_upper_bounds, dists, trials)
-    write_twin_experiment_result(outdir, assimres, minres.minimum, true_params, tob)
+    if (isnull(assimres.θ))
+        write_twin_experiment_result(outdir, assimres, zero(T), true_params, tob)
+    else
+        write_twin_experiment_result(outdir, assimres, minres.minimum, true_params, tob)
+    end
 end
 
 @views function generate_true_data!(pref::String, model::Model{N}, true_params, dt, spinup, T, generation_seed, x0_dists) where {N}

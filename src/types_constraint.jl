@@ -171,22 +171,29 @@ end
 # end
 
 
-mutable struct AssimilationResults{T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix}
-    θ::A
-    obs_variance::A
+mutable struct AssimilationResults{L, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix}
+    θ::Nullable{A}
+    obs_variance::Nullable{A}
     stddev::Nullable{A}
     covariance::Nullable{B}
-    AssimilationResults{T, A, B}(θ::S, obs_variance::S, stddev::Nullable{S}, covariance::Nullable{U}) where {S<:AbstractVector{T}, U<:AbstractMatrix{T}} where {T,A,B} = new{T,A,B}(θ, obs_variance, stddev, covariance)
+    AssimilationResults{L, T, A, B}(θ::Nullable{S}, obs_variance::Nullable{S}, stddev::Nullable{S}, covariance::Nullable{U}) where {S<:AbstractVector{T}, U<:AbstractMatrix{T}} where {L,T,A,B} = new{L,T,A,B}(θ, obs_variance, stddev, covariance)
 end
 
 function AssimilationResults(θ::AbstractVector{T}, obs_variance::AbstractVector{T}, stddev::AbstractVector{T}, covariance::AbstractMatrix{T}) where {T<:AbstractFloat}
-    AssimilationResults{T, typeof(θ), typeof(covariance)}(θ, obs_variance, Nullable(stddev), Nullable(covariance))
+    L = length(θ)
+    AssimilationResults{L, T, typeof(θ), typeof(covariance)}(Nullable(θ), Nullable(obs_variance), Nullable(stddev), Nullable(covariance))
 end
 
 function AssimilationResults(θ::AbstractVector{T}, obs_variance::AbstractVector{T}, covariance::AbstractMatrix{T}) where {T<:AbstractFloat}
-    AssimilationResults{T, typeof(θ), typeof(covariance)}(θ, obs_variance, Nullable{Vector{T}}(), Nullable(covariance))
+    L = length(θ)
+    AssimilationResults{L, T, typeof(θ), typeof(covariance)}(Nullable(θ), Nullable(obs_variance), Nullable{Vector{T}}(), Nullable(covariance))
 end
 
 function AssimilationResults(θ::AbstractVector{T}, obs_variance::AbstractVector{T}) where {T<:AbstractFloat}
-    AssimilationResults{T, typeof(θ), Matrix{T}}(θ, obs_variance, Nullable{Vector{T}}(), Nullable{Matrix{T}}())
+    L = length(θ)
+    AssimilationResults{L, T, typeof(θ), Matrix{T}}(Nullable(θ), Nullable(obs_variance), Nullable{Vector{T}}(), Nullable{Matrix{T}}())
+end
+
+function AssimilationResults(L::Int, t::Type{T}) where {T<:AbstractFloat}
+    AssimilationResults{L, t, Vector{t}, Matrix{t}}(Nullable{Vector{t}}(), Nullable{Vector{t}}(), Nullable{Vector{t}}(), Nullable{Matrix{t}}())
 end

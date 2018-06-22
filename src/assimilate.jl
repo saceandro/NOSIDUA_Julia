@@ -5,7 +5,7 @@ function covariance_from_θ0!(a::Adjoint{N,L,K,T}, m::Model{N,L,T}, θ0) where {
     covariance!(a, m)
 end
 
-function assimilate!(a::Adjoint, m::Model, initial_lower_bounds, initial_upper_bounds, dists, trials=10)
+function assimilate!(a::Adjoint{N,L,K,T}, m::Model, initial_lower_bounds, initial_upper_bounds, dists, trials=10) where {N,L,K,T<:AbstractFloat}
     mincost = Inf
     local minres # we cannot define a new variable within for loop.
     for _i in 1:trials
@@ -23,7 +23,8 @@ function assimilate!(a::Adjoint, m::Model, initial_lower_bounds, initial_upper_b
         end
     end
     if !isfinite(mincost)
-        error(STDERR, "All the $trials assimilation trials failed.")
+        return AssimilationResults(L, T), Nullable{Optim.MultivariateOptimizationResults}()
+        # error(STDERR, "All the $trials assimilation trials failed.")
     end
     return covariance_from_θ0!(a, m, minres.minimizer), minres
 end
