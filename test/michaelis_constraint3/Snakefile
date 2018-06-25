@@ -21,21 +21,21 @@ paramsdic = {\
     "obs_iteration": {\
         "obs_variance":  np.array([pow(2, -10)]),\
         "obs_iteration": np.array([1,2,10,20]),\
-        "dt":            np.array([1.]),\
+        "dt":            np.array([0.1]),\
         "duration":      np.array([100.]),\
         "replicates":    np.array([100])\
         },\
     "duration": {\
         "obs_variance":  np.array([pow(2, -10)]),\
         "obs_iteration": np.array([5]),\
-        "dt":            np.array([1.]),\
+        "dt":            np.array([0.1]),\
         "duration":      np.around(np.arange(20.,100.,10.), decimals=1),\
         "replicates":    np.array([100])\
         },\
     "replicates": {\
         "obs_variance":  np.array([pow(2, -10)]),\
         "obs_iteration": np.array([5]),\
-        "dt":            np.array([1.]),\
+        "dt":            np.array([0.1]),\
         "duration":      np.array([100.]),\
         "replicates":    pow(2, np.arange(7,12,1))\
         }\

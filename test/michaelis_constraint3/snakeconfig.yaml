@@ -4,4 +4,4 @@ initial_upper_bounds: 2.0 2.0 1.0 3.0
 pseudo_obs: 0 0
 pseudo_obs_var: 1.0 1.0
 spinup: 0.0
-trials: 200
+trials: 100
