@@ -1,5 +1,3 @@
-using Juno
-
 innovation_λ(m::Model, x, obs_mean, obs_variance_over_K, finite) = finite ? m.d_observation(x) * (m.observation(x) - obs_mean)/obs_variance_over_K : zero(x)
 
 @views innovation_dλ(m::Model, x_i, dx_i, Nobs, K_over_obs_variance, x_minus_mean_obs_i, x_minus_mean_obs_times_dx, finite_i) = finite_i ? K_over_obs_variance * ( ( m.dd_observation(x_i) * x_minus_mean_obs_i + m.d_observation(x_i)^2 ) * dx_i - K_over_obs_variance * oftype(K_over_obs_variance, 2.) / Nobs * m.d_observation(x_i) * x_minus_mean_obs_i * x_minus_mean_obs_times_dx) : zero(K_over_obs_variance)

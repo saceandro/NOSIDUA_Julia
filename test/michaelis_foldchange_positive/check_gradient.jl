@@ -2,13 +2,41 @@ include("../../src/AdjointsGivenZeroState.jl")
 
 module Michaelis
 
-using ArgParse, AdjointsGivenZeroState, Distributions, CatViews.CatView, Juno
+using ArgParse, AdjointsGivenZeroState, Distributions, CatViews.CatView
 
 export julia_main
 
 include("../../util/optparser_given_zero_state.jl")
 include("../../util/check_gradient_given_zero_state.jl")
 include("model.jl")
+
+ct(x) = exp(-x)
+
+function plot_twin_experiment_result_wo_errorbar_ct(dir, a::Adjoint{N,L,K}, m::Model, tob, obs, ct) where {N,L,K}
+    white_panel = Theme(panel_fill="white")
+    p_stack = Array{Gadfly.Plot}(0)
+    t = collect(0.:a.dt:a.steps*a.dt)
+    for _i in 1:N
+        df_tob = DataFrame(t=t, x=ct.(tob[_i,:]), data_type="true orbit")
+        # _mask = isfinite.(a.obs[_i,:,1])
+        _mask = isfinite.(view(reshape(obs, N, :), _i, :))
+        # df_obs = DataFrame(t=t[_mask], x=a.obs[_i,:,1][_mask], data_type="observed") # plot one replicate for example
+        df_obs = DataFrame(t=view(repeat(t; outer=[K]), :)[_mask], x=ct.(m.inv_observation.(view(reshape(obs, N, :), _i, :)[_mask])), data_type="observed")
+        df_assim = DataFrame(t=t, x=ct.(a.x[_i,:]), data_type="assimilated")
+        p_stack = vcat(p_stack,
+        Gadfly.plot(
+        layer(df_tob, x="t", y="x", color=:data_type, Geom.line),
+        layer(df_assim, x="t", y="x", color=:data_type, Geom.line),
+        layer(df_obs, x="t", y="x", color=:data_type, Geom.point),
+        Guide.xlabel("<i>t</i>"),
+        Guide.ylabel("<i>x<sub>$_i</sub></i>"),
+        white_panel))
+    end
+    draw(PDF(dir * "assimilation.pdf", 24cm, 40cm), vstack(p_stack))
+    nothing
+    # set_default_plot_size(24cm, 40cm)
+    # vstack(p_stack)
+end
 
 @views function gradient_covariance_check_obs_m!(
     dxdt!::Function,
@@ -64,7 +92,7 @@ include("model.jl")
     end
     # for _j in 1:N
     #     for _replicate in 1:replicates
-    #         obs[_j,:,_replicate] .= observation.(a.x[_j,:]) .+ rand(d[_j], a.steps+1)
+    #         obs[_j,:,_replicate] .= model.observation.(a.x[_j,:]) .+ rand(d[_j], a.steps+1)
     #         for _i in 1:obs_iteration:a.steps
     #             for _k in 1:obs_iteration-1
     #                 obs[_j, _i + _k, _replicate] = NaN
@@ -109,7 +137,7 @@ include("model.jl")
             println("max_relative_difference:\t", maximum(abs, rel_diff))
         end
     end
-    plot_twin_experiment_result_wo_errorbar(dir, a, model, tob, obs)
+    plot_twin_experiment_result_wo_errorbar_ct(dir, a, model, tob, obs, ct)
     plot_twin_experiment_result_wo_errorbar_observation(dir, a, model, tob, obs)
 end
 
@@ -169,7 +197,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
         "--duration", "-t"
             help = "assimilation duration"
             arg_type = Float64
-            default = 100.
+            default = 240.
         "--generation-seed", "-s"
             help = "seed for orbit generation"
             arg_type = Int
@@ -177,7 +205,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
         "--trials"
             help = "#trials for gradient descent initial value"
             arg_type = Int
-            default = 10
+            default = 100
         "--replicates"
             help = "#replicates"
             arg_type = Int
@@ -194,7 +222,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             help = "initial x"
             arg_type = Float64
             nargs = '+'
-            default = [1., 1.]
+            default = [0., 0.]
     end
 
     parsed_args = parse_args(args, settings; as_symbols=true) # ARGS is needed for static compilation; Otherwise, global ARGS is used.

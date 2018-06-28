@@ -1,0 +1,86 @@
+import numpy as np
+
+dirdic = {\
+"dir": "result"\
+}
+
+plotdir = {\
+"dir": "plots"\
+}
+
+configfile: "snakeconfig.yaml" # snakeconfig.yaml contains fixed parameters
+
+paramsdic = {\
+    # "obs_variance": {\
+    #     "obs_variance":  pow(2., np.arange(-15,-5,1)),\
+    #     "obs_iteration": np.array([5]),\
+    #     "dt":            np.array([1.]),\
+    #     "duration":      np.array([100.]),\
+    #     "replicates":    np.array([3])\
+    #     },\
+    "obs_iteration": {\
+        "obs_variance":  np.array([pow(2, -10)]),\
+        "obs_iteration": np.array([1,2,10,20]),\
+        "dt":            np.array([0.1]),\
+        "duration":      np.array([240.]),\
+        "replicates":    np.array([100])\
+        },\
+    "duration": {\
+        "obs_variance":  np.array([pow(2, -10)]),\
+        "obs_iteration": np.array([5]),\
+        "dt":            np.array([0.1]),\
+        "duration":      np.around(np.arange(20.,240.,20.), decimals=1),\
+        "replicates":    np.array([100])\
+        },\
+    "replicates": {\
+        "obs_variance":  np.array([pow(2, -10)]),\
+        "obs_iteration": np.array([5]),\
+        "dt":            np.array([0.1]),\
+        "duration":      np.array([240.]),\
+        "replicates":    pow(2, np.arange(7,12,1))\
+        }\
+}
+
+arrayparam = {\
+"iter":    np.arange(1,101,1)\
+}
+
+variables = ["Km1", "Km2", "Vmax1", "Vmax2"]
+
+include: "../../util/snakerules"
+
+rule linuxbuild:
+    params:
+        mem="4G"
+    input:
+        'michaelis_obs_m.jl',
+        '../../util/experiment_ccompile_given_zero_state.jl',
+        '../../util/check_args_given_zero_state.jl',
+        '../../util/optparser_given_zero_state.jl',
+        '../../src/AdjointsGivenZeroState.jl',
+        '../../src/types_given_zero_state.jl',
+        '../../src/adjoint_given_zero_state.jl',
+        '../../src/assimilate_given_zero_state.jl'
+    output:
+        'builddir/michaelis_obs_m',
+        'builddir/michaelis_obs_m.so',
+        'builddir/michaelis_obs_m.o'
+    shell:
+        "julia ~/.julia/v0.6/PackageCompiler/juliac.jl -vae michaelis_obs_m.jl"
+
+rule macbuild:
+    input:
+        'michaelis_obs_m.jl',
+        '../../util/experiment_ccompile_given_zero_state.jl',
+        '../../util/check_args_given_zero_state.jl',
+        '../../util/optparser_given_zero_state.jl',
+        '../../src/AdjointsGivenZeroState.jl',
+        '../../src/types_given_zero_state.jl',
+        '../../src/adjoint_given_zero_state.jl',
+        '../../src/assimilate_given_zero_state.jl'
+    output:
+        'builddir/michaelis_obs_m',
+        'builddir/michaelis_obs_m.dylib',
+        'builddir/michaelis_obs_m.o'
+    shell:
+        "julia /Applications/JuliaPro-0.6.2.2.app/Contents/Resources/pkgs-0.6.2.2/v0.6/PackageCompiler/juliac.jl -vae michaelis_obs_m.jl"
