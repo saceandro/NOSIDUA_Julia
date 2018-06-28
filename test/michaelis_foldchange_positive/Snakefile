@@ -19,25 +19,25 @@ paramsdic = {\
     #     "replicates":    np.array([3])\
     #     },\
     "obs_iteration": {\
-        "obs_variance":  np.array([pow(2, -10)]),\
-        "obs_iteration": np.array([1,2,10,20]),\
+        "obs_variance":  np.array([0.01]),\
+        "obs_iteration": np.array([10,20,30,50,100,150,200,300,600]),\
         "dt":            np.array([0.1]),\
         "duration":      np.array([240.]),\
-        "replicates":    np.array([100])\
+        "replicates":    np.array([3])\
         },\
     "duration": {\
-        "obs_variance":  np.array([pow(2, -10)]),\
-        "obs_iteration": np.array([5]),\
+        "obs_variance":  np.array([0.01]),\
+        "obs_iteration": np.array([150]),\
         "dt":            np.array([0.1]),\
-        "duration":      np.around(np.arange(20.,240.,20.), decimals=1),\
-        "replicates":    np.array([100])\
+        "duration":      np.around(np.arange(60.,361.,60.), decimals=1),\
+        "replicates":    np.array([3])\
         },\
     "replicates": {\
-        "obs_variance":  np.array([pow(2, -10)]),\
-        "obs_iteration": np.array([5]),\
+        "obs_variance":  np.array([0.01]),\
+        "obs_iteration": np.array([150]),\
         "dt":            np.array([0.1]),\
         "duration":      np.array([240.]),\
-        "replicates":    pow(2, np.arange(7,12,1))\
+        "replicates":    np.concatenate( ( np.array([3]), pow(2, np.arange(0,4,1)) ) )\
         }\
 }
 
