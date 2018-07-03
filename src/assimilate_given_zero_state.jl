@@ -5,6 +5,10 @@ function covariance_from_θ0!(a::Adjoint{N,L,K,T}, m::Model{N,L,T}, p) where {N,
     covariance!(a, m)
 end
 
+function printres(io, res)
+    println(io, res)
+end
+
 function assimilate!(a::Adjoint{N,L,K,T}, m::Model, initial_lower_bounds, initial_upper_bounds, dists, trials=10) where {N,L,K,T<:AbstractFloat}
     mincost = Inf
     local minres # we cannot define a new variable within for loop.
@@ -12,9 +16,11 @@ function assimilate!(a::Adjoint{N,L,K,T}, m::Model, initial_lower_bounds, initia
         p = rand.(dists)
         try
             res = minimize!(p, a, m)
-            println(STDERR, "trial $_i: $(res.minimum)")
-            println(STDERR, res.minimizer)
-            if (res.minimum < mincost) && all(initial_lower_bounds .<= res.minimizer) && all(res.minimizer .<= initial_upper_bounds)
+
+            println(STDERR, "trial $_i: $(res.minimizer)\t$(res.minimum)")
+            # println(STDERR, res)
+            # if (res.minimum < mincost) && all(initial_lower_bounds .<= res.minimizer) && all(res.minimizer .<= initial_upper_bounds)
+            if (res.minimum < mincost) && (res.x_converged || res.f_converged || res.g_converged)  && all(res.minimizer .> 0.)
                 mincost = res.minimum
                 minres = res
             end

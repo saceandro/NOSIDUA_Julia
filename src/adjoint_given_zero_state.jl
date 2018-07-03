@@ -66,6 +66,17 @@ end
     c / oftype(a.dt, 2.)
 end
 
+@views function negative_log_likelihood(a::Adjoint{N,L,K}, pseudo_obs, pseudo_obs_var) where {N,L,K} # bug! fix me!
+    c = zero(a.dt)
+    for _i in 1:N
+        if a.Nobs[_i] > 0
+            pseudo_obs_i_over_2_minus_1 = pseudo_obs[_i]/2. - 1.
+            c += pseudo_obs_i_over_2_minus_1 * log(pseudo_obs[_i] * pseudo_obs_var[_i] / 2.) + lgamma(pseudo_obs_i_over_2_minus_1) + (a.Nobs[_i]-pseudo_obs[_i])/.2 * log(2.*pi) + a.Nobs[_i]/.2 * (1. + log(a.obs_variance[_i]))
+        end
+    end
+    c
+end
+
 # @views function initialize!(a::Adjoint{N}, θ) where {N}
 #     copy!(a.x[:,1], θ[1:N])
 #     copy!(a.p, θ[N+1:end])
@@ -103,6 +114,7 @@ end
 
     df = OnceDifferentiable(p -> fg!(F, nothing, p, a, m), (∇p, p) -> fg!(nothing, ∇p, p, a, m), (∇p, p) -> fg!(F, ∇p, p, a, m), initial_p, F, ∇p, inplace=true)
     options = Optim.Options(;x_tol=1e-32, f_tol=1e-32, g_tol=1e-8, iterations=1_000, store_trace=true, show_trace=false, show_every=1)
+    # options = Optim.Options(;x_tol=1e-32, f_tol=-1., g_tol=-1., iterations=1_000, store_trace=true, show_trace=false, show_every=1)
     optimize(df, initial_p, LBFGS(), options)
 end
 
@@ -140,10 +152,15 @@ end
     try
         stddev = sqrt.(diag(covariance))
     catch message
+        println("CI calculation failed.")
+        println("hessian")
+        println(hessian)
+        println("covariance:")
+        println(covariance)
         if (minimum(diag(covariance)) < 0)
-            println(STDERR, "CI calculation failed.\nReason: Negative variance!")
+            println(STDERR, "Reason: Negative variance!")
         else
-            println(STDERR, "CI calculation failed.\nReason: Taking sqrt of variance failed due to $message")
+            println(STDERR, "Reason: Taking sqrt of variance failed due to $message")
         end
         return AssimilationResults(a.p, a.obs_variance, covariance)
     end

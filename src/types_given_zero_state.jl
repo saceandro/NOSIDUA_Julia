@@ -128,6 +128,33 @@ function Adjoint(dt::T, total_T::T, pseudo_Nobs::AbstractVector{Int}, pseudo_obs
     Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(Nobs), typeof(finite)}(dt, steps-1, t, obs_variance, obs_mean, obs_filterd_var, finite, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ) # fixed bug. K=replicates.
 end
 
+function Adjoint(Nparams::Int, dt::T, obs::AbstractArray{T,3}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_var::AbstractVector{T}, x0::AbstractVector{T}) where {T<:AbstractFloat}
+    xdim, steps, replicates = size(obs)
+    θdim = xdim + Nparams
+    t = collect(0.:dt:dt*(steps-1))
+    obs_variance = Vector{T}(xdim)
+    Nobs = copy(pseudo_Nobs)
+    pseudo_obs_TSS = pseudo_Nobs .* pseudo_obs_var
+    finite = Matrix{Bool}(xdim, steps)
+    obs_filterd_var = Vector{T}(xdim)
+    x = similar(x0, xdim, steps)
+    @views copy!(x[:,1], x0)
+    p = Vector{T}(Nparams)
+    dx = similar(x0, xdim, steps)
+    dp = similar(p)
+    λ = zeros(T, θdim, steps)
+    dλ = zeros(T, θdim, steps)
+
+    all!(finite, isfinite.(obs))
+    obs_mean = reshape(mean(obs, 3), xdim, steps)
+    for _j in 1:xdim
+        obs_filterd_var[_j] = mapreduce(x -> isnan(x) ? zero(x) : x, +, var(obs[_j,:,:], 2; corrected=false))
+        Nobs[_j] .+= count(isfinite.(obs[_j,:,:]))
+    end
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(Nobs), typeof(finite)}(dt, steps-1, t, obs_variance, obs_mean, obs_filterd_var, finite, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ) # fixed bug. K=replicates.
+end
+
+
 # function Adjoint(dt::T, obs::AbstractArray{T,3}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_TSS::AbstractVector{T}, p::AbstractVector{T}) where {T<:AbstractFloat}
 #     xdim, steps, replicates = size(obs)
 #     θdim = xdim + length(p)

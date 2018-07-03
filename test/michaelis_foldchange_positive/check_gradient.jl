@@ -2,7 +2,7 @@ include("../../src/AdjointsGivenZeroState.jl")
 
 module Michaelis
 
-using ArgParse, AdjointsGivenZeroState, Distributions, CatViews.CatView
+using ArgParse, AdjointsGivenZeroState, Distributions, CatViews.CatView, Gadfly
 
 export julia_main
 
@@ -77,7 +77,9 @@ end
     tob = deepcopy(a.x)
     dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/pseudo_obs_$(join(pseudo_obs, "_"))/pseudo_obs_var_$(join(pseudo_obs_var, "_"))/spinup_$spinup/generation_seed_$generation_seed/trials_$trials/obs_variance_$(join(obs_variance_bak, "_"))/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
 
-    srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_var, obs_variance_bak, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
+    # srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_var, obs_variance_bak, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
+    srand(hash([true_params, obs_variance_bak, obs_iteration, spinup, duration, generation_seed, replicates, iter]))
+
     d = Normal.(0., sqrt.(obs_variance_bak))
     obs = Array{typeof(dt)}(N, a.steps+1, replicates)
 
@@ -120,8 +122,33 @@ end
     end
 
     res_ana, minres = assimilate!(a, model, initial_lower_bounds, initial_upper_bounds, dists, trials)
+
     res_num = numerical_covariance!(a, model, numerical_differentiation_delta)
     write_twin_experiment_result(dir, res_ana, minres.minimum, true_params, tob)
+
+    println(dir)
+    mkpath(dir)
+    white_panel = Theme(panel_fill="white")
+    p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=minres.minimizer[1:1], y=minres.minimizer[2:2], Geom.point),
+    # layer(z=(x,y) -> (initialize_p!(a, [x, y, minres.minimizer[3], minres.minimizer[4]]); orbit_negative_log_likelihood!(a, model, pseudo_obs, pseudo_obs_var)), x=linspace(1e-5, max(initial_upper_bounds[1], 2.*minres.minimizer[1]), 100), y=linspace(1e-5, max(initial_upper_bounds[2], 2.*minres.minimizer[2]), 100), Geom.contour(levels=100)),
+    # white_panel))
+    p_stack = vcat(p_stack,
+    Gadfly.plot(
+    layer(x=minres.minimizer[1:1], y=minres.minimizer[2:2], Geom.point),
+    layer(z=(x,y) -> (initialize_p!(a, [x, y, minres.minimizer[3], minres.minimizer[4]]); orbit_cost!(a, model)), x=linspace(1e-5, max(initial_upper_bounds[1], 10.*minres.minimizer[1]), 100), y=linspace(1e-5, max(initial_upper_bounds[2], 10.*minres.minimizer[2]), 100), Geom.contour(levels=500)),
+    white_panel))
+    p_stack = vcat(p_stack,
+    Gadfly.plot(
+    layer(x=minres.minimizer[3:3], y=minres.minimizer[4:4], Geom.point),
+    layer(z=(x,y) -> (initialize_p!(a, [minres.minimizer[1], minres.minimizer[2], x, y]); orbit_cost!(a, model)), x=linspace(1e-5, max(initial_upper_bounds[3], 10.*minres.minimizer[3]), 100), y=linspace(1e-5, max(initial_upper_bounds[4], 10.*minres.minimizer[4]), 100), Geom.contour(levels=500)),
+    white_panel))
+    draw(PDF(dir * "cost_contour.pdf", 24cm, 48cm), vstack(p_stack))
+
+    initialize_p!(a, minres.minimizer)
+    orbit_cost!(a, model)
 
     if !isnull(res_ana.stddev) && !isnull(res_num.stddev)
         cov_ana = get(res_ana.stddev)
@@ -156,17 +183,17 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             help = "true parameters"
             arg_type = Float64
             nargs = '*'
-            default = [0.5, 1., 5., 4.]
+            default = [0.3, 1., 5., 0.15]
         "--initial-lower-bounds", "-l"
             help = "lower bounds for initial state and parameters"
             arg_type = Float64
             nargs = '+'
-            default = [0., 0., 4., 3.]
+            default = [0., 0., 0., 0.]
         "--initial-upper-bounds", "-u"
             help = "upper bounds for initial state and parameters"
             arg_type = Float64
             nargs = '+'
-            default = [1., 2., 6., 5.]
+            default = [1., 10., 10., 1.]
         "--pseudo-obs"
             help = "#pseudo observations"
             arg_type = Int

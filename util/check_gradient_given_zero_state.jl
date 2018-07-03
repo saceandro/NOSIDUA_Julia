@@ -157,6 +157,8 @@ end
 
 orbit_cost!(a, m) = (orbit!(a, m); cost(a))
 
+orbit_negative_log_likelihood!(a, m, pseudo_obs, pseudo_obs_var) = (orbit!(a, m); negative_log_likelihood(a, pseudo_obs, pseudo_obs_var))
+
 orbit_gradient!(a, m, gr) = (orbit!(a, m); gradient!(a, m, gr))
 
 function numerical_gradient!(a::Adjoint{N,L,K,T}, m::Model{N,L}, h) where {N,L,K,T}
@@ -188,7 +190,7 @@ end
     try
         covariance = inv(hessian)
     catch message
-        println(STDERR, "CI calculation failed.\nReason: Hessian inversion failed due to $message")
+        println(STDERR, "Numerical CI calculation failed.\nReason: Hessian inversion failed due to $message")
         return AssimilationResults(a.p, a.obs_variance)
     end
     stddev = nothing
@@ -196,9 +198,9 @@ end
         stddev = sqrt.(diag(covariance))
     catch message
         if (minimum(diag(covariance)) < 0)
-            println(STDERR, "CI calculation failed.\nReason: Negative variance!")
+            println(STDERR, "Numerical CI calculation failed.\nReason: Negative variance!")
         else
-            println(STDERR, "CI calculation failed.\nReason: Taking sqrt of variance failed due to $message")
+            println(STDERR, "Numerical CI calculation failed.\nReason: Taking sqrt of variance failed due to $message")
         end
         return AssimilationResults(a.p, a.obs_variance, covariance)
     end
