@@ -22,6 +22,14 @@ end
     diff = get(assimilation_results.p) .- true_params
     println(STDERR, "diff:\t", diff)
     println(sqrt(mapreduce(abs2, +, diff) / M)) # output RSME to STDOUT
+
+    println(STDERR, "precision")
+
+    if !isnull(assimilation_results.precision)
+        println(STDERR, "precision")
+        println(STDERR, get(assimilation_results.precision))
+    end
+    
     if isnull(assimilation_results.stddev)
         writedlm(dir * "estimates.tsv", reshape(CatView(diff, fill(NaN, M)), M, 2))
     else
@@ -383,6 +391,30 @@ function plot_twin_experiment_result_wo_errorbar_observation(dir, a::Adjoint{N,L
         white_panel))
     end
     draw(PDF(dir * "assimilated_observation.pdf", 24cm, 40cm), vstack(p_stack))
+    nothing
+    # set_default_plot_size(24cm, 40cm)
+    # vstack(p_stack)
+end
+
+function plot_orbit(dir, a::Adjoint{N,L,K}, m::Model, tob, obs) where {N,L,K}
+    white_panel = Theme(panel_fill="white")
+    p_stack = Array{Gadfly.Plot}(0)
+    t = collect(0.:a.dt:a.steps*a.dt)
+    for _i in 1:N
+        df_tob = DataFrame(t=t, x=m.observation.(tob[_i,:]), data_type="true orbit")
+        # _mask = isfinite.(a.obs[_i,:,1])
+        _mask = isfinite.(view(reshape(obs, N, :), _i, :))
+        # df_obs = DataFrame(t=t[_mask], x=a.obs[_i,:,1][_mask], data_type="observed") # plot one replicate for example
+        df_obs = DataFrame(t=view(repeat(t; outer=[K]), :)[_mask], x=view(reshape(obs, N, :), _i, :)[_mask], data_type="observed")
+        p_stack = vcat(p_stack,
+        Gadfly.plot(
+        layer(df_tob, x="t", y="x", color=:data_type, Geom.line),
+        layer(df_obs, x="t", y="x", color=:data_type, Geom.point),
+        Guide.xlabel("<i>t</i>"),
+        Guide.ylabel("<i>x<sub>$_i</sub></i>"),
+        white_panel))
+    end
+    draw(PDF(dir * "true_orbit.pdf", 24cm, 40cm), vstack(p_stack))
     nothing
     # set_default_plot_size(24cm, 40cm)
     # vstack(p_stack)

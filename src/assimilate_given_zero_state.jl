@@ -18,9 +18,11 @@ function assimilate!(a::Adjoint{N,L,K,T}, m::Model, initial_lower_bounds, initia
             res = minimize!(p, a, m)
 
             println(STDERR, "trial $_i: $(res.minimizer)\t$(res.minimum)")
-            # println(STDERR, res)
+            println(STDERR, res)
             # if (res.minimum < mincost) && all(initial_lower_bounds .<= res.minimizer) && all(res.minimizer .<= initial_upper_bounds)
-            if (res.minimum < mincost) && (res.x_converged || res.f_converged || res.g_converged)  && all(res.minimizer .> 0.)
+            # if (res.minimum < mincost) && (res.x_converged || res.f_converged || res.g_converged)  && all(res.minimizer .> 0.)
+            # if (res.minimum < mincost) && all(res.minimizer .> 0.)
+            if res.minimum < mincost
                 mincost = res.minimum
                 minres = res
             end

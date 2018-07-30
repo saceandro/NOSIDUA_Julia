@@ -24,6 +24,11 @@ end
     diff = get(assimilation_results.p) .- true_params
     println(STDERR, "diff:\t", diff)
     println(sqrt(mapreduce(abs2, +, diff) / M)) # output RSME to STDOUT
+
+    if !isnull(assimilation_results.precision)
+        println(STDERR, "precision:\t", get(assimilation_results.precision))
+    end
+
     if isnull(assimilation_results.stddev)
         writedlm(dir * "estimates.tsv", reshape(CatView(diff, fill(NaN, M)), M, 2))
     else
