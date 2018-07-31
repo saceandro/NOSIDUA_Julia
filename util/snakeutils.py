@@ -13,6 +13,12 @@ def execcommand(cmd,stdout,stderr,input=""):
         outf.close()
     return o,e
 
+def format_list_or_float(a):
+    if isinstance(a, list):
+        return "_".join("{:.10f}".format(val) for val in a)
+    else:
+        return "{:.10f}".format(a)
+
 def makepath(dirdic, config):
     """
     Make base directory path based on fixed dirdic and config.
@@ -29,7 +35,8 @@ def makepath(dirdic, config):
     makepath(dirdic, config) =
     "result1/true_params_8.0_1.0/initial_lower_bounds_-10.0_-10.0_-10.0_-10.0_-10.0_0.0_0.0/initial_upper_bounds_10.0_10.0_10.0_10.0_10.0_16.0_2.0/spinup_73.0/generation_seed_0/trials_50"
     """
-    return "/".join(["/".join("{}".format(val) for val in dirdic.values()), "/".join("{}_{}".format(key,str(val).replace(" ", "_")) for (key,val) in config.items())])
+    # return "/".join(["/".join("{}".format(val) for val in dirdic.values()), "/".join("{}_{}".format(key,str(val).replace(" ", "_")) for (key,val) in config.items())])
+    return "/".join(["/".join("{}".format(val) for val in dirdic.values()), "/".join("{}_{}".format(key,format_list_or_float(val)) for (key,val) in config.items())])
 
 def make_dir_path(dirdic):
     return "/".join("{}".format(val) for val in dirdic.values())
@@ -38,7 +45,7 @@ def make_plot_wildcard(dirdic, *args):
     return "/".join([make_dir_path(dirdic), "/".join(args)])
 
 def make_param_path(paramdic):
-    return "/".join("{}_{}".format(*item) for item in paramdic.items())
+    return "/".join("{}_{:.10f}".format(*item) for item in paramdic.items())
 
 def divide_dic(paramsdic):
     return [dict(zip(paramsdic.keys(), item)) for item in itertools.product(*paramsdic.values())]
@@ -65,7 +72,7 @@ def format_divide_dic(basedir, paramsdic):
      "result1/true_params_8.0_1.0/initial_lower_bounds_-10.0_-10.0_-10.0_-10.0_-10.0_0.0_0.0/initial_upper_bounds_10.0_10.0_10.0_10.0_10.0_16.0_2.0/spinup_73.0/generation_seed_0/trials_50/obs_variance_1.0/obs_iteration_5/dt_0.01/duration_1.0/replicates_2/iterations_1",
      "result1/true_params_8.0_1.0/initial_lower_bounds_-10.0_-10.0_-10.0_-10.0_-10.0_0.0_0.0/initial_upper_bounds_10.0_10.0_10.0_10.0_10.0_16.0_2.0/spinup_73.0/generation_seed_0/trials_50/obs_variance_1.0/obs_iteration_5/dt_0.01/duration_1.0/replicates_2/iterations_2"]
     """
-    return ["/".join([basedir, "/".join("{}_{}".format(*i) for i in zip(paramsdic.keys(), item))]) for item in itertools.product(*paramsdic.values())]
+    return ["/".join([basedir, "/".join("{}_{:.10f}".format(*i) for i in zip(paramsdic.keys(), item))]) for item in itertools.product(*paramsdic.values())]
 
 def format_divide_dic_file(basedir, paramsdic, filename):
     """
@@ -87,7 +94,7 @@ def format_divide_dic_file(basedir, paramsdic, filename):
      'result1/true_params_8.0_1.0/initial_lower_bounds_-10.0_-10.0_-10.0_-10.0_-10.0_0.0_0.0/initial_upper_bounds_10.0_10.0_10.0_10.0_10.0_16.0_2.0/spinup_73.0/generation_seed_0/trials_50/obs_variance_1.0/obs_iteration_5/dt_0.01/duration_1.0/replicates_2/iter_1/estimates.tsv',
      'result1/true_params_8.0_1.0/initial_lower_bounds_-10.0_-10.0_-10.0_-10.0_-10.0_0.0_0.0/initial_upper_bounds_10.0_10.0_10.0_10.0_10.0_16.0_2.0/spinup_73.0/generation_seed_0/trials_50/obs_variance_1.0/obs_iteration_5/dt_0.01/duration_1.0/replicates_2/iter_2/estimates.tsv']
     """
-    return ["/".join([basedir, "/".join("{}_{}".format(*i) for i in zip(paramsdic.keys(), item)), filename]) for item in itertools.product(*paramsdic.values())]
+    return ["/".join([basedir, "/".join("{}_{:.10f}".format(*i) for i in zip(paramsdic.keys(), item)), filename]) for item in itertools.product(*paramsdic.values())]
 
 def _shell_format_wildcard(paramsdic):
     """

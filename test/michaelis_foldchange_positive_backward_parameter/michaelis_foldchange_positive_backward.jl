@@ -62,6 +62,8 @@ function plot_orbit_ct(dir, a::Adjoint{N,L,K}, m::Model, tob, obs, ct) where {N,
     # vstack(p_stack)
 end
 
+digits10(x) = map(x -> @sprintf("%.10f", x), x)
+join_digits10(x) = join(digits10(x), "_")
 
 @views function gradient_covariance_check_obs_m!(
     dxdt!::Function,
@@ -87,12 +89,12 @@ end
     duration = nothing,
     generation_seed = nothing,
     trials = nothing,
+    newton_maxiter = nothing,
+    newton_tol = nothing,
     replicates = nothing,
     iter = nothing,
     numerical_differentiation_delta = nothing,
-    x0 = nothing,
-    trials_nlsolver = nothing,
-    search_box_nlsolver = nothing
+    x0 = nothing
     )
 
     obs_variance_bak = copy(obs_variance)
@@ -102,10 +104,10 @@ end
     model = Model(typeof(dt), N, L, dxdt!, jacobianx!, jacobianp!, hessianxx!, hessianxp!, hessianpp!, observation, d_observation, dd_observation, inv_observation)
     srand(generation_seed)
     dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L-N]
-    a = Adjoint(dt, duration, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates, trials_nlsolver, search_box_nlsolver)
+    a = Adjoint(dt, duration, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates, newton_maxiter, newton_tol)
     orbit!(a, model)
     tob = deepcopy(a.x)
-    dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/pseudo_obs_$(join(pseudo_obs, "_"))/pseudo_obs_var_$(join(pseudo_obs_var, "_"))/spinup_$spinup/generation_seed_$generation_seed/trials_$trials/obs_variance_$(join(obs_variance_bak, "_"))/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
+    dir *= "/true_params_$(join_digits10(true_params))/initial_lower_bounds_$(join_digits10(initial_lower_bounds))/initial_upper_bounds_$(join_digits10(initial_upper_bounds))/pseudo_obs_$(join_digits10(pseudo_obs))/pseudo_obs_var_$(join_digits10(pseudo_obs_var))/spinup_$(digits10(spinup))/generation_seed_$(digits10(generation_seed))/trials_$(digits10(trials))/obs_variance_$(join_digits10(obs_variance_bak))/obs_iteration_$(digits10(obs_iteration))/dt_$(digits10(dt))/duration_$(digits10(duration))/replicates_$(digits10(replicates))/iter_$(digits10(iter))/"
 
     # srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_var, obs_variance_bak, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
     srand(hash([true_params, obs_variance_bak, obs_iteration, spinup, duration, generation_seed, replicates, iter]))
@@ -169,17 +171,17 @@ end
     # layer(z=(x,y) -> (initialize_p!(a, [x, y, minres.minimizer[3], minres.minimizer[4]]); orbit_negative_log_likelihood!(a, model, pseudo_obs, pseudo_obs_var)), x=linspace(1e-5, max(initial_upper_bounds[1], 2.*minres.minimizer[1]), 100), y=linspace(1e-5, max(initial_upper_bounds[2], 2.*minres.minimizer[2]), 100), Geom.contour(levels=100)),
     # white_panel))
 
-    # p_stack = vcat(p_stack,
-    # Gadfly.plot(
-    # layer(x=minres.minimizer[1:1], y=minres.minimizer[2:2], Geom.point),
-    # layer(z=(x,y) -> (initialize_p!(a, [x, y, minres.minimizer[3], minres.minimizer[4]]); orbit_cost!(a, model)), x=linspace(1e-5, max(initial_upper_bounds[1], 10.*minres.minimizer[1]), 100), y=linspace(1e-5, max(initial_upper_bounds[2], 10.*minres.minimizer[2]), 100), Geom.contour(levels=500)),
-    # white_panel))
-    # p_stack = vcat(p_stack,
-    # Gadfly.plot(
-    # layer(x=minres.minimizer[3:3], y=minres.minimizer[4:4], Geom.point),
-    # layer(z=(x,y) -> (initialize_p!(a, [minres.minimizer[1], minres.minimizer[2], x, y]); orbit_cost!(a, model)), x=linspace(1e-5, max(initial_upper_bounds[3], 10.*minres.minimizer[3]), 100), y=linspace(1e-5, max(initial_upper_bounds[4], 10.*minres.minimizer[4]), 100), Geom.contour(levels=500)),
-    # white_panel))
-    # draw(PDF(dir * "cost_contour.pdf", 24cm, 48cm), vstack(p_stack))
+    p_stack = vcat(p_stack,
+    Gadfly.plot(
+    layer(x=minres.minimizer[1:1], y=minres.minimizer[2:2], Geom.point),
+    layer(z=(x,y) -> (initialize_p!(a, [x, y, minres.minimizer[3], minres.minimizer[4]]); orbit_cost!(a, model)), x=linspace(initial_lower_bounds[1], initial_upper_bounds[1], 100), y=linspace(initial_lower_bounds[2], initial_upper_bounds[2], 100), Geom.contour(levels=100)),
+    white_panel))
+    p_stack = vcat(p_stack,
+    Gadfly.plot(
+    layer(x=minres.minimizer[3:3], y=minres.minimizer[4:4], Geom.point),
+    layer(z=(x,y) -> (initialize_p!(a, [minres.minimizer[1], minres.minimizer[2], x, y]); orbit_cost!(a, model)), x=linspace(initial_lower_bounds[3], initial_upper_bounds[3], 100), y=linspace(initial_lower_bounds[4], initial_upper_bounds[4], 100), Geom.contour(levels=100)),
+    white_panel))
+    draw(PDF(dir * "cost_contour.pdf", 24cm, 48cm), vstack(p_stack))
 
     initialize_p!(a, minres.minimizer)
     orbit_cost!(a, model)
@@ -237,12 +239,12 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             help = "lower bounds for initial state and parameters"
             arg_type = Float64
             nargs = '+'
-            default = [log(0.1), log(0.1), log(1.), log(0.1)]
+            default = [log(0.01), log(0.05), log(1.), log(0.1)]
         "--initial-upper-bounds", "-u"
             help = "upper bounds for initial state and parameters"
             arg_type = Float64
             nargs = '+'
-            default = [log(1.), log(10.), log(10.), log(1.)]
+            default = [log(1.), log(10.), log(150.), log(10.)]
         "--pseudo-obs"
             help = "#pseudo observations"
             arg_type = Int
@@ -285,6 +287,14 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             arg_type = Int
             # default = 100
             default = 20
+        "--newton-maxiter"
+            help = "#maxiter for Newton's method"
+            arg_type = Int
+            default = 100
+        "--newton-tol"
+            help = "tolarence for Newton's method"
+            arg_type = Float64
+            default = 1e-8
         "--replicates"
             help = "#replicates"
             arg_type = Int
@@ -303,15 +313,6 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             arg_type = Float64
             nargs = '+'
             default = [0., 0.]
-        "--trials-nlsolver"
-            help = "#trials for NLSolve"
-            arg_type = Int
-            default = 100
-        "--search-box-nlsolver"
-            help = "size of nlsolver search boundingbox centerd on x_prev"
-            arg_type = Float64
-            nargs = '+'
-            default = [5., 5.]
     end
 
     parsed_args = parse_args(args, settings; as_symbols=true) # ARGS is needed for static compilation; Otherwise, global ARGS is used.

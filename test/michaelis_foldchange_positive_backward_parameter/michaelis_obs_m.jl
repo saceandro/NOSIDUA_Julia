@@ -48,7 +48,7 @@ include("model.jl")
     # x0 = rand.(view(dists, 1:N))
     a = Adjoint(dt, duration, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates, newton_maxiter, newton_tol)
     orbit!(a, model)
-    dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/pseudo_obs_$(join(pseudo_obs, "_"))/pseudo_obs_var_$(join(pseudo_obs_var, "_"))/spinup_$spinup/trials_$trials/newton_maxiter_$newton_maxiter/newton_tol_$newton_tol/obs_variance_$obs_variance/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
+    dir *= "/true_params_$(join_digits10(true_params))/initial_lower_bounds_$(join_digits10(initial_lower_bounds))/initial_upper_bounds_$(join_digits10(initial_upper_bounds))/pseudo_obs_$(join_digits10(pseudo_obs))/pseudo_obs_var_$(join_digits10(pseudo_obs_var))/spinup_$(digits10(spinup))/trials_$(digits10(trials))/newton_maxiter_$(digits10(newton_maxiter))/newton_tol_$(digits10(newton_tol))/obs_variance_$(digits10(obs_variance))/obs_iteration_$(digits10(obs_iteration))/dt_$(digits10(dt))/duration_$(digits10(duration))/replicates_$(digits10(replicates))/iter_$(digits10(iter))/"
     srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_var, obs_variance, obs_iteration, dt, spinup, duration, trials, newton_maxiter, newton_tol, replicates, iter]))
     d = Normal.(0., sqrt.([obs_variance*10., obs_variance]))
     obs = Array{typeof(dt)}(N, a.steps+1, replicates)
