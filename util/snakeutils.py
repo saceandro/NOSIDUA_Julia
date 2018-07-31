@@ -147,7 +147,8 @@ def shell_format_dics_run_wildcard(config_paramsdic, arrayparam, shellfile, out)
     return " ".join([_shell_format_wildcard(config_paramsdic), "qsub -sync y -t 1:{}:1 -tc 500".format(len(next(iter(arrayparam.values())))), "./{}".format(shellfile), out]) # get first arrayparam value non-destructively
 
 def _bigarrayjob(dir_config, paramsdic):
-    return " ".join([ " ".join("{}='{}'".format(*item) for item in dir_config.items()), " ".join("{}='{}'".format(key, " ".join(map(str, val))) for (key,val) in paramsdic.items()) ])
+    # return " ".join([ " ".join("{}='{}'".format(*item) for item in dir_config.items()), " ".join("{}='{}'".format(key, " ".join(map(str, val))) for (key,val) in paramsdic.items()) ])
+    return " ".join([ " ".join("{}='{}'".format(key, format_list_or_float(val)) for (key,val) in dir_config.items()), " ".join("{}='{}'".format(key, " ".join(map(str, val))) for (key,val) in paramsdic.items()) ])
 
 def bigarrayjob(dir_config, paramsdic, shellfile, jid, out="", hold_jid=None, sync='n', tc=500):
     """
