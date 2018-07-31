@@ -21,7 +21,7 @@ def format_list_or_float10(a):
 
 def format_list_or_float(a):
     if isinstance(a, list):
-        return "_".join("{}".format(val) for val in a)
+        return " ".join("{}".format(val) for val in a)
     else:
         return "{}".format(a)
 
@@ -154,7 +154,7 @@ def shell_format_dics_run_wildcard(config_paramsdic, arrayparam, shellfile, out)
 
 def _bigarrayjob(dir_config, paramsdic):
     # return " ".join([ " ".join("{}='{}'".format(*item) for item in dir_config.items()), " ".join("{}='{}'".format(key, " ".join(map(str, val))) for (key,val) in paramsdic.items()) ])
-    return " ".join([ " ".join("{}='{}'".format(key, format_list_or_float(val)) for (key,val) in dir_config.items()), " ".join("{}='{}'".format(key, " ".join(map(str, val))) for (key,val) in paramsdic.items()) ])
+    return " ".join([ " ".join("{}='{}'".format(key, format_list_or_float(val)) for (key,val) in dir_config.items()), " ".join("{}='{}'".format(key,format_list_or_float(val)) for (key,val) in paramsdic.items()) ])
 
 def bigarrayjob(dir_config, paramsdic, shellfile, jid, out="", hold_jid=None, sync='n', tc=500):
     """
