@@ -13,11 +13,17 @@ def execcommand(cmd,stdout,stderr,input=""):
         outf.close()
     return o,e
 
-def format_list_or_float(a):
+def format_list_or_float10(a):
     if isinstance(a, list):
         return "_".join("{:.10f}".format(val) for val in a)
     else:
         return "{:.10f}".format(a)
+
+def format_list_or_float(a):
+    if isinstance(a, list):
+        return "_".join("{}".format(val) for val in a)
+    else:
+        return "{}".format(a)
 
 def makepath(dirdic, config):
     """
@@ -36,7 +42,7 @@ def makepath(dirdic, config):
     "result1/true_params_8.0_1.0/initial_lower_bounds_-10.0_-10.0_-10.0_-10.0_-10.0_0.0_0.0/initial_upper_bounds_10.0_10.0_10.0_10.0_10.0_16.0_2.0/spinup_73.0/generation_seed_0/trials_50"
     """
     # return "/".join(["/".join("{}".format(val) for val in dirdic.values()), "/".join("{}_{}".format(key,str(val).replace(" ", "_")) for (key,val) in config.items())])
-    return "/".join(["/".join("{}".format(val) for val in dirdic.values()), "/".join("{}_{}".format(key,format_list_or_float(val)) for (key,val) in config.items())])
+    return "/".join(["/".join("{}".format(val) for val in dirdic.values()), "/".join("{}_{}".format(key,format_list_or_float10(val)) for (key,val) in config.items())])
 
 def make_dir_path(dirdic):
     return "/".join("{}".format(val) for val in dirdic.values())
