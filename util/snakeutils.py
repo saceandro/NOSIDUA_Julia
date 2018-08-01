@@ -401,7 +401,7 @@ def total(dirdic, plotdir, config, paramsdic, arrayparam, variables, resultfilen
         for item in totalfiles_stream:
             item.close()
 
-def boxplot(input, output, x, y, x_log_scale_base=None, y_log_scale_base=None, remove_na=False):
+def boxplot(input, output, x, y, x_log_scale_base=None, y_log_scale_base=None, remove_na=False, remove_outlier=False):
     command = """
     library(ggplot2)
     library(scales)
@@ -413,9 +413,19 @@ def boxplot(input, output, x, y, x_log_scale_base=None, y_log_scale_base=None, r
         """
     command += """
     g <- ggplot(d, aes(x={x}, y={y}, group={x}))
-    g <- g + geom_boxplot()
-    # g <- g + geom_point()
     """
+    if remove_outlier:
+        command += """
+        g <- g + geom_boxplot(outlier.shape = NA)
+        ylim1 <- boxplot.stats(d${y})$stats[c(1, 5)]
+        # g <- g + geom_point()
+        """
+    else:
+        command += """
+        g <- g + geom_boxplot()
+        # g <- g + geom_point()
+        """
+
     # if ((x_log_scale_base=="10") and (y_log_scale_base=="10")):
     #     command += """
     #     g <- g + coord_trans(x = "log10", y = "log10")
@@ -436,6 +446,12 @@ def boxplot(input, output, x, y, x_log_scale_base=None, y_log_scale_base=None, r
             # labels = trans_format('log{y_log_scale_base}', math_format({y_log_scale_base}^.x))
             )
         """
+
+    if remove_outlier:
+        command += """
+        g <- g + coord_cartesian(ylim = ylim1*1.05)
+        """
+    
     # command += """
     # ggsave(file="{output}", plot=g)
     # """

@@ -70,7 +70,7 @@ rule diff_boxplot:
     wildcard_constraints:
         testcase="[^/]+"
     run:
-        boxplot(input, output, wildcards.testcase, "diff", x_log_scale_base=10, remove_na=True)
+        boxplot(input, output, wildcards.testcase, "diff", x_log_scale_base=10, remove_na=True, remove_outlier=False)
 
 rule CI_boxplot:
     params:
@@ -82,7 +82,7 @@ rule CI_boxplot:
     wildcard_constraints:
         testcase="[^/]+"
     run:
-        boxplot(input, output, wildcards.testcase, "CI", x_log_scale_base=10, y_log_scale_base=10, remove_na=True)
+        boxplot(input, output, wildcards.testcase, "CI", x_log_scale_base=10, y_log_scale_base=10, remove_na=True, remove_outlier=False)
 
 rule CI_lineplot:
     params:
