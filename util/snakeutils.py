@@ -436,9 +436,17 @@ def boxplot(input, output, x, y, x_log_scale_base=None, y_log_scale_base=None, r
             # labels = trans_format('log{y_log_scale_base}', math_format({y_log_scale_base}^.x))
             )
         """
+    # command += """
+    # ggsave(file="{output}", plot=g)
+    # """
+
     command += """
-    ggsave(file="{output}", plot=g)
+    pwd <- getwd()
+    setwd(dirname("{output}"))
+    ggsave(file=basename("{output}"), plot=g)
+    setwd(pwd)
     """
+
     command = command.format(input=input, output=output, x=x, y=y, x_log_scale_base=x_log_scale_base, y_log_scale_base=y_log_scale_base)
     print(command)
     R(command)
@@ -487,11 +495,24 @@ def summmarized_plot(input, output, x, y1, y2, y1_op="sd", y2_op="mean", x_log_s
             # labels = trans_format('log{y_log_scale_base}', math_format({y_log_scale_base}^.x))
             )
         """
+    # command += """
+    # g <- g + ylab(NULL)
+    # g <- g + scale_color_hue(name="", labels=c({y1_op}_{y1}="{y1_op}({y1})", {y2_op}_{y2}="{y2_op}({y2})"))
+    # ggsave(file="{output}", plot=g)
+    # """
+
     command += """
     g <- g + ylab(NULL)
     g <- g + scale_color_hue(name="", labels=c({y1_op}_{y1}="{y1_op}({y1})", {y2_op}_{y2}="{y2_op}({y2})"))
-    ggsave(file="{output}", plot=g)
     """
+
+    command += """
+    pwd <- getwd()
+    setwd(dirname("{output}"))
+    ggsave(file=basename("{output}"), plot=g)
+    setwd(pwd)
+    """
+
     command = command.format(input=input, output=output, x=x, y1=y1, y2=y2, y1_op=y1_op, y2_op=y2_op, x_log_scale_base=x_log_scale_base, y_log_scale_base=y_log_scale_base)
     print(command)
     R(command)
