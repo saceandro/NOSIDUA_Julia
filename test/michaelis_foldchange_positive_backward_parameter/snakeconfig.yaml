@@ -7,3 +7,4 @@ spinup: 0.0000000000
 trials: 100
 newton_maxiter: 100
 newton_tol: 0.0000000100
+regularization_coefficient: 1.0000000000
