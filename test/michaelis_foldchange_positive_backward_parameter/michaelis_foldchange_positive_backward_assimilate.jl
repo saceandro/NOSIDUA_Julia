@@ -56,6 +56,7 @@ end
     trials = nothing,
     newton_maxiter = nothing,
     newton_tol = nothing,
+    regularization_coefficient = nothing,
     x0 = nothing,
     parameters = nothing
     )
@@ -75,7 +76,7 @@ end
     for item in names(d)
            obs[2,Int(parse(Int, string(item))/dt)+1,:] .= get.(d[:, item])
     end
-    a = Adjoint(M, dt, obs, pseudo_obs, pseudo_obs_var, x0, newton_maxiter, newton_tol)
+    a = Adjoint(M, dt, obs, pseudo_obs, pseudo_obs_var, x0, newton_maxiter, newton_tol, regularization_coefficient)
 
     dir *= "/initial_lower_bounds_$(join_digits10(initial_lower_bounds))/initial_upper_bounds_$(join_digits10(initial_upper_bounds))/pseudo_obs_$(join_digits10(pseudo_obs))/pseudo_obs_var_$(join_digits10(pseudo_obs_var))/trials_$(digits10(trials))/newton_maxiter_$(digits10(newton_maxiter))/newton_tol_$(digits10(newton_tol))/dt_$(digits10(dt))/duration_$(digits10(duration))/"
     srand(hash([initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_var, dt, duration, trials, newton_maxiter, newton_tol]))
@@ -107,6 +108,7 @@ end
     trials = nothing,
     newton_maxiter = nothing,
     newton_tol = nothing,
+    regularization_coefficient = nothing,
     x0 = nothing,
     parameters = nothing
     )
@@ -126,7 +128,7 @@ end
     for item in names(d)
            obs[2,parse(Int, string(item))+1,:] .= get.(d[:, item])
     end
-    a = Adjoint(M, dt, obs, pseudo_obs, pseudo_obs_var, x0, newton_maxiter, newton_tol)
+    a = Adjoint(M, dt, obs, pseudo_obs, pseudo_obs_var, x0, newton_maxiter, newton_tol, regularization_coefficient)
 
     dir *= "/initial_lower_bounds_$(join_digits10(initial_lower_bounds))/initial_upper_bounds_$(join_digits10(initial_upper_bounds))/pseudo_obs_$(join_digits10(pseudo_obs))/pseudo_obs_var_$(join_digits10(pseudo_obs_var))/trials_$(digits10(trials))/newton_maxiter_$(digits10(newton_maxiter))/newton_tol_$(digits10(newton_tol))/dt_$(digits10(dt))/duration_$(digits10(duration))/"
     srand(hash([initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_var, dt, duration, trials, newton_maxiter, newton_tol]))
@@ -146,7 +148,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             default = "data"
         "--file", "-f"
             help = "input data"
-            default = "srf"
+            default = "gadd45a"
         # "--true-params", "-p"
         #     help = "true parameters"
         #     arg_type = Float64
@@ -200,7 +202,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
         "--trials"
             help = "#trials for gradient descent initial value"
             arg_type = Int
-            default = 100
+            default = 10
         "--newton-maxiter"
             help = "#maxiter for newton's method"
             arg_type = Int
@@ -209,6 +211,10 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             help = "newton method toralence"
             arg_type = Float64
             default = 1e-8
+        "--regularization-coefficient"
+            help = "regularization coefficient"
+            arg_type = Float64
+            default = 1.
         # "--replicates"
         #     help = "#replicates"
         #     arg_type = Int

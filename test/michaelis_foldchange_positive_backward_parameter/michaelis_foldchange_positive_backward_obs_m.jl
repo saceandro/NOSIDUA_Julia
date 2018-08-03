@@ -33,6 +33,7 @@ include("model.jl")
     trials = nothing,
     newton_maxiter = nothing,
     newton_tol = nothing,
+    regularization_coefficient = nothing,
     replicates = nothing,
     iter = nothing,
     x0 = nothing
@@ -44,7 +45,7 @@ include("model.jl")
     # srand(generation_seed)
     dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L-N]
     # x0 = rand.(view(dists, 1:N))
-    a = Adjoint(dt, duration, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates, newton_maxiter, newton_tol)
+    a = Adjoint(dt, duration, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates, newton_maxiter, newton_tol, regularization_coefficient)
     orbit!(a, model)
     dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/pseudo_obs_$(join(pseudo_obs, "_"))/pseudo_obs_var_$(join(pseudo_obs_var, "_"))/spinup_$spinup/trials_$trials/newton_maxiter_$newton_maxiter/obs_variance_$obs_variance/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
     srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_var, obs_variance, obs_iteration, dt, spinup, duration, trials, newton_maxiter, replicates, iter]))
@@ -154,6 +155,10 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             help = "newton method toralence"
             arg_type = Float64
             default = 1e-8
+        "--regularization-coefficient"
+            help = "regularization coefficient"
+            arg_type = Float64
+            default = 1.
         "--replicates"
             help = "#replicates"
             arg_type = Int

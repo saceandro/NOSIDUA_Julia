@@ -91,6 +91,7 @@ join_digits10(x) = join(digits10(x), "_")
     trials = nothing,
     newton_maxiter = nothing,
     newton_tol = nothing,
+    regularization_coefficient = nothing,
     replicates = nothing,
     iter = nothing,
     numerical_differentiation_delta = nothing,
@@ -104,7 +105,7 @@ join_digits10(x) = join(digits10(x), "_")
     model = Model(typeof(dt), N, L, dxdt!, jacobianx!, jacobianp!, hessianxx!, hessianxp!, hessianpp!, observation, d_observation, dd_observation, inv_observation)
     srand(generation_seed)
     dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L-N]
-    a = Adjoint(dt, duration, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates, newton_maxiter, newton_tol)
+    a = Adjoint(dt, duration, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates, newton_maxiter, newton_tol, regularization_coefficient)
     orbit!(a, model)
     tob = deepcopy(a.x)
     dir *= "/true_params_$(join_digits10(true_params))/initial_lower_bounds_$(join_digits10(initial_lower_bounds))/initial_upper_bounds_$(join_digits10(initial_upper_bounds))/pseudo_obs_$(join_digits10(pseudo_obs))/pseudo_obs_var_$(join_digits10(pseudo_obs_var))/spinup_$(digits10(spinup))/generation_seed_$(digits10(generation_seed))/trials_$(digits10(trials))/obs_variance_$(join_digits10(obs_variance_bak))/obs_iteration_$(digits10(obs_iteration))/dt_$(digits10(dt))/duration_$(digits10(duration))/replicates_$(digits10(replicates))/iter_$(digits10(iter))/"
@@ -295,6 +296,10 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             help = "tolarence for Newton's method"
             arg_type = Float64
             default = 1e-8
+        "--regularization-coefficient"
+            help = "regularization coefficient"
+            arg_type = Float64
+            default = 1.
         "--replicates"
             help = "#replicates"
             arg_type = Int

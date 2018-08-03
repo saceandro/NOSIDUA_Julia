@@ -71,7 +71,8 @@ mutable struct Adjoint{N, L, K, T<:AbstractFloat, A<:AbstractVector, B<:Abstract
     jacobian_inv::B
     trylimit::Int
     newton_tol::T
-    Adjoint{N, L, K, T, A, B, D, E}(dt::T, steps::Int, t::AbstractVector{T}, obs_variance::AbstractVector{T}, obs_mean::AbstractMatrix{T}, obs_filterd_var::AbstractVector{T}, finite::AbstractMatrix{Bool}, Nobs::AbstractVector{Int}, pseudo_obs_TSS::AbstractVector{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}, res::AbstractVector{T}, jacobian_inv::AbstractMatrix{T}, trylimit::Int, newton_tol::T) where {N,L,K,T,A,B,D,E} = new{N,L,K,T,A,B,D,E}(dt, steps, t, obs_variance, obs_mean, obs_filterd_var, finite, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ, res, jacobian_inv, trylimit, newton_tol)
+    regularization::T
+    Adjoint{N, L, K, T, A, B, D, E}(dt::T, steps::Int, t::AbstractVector{T}, obs_variance::AbstractVector{T}, obs_mean::AbstractMatrix{T}, obs_filterd_var::AbstractVector{T}, finite::AbstractMatrix{Bool}, Nobs::AbstractVector{Int}, pseudo_obs_TSS::AbstractVector{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}, res::AbstractVector{T}, jacobian_inv::AbstractMatrix{T}, trylimit::Int, newton_tol::T, regularization::T) where {N,L,K,T,A,B,D,E} = new{N,L,K,T,A,B,D,E}(dt, steps, t, obs_variance, obs_mean, obs_filterd_var, finite, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ, res, jacobian_inv, trylimit, newton_tol, regularization)
 end
 
 # @views function Adjoint(dt::T, obs_variance::AbstractVector{T}, obs::AbstractArray{T,3}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_TSS::AbstractVector{T}, x::AbstractMatrix{T}, p::AbstractVector{T}, dx::AbstractMatrix{T}, dp::AbstractVector{T}, λ::AbstractMatrix{T}, dλ::AbstractMatrix{T}) where {T<:AbstractFloat}
@@ -193,7 +194,7 @@ end
 #     Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(Nobs), typeof(finite), typeof(search_box)}(dt, steps-1, t, obs_variance, obs_mean, obs_filterd_var, finite, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ, jacobian, trylimit, search_box) # fixed bug. K=replicates.
 # end
 
-function Adjoint(dt::T, total_T::T, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_var::AbstractVector{T}, x0::AbstractVector{T}, p::AbstractVector{T}, replicates::Int, trylimit::Int, newton_tol::T) where {T<:AbstractFloat}
+function Adjoint(dt::T, total_T::T, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_var::AbstractVector{T}, x0::AbstractVector{T}, p::AbstractVector{T}, replicates::Int, trylimit::Int, newton_tol::T, regularization::T) where {T<:AbstractFloat}
     steps = Int(total_T/dt) + 1
     xdim = length(x0)
     θdim = xdim + length(p)
@@ -212,10 +213,10 @@ function Adjoint(dt::T, total_T::T, pseudo_Nobs::AbstractVector{Int}, pseudo_obs
     dλ = zeros(T, θdim, steps)
     res = zeros(T, xdim)
     jacobian = similar(x0, xdim, xdim)
-    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(Nobs), typeof(finite)}(dt, steps-1, t, obs_variance, obs_mean, obs_filterd_var, finite, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ, res, jacobian, trylimit, newton_tol) # fixed bug. K=replicates.
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(Nobs), typeof(finite)}(dt, steps-1, t, obs_variance, obs_mean, obs_filterd_var, finite, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ, res, jacobian, trylimit, newton_tol, regularization) # fixed bug. K=replicates.
 end
 
-function Adjoint(Nparams::Int, dt::T, obs::AbstractArray{T,3}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_var::AbstractVector{T}, x0::AbstractVector{T}, trylimit::Int, newton_tol) where {T<:AbstractFloat}
+function Adjoint(Nparams::Int, dt::T, obs::AbstractArray{T,3}, pseudo_Nobs::AbstractVector{Int}, pseudo_obs_var::AbstractVector{T}, x0::AbstractVector{T}, trylimit::Int, newton_tol::T, regularization::T) where {T<:AbstractFloat}
     xdim, steps, replicates = size(obs)
     θdim = xdim + Nparams
     t = collect(0.:dt:dt*(steps-1))
@@ -240,7 +241,7 @@ function Adjoint(Nparams::Int, dt::T, obs::AbstractArray{T,3}, pseudo_Nobs::Abst
         obs_filterd_var[_j] = mapreduce(x -> isnan(x) ? zero(x) : x, +, var(obs[_j,:,:], 2; corrected=false))
         Nobs[_j] .+= count(isfinite.(obs[_j,:,:]))
     end
-    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(Nobs), typeof(finite)}(dt, steps-1, t, obs_variance, obs_mean, obs_filterd_var, finite, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ, res, jacobian, trylimit, newton_tol) # fixed bug. K=replicates.
+    Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(Nobs), typeof(finite)}(dt, steps-1, t, obs_variance, obs_mean, obs_filterd_var, finite, Nobs, pseudo_obs_TSS, x, p, dx, dp, λ, dλ, res, jacobian, trylimit, newton_tol, regularization) # fixed bug. K=replicates.
 end
 
 

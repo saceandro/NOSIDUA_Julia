@@ -34,7 +34,7 @@ end
     for _i in a.steps:-1:2
         prev_λ!(a, m, a.t[_i], a.x[:,_i], a.λ[:,_i+1], a.λ[:,_i], a.obs_mean[:,_i], obs_variance_over_K, a.finite[:,_i])
     end
-    gr .= a.λ[N+1:L,2]
+    gr .= a.λ[N+1:L,2] .+ a.regularization .* a.p
     nothing
 end
 
@@ -44,12 +44,12 @@ end
     for _i in a.steps:-1:2
         prev_dλ!(a, m, a.t[_i], a.x[:,_i], a.dx[:,_i], a.λ[:,_i], a.dλ[:,_i+1], a.dλ[:,_i], a.Nobs, K_over_obs_variance, x_minus_mean_obs[:,_i], x_minus_mean_obs_times_dx, a.finite[:,_i])
     end
-    hv .= a.dλ[N+1:L,2]
+    hv .= a.dλ[N+1:L,2] .+ a.regularization .* a.dp
     nothing
 end
 
 @views function cost(a::Adjoint{N,L,K}) where {N,L,K} # assuming x[:,1] .= x0; orbit!(dxdt, t, x, p, dt); is already run
-    c = zero(a.dt)
+    c = a.regularization * dot(a.p, a.p)
     for _i in 1:N
         if a.Nobs[_i] > 0
             c += a.Nobs[_i] * log(a.obs_variance[_i])
