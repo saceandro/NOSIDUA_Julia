@@ -59,7 +59,7 @@ paramsdic = {\
         #     "dt":            np.array([0.1]),\
         #     "duration":      np.array([240.]),\
         #     "replicates":    pow(2, np.arange(2,7,1))\
-            }
+        # }
 }
 
 arrayparam = {\
