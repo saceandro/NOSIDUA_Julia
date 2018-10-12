@@ -11,12 +11,12 @@ plotdir = {\
 configfile: "snakeconfig.yaml" # snakeconfig.yaml contains fixed parameters
 
 paramsdic = {\
-    "obs_iteration": {\
-        "obs_iteration": np.array([2,4,5,10,20,30,50]),\
-        "dt":            np.array([0.1]),\
-        "duration":      np.array([35.]),\
-        "replicates":    np.array([10])\
-        },\
+    # "obs_iteration": {\
+    #     "obs_iteration": np.array([2,4,5,10,20,30,50]),\
+    #     "dt":            np.array([0.1]),\
+    #     "duration":      np.array([35.]),\
+    #     "replicates":    np.array([10])\
+    #     },\
     # "duration": {\
     #     "obs_iteration": np.array([5]),\
     #     "dt":            np.array([0.1]),\
