@@ -1,0 +1,117 @@
+import sys
+sys.path.append("../../util/")
+from snakeutils_jakstat import *
+
+localrules: all, experiment_bigarray_all, total
+
+rule all:
+    input:
+        plotnames(plotdir, config, paramsdic, variables, "diff_boxplot"),
+        plotnames(plotdir, config, paramsdic, variables, "CI_boxplot"),
+        plotnames(plotdir, config, paramsdic, variables, "CI_lineplot")
+
+# rule experiment:
+#     params:
+#         1
+#     input:
+#         'builddir/experiment_arguments'
+#     output:
+#         wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+#     run:
+#         shell(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
+
+# rule test_experiment:
+#     run:
+#         print("output:")
+#         for item in wildcardparams_expandarrayparams(dirdic, config, paramsdic, arrayparam, "estimates.tsv"):
+#             print(item)
+#         print("\nshell command:")
+#         print(make_array_shellcommand(dirdic, config, paramsdic, arrayparam, "array_qsub_experiment.sh"))
+#
+# rule experiment_bigarray:
+#     params:
+#         1
+#     input:
+#         'builddir/experiment_arguments'
+#     output:
+#         make_all_output_filenames(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+#     run:
+#         shell(bigarrayjob_run(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
+#
+# rule test_experiment_bigarray:
+#     run:
+#         print("shell command:")
+#         print(bigarrayjob_run(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh"))
+#         # subprocess.Popen(bigarrayjob_noqsub(dict(dirdic, **config), dict(paramsdic, **arrayparam), "bigarray_qsub_experiment.sh"), executable="/bin/zsh", shell=True, universal_newlines=True)
+
+rule experiment_bigarray_all:
+    output:
+        touch("experiment_bigarray_all.done")
+        # make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+    run:
+        bigarrayjob_run_all_hqw(dirdic, config, paramsdic, arrayparam, "bigarray_qsub_experiment.sh")
+
+rule total:
+    input:
+        "experiment_bigarray_all.done"
+        # make_all_output_filenames_all(dirdic, config, paramsdic, arrayparam, "estimates.tsv")
+    output:
+        totalnames(plotdir, config, paramsdic, variables)
+    run:
+        total(dirdic, plotdir, config, paramsdic, arrayparam, variables, "estimates.tsv")
+
+rule diff_boxplot:
+    params:
+        mem="1G"
+    input:
+        make_plot_wildcard(plotdir, "{testcase}", "{wc}", "{variable}")
+    output:
+        make_plot_wildcard(plotdir, "{testcase}", "{wc}", "diff_boxplot", "{variable}.pdf")
+    wildcard_constraints:
+        testcase="[^/]+"
+    run:
+        boxplot(input, output, wildcards.testcase, "diff", x_log_scale_base=10, remove_na=True, remove_outlier=False)
+
+rule CI_boxplot:
+    params:
+        mem="1G"
+    input:
+        make_plot_wildcard(plotdir, "{testcase}", "{wc}", "{variable}")
+    output:
+        make_plot_wildcard(plotdir, "{testcase}", "{wc}", "CI_boxplot", "{variable}.pdf")
+    wildcard_constraints:
+        testcase="[^/]+"
+    run:
+        boxplot(input, output, wildcards.testcase, "CI", x_log_scale_base=10, y_log_scale_base=10, remove_na=True, remove_outlier=False)
+
+rule CI_lineplot:
+    params:
+        mem="1G"
+    input:
+        make_plot_wildcard(plotdir, "{testcase}", "{wc}", "{variable}")
+    output:
+        make_plot_wildcard(plotdir, "{testcase}", "{wc}", "CI_lineplot", "{variable}.pdf")
+    wildcard_constraints:
+        testcase="[^/]+"
+    run:
+        summmarized_plot(input, output, wildcards.testcase, "diff", "CI", y1_op="sd", y2_op="mean", x_log_scale_base=10, y_log_scale_base=10, remove_na=True)
+
+rule clean:
+    shell:
+        """
+        rm -rf result plots experiment_bigarray_all.done log/experiment .snakemake
+        :> ~/.ugeout
+        :> ~/.ugeerr
+        :> ~/.snakeout
+        :> ~/.snakeerr
+        """
+
+rule logclean:
+    shell:
+        """
+        rm -rf .snakemake
+        :> ~/.ugeout
+        :> ~/.ugeerr
+        :> ~/.snakeout
+        :> ~/.snakeerr
+        """

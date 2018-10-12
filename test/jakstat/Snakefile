@@ -37,7 +37,7 @@ arrayparam = {\
 
 variables = ["[STAT]0", "[pSTAT]0", "[pSTAT-pSTAT]0", "[npSTAT-npSTAT]0", "[nSTAT1]0", "[nSTAT2]0", "[nSTAT3]0", "[nSTAT4]0", "[nSTAT5]0", "p1", "p2", "p3", "p4", "u1", "u2", "u3", "u4", "u5"]
 
-include: "../../util/snakerules"
+include: "../../util/snakerules_jakstat"
 
 rule linuxbuild:
     params:
