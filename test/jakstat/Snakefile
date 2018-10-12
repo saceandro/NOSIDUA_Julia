@@ -1,0 +1,74 @@
+import numpy as np
+
+dirdic = {\
+"dir": "result"\
+}
+
+plotdir = {\
+"dir": "plots"\
+}
+
+configfile: "snakeconfig.yaml" # snakeconfig.yaml contains fixed parameters
+
+paramsdic = {\
+    "obs_iteration": {\
+        "obs_iteration": np.array([2,4,5,10,20,30,50]),\
+        "dt":            np.array([0.1]),\
+        "duration":      np.array([35.]),\
+        "replicates":    np.array([10])\
+        },\
+    # "duration": {\
+    #     "obs_iteration": np.array([5]),\
+    #     "dt":            np.array([0.1]),\
+    #     "duration":      np.around(np.arange(60.,361.,60.), decimals=1),\
+    #     "replicates":    np.array([10])\
+    #     },\
+    "replicates": {\
+        "obs_iteration": np.array([5]),\
+        "dt":            np.array([0.1]),\
+        "duration":      np.array([35.]),\
+        "replicates":    pow(2, np.arange(2,7,1))\
+    }
+}
+
+arrayparam = {\
+"iter":    np.arange(1,101,1)\
+}
+
+variables = ["[STAT]0", "[pSTAT]0", "[pSTAT-pSTAT]0", "[npSTAT-npSTAT]0", "[nSTAT1]0", "[nSTAT2]0", "[nSTAT3]0", "[nSTAT4]0", "[nSTAT5]0", "p1", "p2", "p3", "p4", "u1", "u2", "u3", "u4", "u5"]
+
+include: "../../util/snakerules"
+
+rule linuxbuild:
+    params:
+        mem="4G"
+    input:
+        "model.jl",
+        "twin_experiment.jl",
+        "../../src/types_backward.jl",
+        "../../src/adjoint_backward.jl",
+        "../../src/assimilate_backward.jl",
+        "../../util/check_args.jl",
+        "../../util/check_gradient_backward.jl"
+    output:
+        'builddir/twin_experiment',
+        'builddir/twin_experiment.so',
+        'builddir/twin_experiment.o'
+    shell:
+        "julia ~/.julia/v0.6/PackageCompiler/juliac.jl -vae twin_experiment.jl"
+
+rule macbuild:
+    input:
+        "model.jl",
+        "twin_experiment.jl",
+        "../../src/types_backward.jl",
+        "../../src/adjoint_backward.jl",
+        "../../src/assimilate_backward.jl",
+        "../../util/check_args.jl",
+        "../../util/check_gradient_backward.jl"
+    output:
+        'builddir/twin_experiment',
+        'builddir/twin_experiment.dylib',
+        'builddir/twin_experiment.o'
+    shell:
+        "julia /Applications/JuliaPro-0.6.2.2.app/Contents/Resources/pkgs-0.6.2.2/v0.6/PackageCompiler/juliac.jl -vae twin_experiment.jl"
