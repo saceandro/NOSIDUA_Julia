@@ -45,6 +45,7 @@ rule linuxbuild:
     input:
         "model.jl",
         "twin_experiment.jl",
+        "../../src/AdjointsBackward.jl",
         "../../src/types_backward.jl",
         "../../src/adjoint_backward.jl",
         "../../src/assimilate_backward.jl",
@@ -61,6 +62,7 @@ rule macbuild:
     input:
         "model.jl",
         "twin_experiment.jl",
+        "../../src/AdjointsBackward.jl",
         "../../src/types_backward.jl",
         "../../src/adjoint_backward.jl",
         "../../src/assimilate_backward.jl",

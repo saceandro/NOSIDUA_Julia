@@ -1,10 +1,8 @@
-include("../../src/AdjointsBackward.jl")
+using CatViews.CatView, NLSolversBase, NLsolve, Optim, Distributions, DifferentialEquations, ArgParse
 
-module Jakstat
-
-using AdjointsBackward, CatViews.CatView, NLSolversBase, NLsolve, Optim, Distributions, DifferentialEquations, ArgParse
-
-export julia_main
+include("../../src/types_backward.jl")
+include("../../src/adjoint_backward.jl")
+include("../../src/assimilate_backward.jl")
 
 include("../../util/check_args.jl")
 include("../../util/experiment_ccompile_backward.jl")
@@ -191,4 +189,4 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
     return 0
 end
 
-end
+julia_main(ARGS)
