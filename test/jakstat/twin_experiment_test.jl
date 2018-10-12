@@ -1,4 +1,4 @@
-using CatViews.CatView, NLSolversBase, NLsolve, Optim, Distributions, DifferentialEquations, ArgParse
+using CatViews.CatView, Optim, Distributions, ArgParse
 
 include("../../src/types_backward.jl")
 include("../../src/adjoint_backward.jl")

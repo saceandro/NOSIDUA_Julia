@@ -2,7 +2,7 @@ include("../../src/AdjointsBackward.jl")
 
 module Jakstat
 
-using AdjointsBackward, CatViews.CatView, NLSolversBase, NLsolve, Optim, Distributions, DifferentialEquations, ArgParse
+using AdjointsBackward, CatViews.CatView, Optim, Distributions, ArgParse
 
 export julia_main
 
@@ -56,7 +56,7 @@ include("model.jl")
     tob = deepcopy(a.x)
 
     dir *= "/true_params_$(join_digits3(true_params))/initial_lower_bounds_$(join_digits3(initial_lower_bounds))/initial_upper_bounds_$(join_digits3(initial_upper_bounds))/pseudo_obs_$(join_digits3(pseudo_obs))/pseudo_obs_var_$(join_digits3(pseudo_obs_var))/obs_variance_$(join_digits3(obs_variance))/spinup_$(digits3(spinup))/trials_$(digits3(trials))/newton_maxiter_$(digits3(newton_maxiter))/newton_tol_$(digits3(newton_tol))/regularization_coefficient_$(digits3(regularization_coefficient))/obs_iteration_$(digits3(obs_iteration))/dt_$(digits3(dt))/duration_$(digits3(duration))/replicates_$(digits3(replicates))/iter_$(digits3(iter))/"
-    
+
     srand(hash([true_params, obs_variance_bak, obs_iteration, spinup, duration, generation_seed, replicates, iter]))
 
     d = Normal.(0., sqrt.(obs_variance_bak))
