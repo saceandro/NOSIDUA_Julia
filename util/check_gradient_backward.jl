@@ -2,6 +2,12 @@ using DataFrames, Gadfly
 
 nanzero(x) = isnan(x) ? zero(x) : x
 
+digits10(x) = map(x -> @sprintf("%.10f", x), x)
+join_digits10(x) = join(digits10(x), "_")
+
+digits3(x) = map(x -> @sprintf("%.3f", x), x)
+join_digits3(x) = join(digits3(x), "_")
+
 @views function obs_mean_var!(a::Adjoint{N}, m::Model{N}, obs) where {N}
     all!(a.finite, isfinite.(obs))
     a.obs_mean = reshape(mean(obs, 3), N, a.steps+1)

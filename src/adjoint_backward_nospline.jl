@@ -16,7 +16,8 @@ end
 
 @views function neighboring!(a, m)
     for _i in 1:a.steps
-        next_dx!(a, m, a.dt*(_i-1), a.x[:,_i],            a.dx[:,_i], a.dx[:,_i+1])
+        # next_dx!(a, m, a.dt*(_i-1), a.x[:,_i],            a.dx[:,_i], a.dx[:,_i+1]) # bug!
+        next_dx!(a, m, a.dt*_i, a.x[:,_i+1],            a.dx[:,_i], a.dx[:,_i+1]) # bug fixed
     end
     nothing
 end
@@ -150,7 +151,8 @@ end
     m.hessianxp!(m, t, x, a.p)
     m.hessianpp!(m, t, x, a.p)
     dλ_prev[1:N] .= a.jacobian_inv' * ( dλ[1:N] .+ ( reshape( reshape(m.hessianxx, N*N, N) * dx, N, N ) .+ reshape( reshape(m.hessianxp, N*N, M) * a.dp, N, N ) )' * λ[1:N] .* a.dt .+ innovation_dλ.(m, x, dx, Nobs, K_over_obs_variance, x_minus_mean_obs, x_minus_mean_obs_times_dx, finite) )
-    dλ_prev[N+1:end] .= dλ[N+1:end] .+ ( ( reshape( reshape(permutedims(m.hessianxp, [1,3,2]), N*M, N) * dx, N, M ) .+ reshape( reshape(m.hessianpp, N*M, M) * a.dp, N, M ) )' * λ[1:N] .+ m.jacobianp' * dλ[1:N] ) .* a.dt
+    # dλ_prev[N+1:end] .= dλ[N+1:end] .+ ( ( reshape( reshape(permutedims(m.hessianxp, [1,3,2]), N*M, N) * dx, N, M ) .+ reshape( reshape(m.hessianpp, N*M, M) * a.dp, N, M ) )' * λ[1:N] .+ m.jacobianp' * dλ[1:N] ) .* a.dt # bug!
+    dλ_prev[N+1:end] .= dλ[N+1:end] .+ ( ( reshape( reshape(permutedims(m.hessianxp, [1,3,2]), N*M, N) * dx, N, M ) .+ reshape( reshape(m.hessianpp, N*M, M) * a.dp, N, M ) )' * λ[1:N] .+ m.jacobianp' * dλ_prev[1:N] ) .* a.dt # bug fixed
     nothing
 end
 

@@ -54,10 +54,8 @@ include("model.jl")
     a = Adjoint(dt, duration, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates, newton_maxiter, newton_tol, regularization_coefficient)
     orbit!(a, model)
     tob = deepcopy(a.x)
-    dir *= "/true_params2/"
-    # dir *= "/true_params_$(join(true_params, "_"))/initial_lower_bounds_$(join(initial_lower_bounds, "_"))/initial_upper_bounds_$(join(initial_upper_bounds, "_"))/pseudo_obs_$(join(pseudo_obs, "_"))/pseudo_obs_var_$(join(pseudo_obs_var, "_"))/spinup_$spinup/trials_$trials/newton_maxiter_$newton_maxiter/obs_variance_$obs_variance/obs_iteration_$obs_iteration/dt_$dt/duration_$duration/replicates_$replicates/iter_$iter/"
-    # srand(hash([true_params, initial_lower_bounds, initial_upper_bounds, pseudo_obs, pseudo_obs_var, obs_variance_bak, obs_iteration, dt, spinup, duration, generation_seed, trials, replicates, iter]))
-    srand(hash([true_params, obs_variance_bak, obs_iteration, spinup, duration, generation_seed, replicates, iter]))
+    dir *= "/true_params_$(join_digits3(true_params))/initial_lower_bounds_$(join_digits3(initial_lower_bounds))/initial_upper_bounds_$(join_digits3(initial_upper_bounds))/pseudo_obs_$(join_digits3(pseudo_obs))/pseudo_obs_var_$(join_digits3(pseudo_obs_var))/obs_variance_$(join_digits3(obs_variance))/spinup_$(digits3(spinup))/trials_$(digits3(trials))/newton_maxiter_$(digits3(newton_maxiter))/newton_tol_$(digits3(newton_tol))/regularization_coefficient_$(digits3(regularization_coefficient))/obs_iteration_$(digits3(obs_iteration))/dt_$(digits3(dt))/duration_$(digits3(duration))/replicates_$(digits3(replicates))/iter_$(digits3(iter))/numerical_differentiation_delta_$(digits10(numerical_differentiation_delta))/time_point_$(join_digits3(time_point))/"
+    srand(hash([true_params, obs_variance_bak, obs_iteration, spinup, duration, generation_seed, replicates, iter, time_point]))
 
     d = Normal.(0., sqrt.(obs_variance_bak))
     obs = Array{typeof(dt)}(N, a.steps+1, replicates)
@@ -179,7 +177,7 @@ include("model.jl")
         pl = hstack(spy(prec_ana, Scale.x_discrete(; labels= i->parameters[i]), Scale.y_discrete(; labels= i->parameters[i]), Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"), maxvalue=max_ana, minvalue=-max_ana), Guide.xlabel(""), Guide.ylabel(""), Guide.colorkey("Analytical Precision"), Theme(panel_fill="white")),
                     spy(prec_num, Scale.x_discrete(; labels= i->parameters[i]), Scale.y_discrete(; labels= i->parameters[i]), Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"), maxvalue=max_num, minvalue=-max_num), Guide.xlabel(""), Guide.ylabel(""), Guide.colorkey("Numerical Precision"), Theme(panel_fill="white")),
                     spy(rel_diff, Scale.x_discrete(; labels= i->parameters[i]), Scale.y_discrete(; labels= i->parameters[i]), Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"), maxvalue=max_rel, minvalue=-max_rel), Guide.xlabel(""), Guide.ylabel(""), Guide.colorkey("Relative Difference"), Theme(panel_fill="white")))
-        draw(PDF(dir * "precision_dt0.025.pdf", 48cm, 24cm), pl)
+        draw(PDF(dir * "precision.pdf", 48cm, 24cm), pl)
     end
     plot_twin_experiment_result_wo_errorbar_observation(dir, a, model, tob, obs)
 end
@@ -194,7 +192,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
     @add_arg_table settings begin
         "--dir", "-d"
             help = "output directory"
-            default = "check3"
+            default = "check"
         "--true-params", "-p"
             help = "true parameters"
             arg_type = Float64
@@ -241,8 +239,8 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
         "--dt"
             help = "Δt"
             arg_type = Float64
-            default = 0.025
-            # default = 1.
+            # default = 0.025
+            default = 0.25
         "--spinup"
             help = "spinup"
             arg_type = Float64
@@ -260,7 +258,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             help = "#trials for gradient descent initial value"
             arg_type = Int
             # default = 100
-            default = 10
+            default = 30
         "--newton-maxiter"
             help = "#maxiter for newton's method"
             arg_type = Int
@@ -287,7 +285,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             help = "numerical differentiation delta"
             arg_type = Float64
             # default = 0.0000001
-            default = 0.00000001
+            default = 0.0000001
         "--time-point"
             help = "time points"
             arg_type = Float64
