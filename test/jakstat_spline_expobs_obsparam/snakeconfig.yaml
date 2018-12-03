@@ -10,4 +10,3 @@ newton_maxiter: 1000
 newton_tol: 0.000000000001
 regularization_coefficient: 1.000
 time_point: [0.0, 5.0, 10.0, 20.0, 35.0]
-parameters: ["log [STAT]0", "log [pSTAT]0", "log [pSTAT-pSTAT]0", "log [npSTAT-npSTAT]0", "log [nSTAT1]0", "log [nSTAT2]0", "log [nSTAT3]0", "log [nSTAT4]0", "log [nSTAT5]0", "log p1", "log p2", "log p3", "log p4", "log u1", "log u2", "log u3", "log u4", "log u5", "Opstat", "Spstat", "Otstat", "Ststat"]
