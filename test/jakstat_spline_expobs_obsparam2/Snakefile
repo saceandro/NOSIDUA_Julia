@@ -25,9 +25,9 @@ paramsdic = {\
     #     },\
     "replicates": {\
         "obs_iteration": np.array([5]),\
-        "dt":            np.array([0.1]),\
+        "dt":            np.array([0.25]),\
         "duration":      np.array([35.]),\
-        "replicates":    pow(2, np.arange(2,7,1))\
+        "replicates":    pow(2, np.arange(9,14,1))\
     }
 }
 
