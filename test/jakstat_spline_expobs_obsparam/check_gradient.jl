@@ -101,27 +101,108 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     θ = rand.(dists)
     # θ = vcat(deepcopy(a.x[:,1]), copy(a.p))
     initialize!(a, θ)
-    # gr_ana = Vector{typeof(dt)}(L+R)
-    # orbit_gradient!(a, model, gr_ana)
-    # gr_num = numerical_gradient!(a, model, numerical_differentiation_delta)
-    # println("analytical gradient:\t")
-    # Base.print_matrix(STDOUT, gr_ana')
-    # writedlm(dir * "analytical_gradient.tsv", gr_ana')
-    # println("numerical gradient:\t")
-    # Base.print_matrix(STDOUT, gr_num')
-    # writedlm(dir * "numerical_gradient.tsv", gr_num')
-    # diff = gr_ana .- gr_num
-    # println("absolute difference:\t")
-    # Base.print_matrix(STDOUT, diff')
-    # writedlm(dir * "gradient_absolute_difference.tsv", diff')
-    # println("max absolute difference:\t", maximum(abs, diff))
-    # if !any(gr_num == 0)
-    #     rel_diff = diff ./ gr_num
-    #     println("relative difference:\t")
-    #     Base.print_matrix(STDOUT, rel_diff')
-    #     writedlm(dir * "gradient_relative_difference.tsv", rel_diff')
-    #     println("max relative difference:\t", maximum(abs, rel_diff))
-    # end
+    gr_ana = Vector{typeof(dt)}(L+R)
+    orbit_gradient!(a, model, gr_ana)
+    gr_num = numerical_gradient!(a, model, numerical_differentiation_delta)
+    println("analytical gradient:\t")
+    Base.print_matrix(STDOUT, gr_ana')
+    writedlm(dir * "analytical_gradient.tsv", gr_ana')
+    println("numerical gradient:\t")
+    Base.print_matrix(STDOUT, gr_num')
+    writedlm(dir * "numerical_gradient.tsv", gr_num')
+    diff = gr_ana .- gr_num
+    println("absolute difference:\t")
+    Base.print_matrix(STDOUT, diff')
+    writedlm(dir * "gradient_absolute_difference.tsv", diff')
+    println("max absolute difference:\t", maximum(abs, diff))
+    if !any(gr_num == 0)
+        rel_diff = diff ./ gr_num
+        println("relative difference:\t")
+        Base.print_matrix(STDOUT, rel_diff')
+        writedlm(dir * "gradient_relative_difference.tsv", rel_diff')
+        println("max relative difference:\t", maximum(abs, rel_diff))
+    end
+
+    white_panel = Theme(panel_fill="white")
+    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=tob[1:1,1], y=tob[2:2,1], Geom.point),
+    # layer(z=(x,y) -> (initialize!(a, vcat([x], [y], tob[3:end,1], true_params)); orbit_cost!(a, model)), x=linspace(tob[1,1] - 0.1abs(tob[1,1]), tob[1,1] + 0.1abs(tob[1,1]), 100), y=linspace(tob[2,1] - 0.1abs(tob[2,1]), tob[2,1] + 0.1abs(tob[2,1]), 100), Geom.contour(levels=100)),
+    # white_panel))
+    # draw(PDF(dir * "cost_contour.pdf", 24cm, 24cm), vstack(p_stack))
+
+    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=tob[3:3,1], y=tob[4:4,1], Geom.point),
+    # layer(z=(x,y) -> (initialize!(a, vcat(tob[1:2,1], [x,y], tob[5:end,1], true_params)); orbit_cost!(a, model)), x=linspace(initial_lower_bounds[3], 1., 100), y=linspace(initial_lower_bounds[4], 1., 100), Geom.contour(levels=1000)),
+    # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
+    # draw(PDF(dir * "cost_contour_3_4.pdf", 24cm, 24cm), vstack(p_stack))
+    #
+    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=tob[4:4,1], y=tob[5:5,1], Geom.point),
+    # layer(z=(x,y) -> (initialize!(a, vcat(tob[1:3,1], [x,y], tob[6:end,1], true_params)); orbit_cost!(a, model)), x=linspace(initial_lower_bounds[4], 1., 100), y=linspace(initial_lower_bounds[5], 1., 100), Geom.contour(levels=1000)),
+    # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
+    # draw(PDF(dir * "cost_contour_4_5.pdf", 24cm, 24cm), vstack(p_stack))
+    #
+    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=tob[5:5,1], y=tob[6:6,1], Geom.point),
+    # layer(z=(x,y) -> (initialize!(a, vcat(tob[1:4,1], [x,y], tob[7:end,1], true_params)); orbit_cost!(a, model)), x=linspace(-10., 1., 100), y=linspace(tob[6,1] - 0.5abs(tob[6,1]), tob[6,1] + 0.5abs(tob[6,1]), 100), Geom.contour(levels=1000)),
+    # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
+    # draw(PDF(dir * "cost_contour_5_6.pdf", 24cm, 24cm), vstack(p_stack))
+    #
+    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=tob[7:7,1], y=tob[8:8,1], Geom.point),
+    # layer(z=(x,y) -> (initialize!(a, vcat(tob[1:6,1], [x,y], tob[9:end,1], true_params)); orbit_cost!(a, model)), x=linspace(2initial_lower_bounds[7], 1., 100), y=linspace(2initial_lower_bounds[8], 1., 100), Geom.contour(levels=1000)),
+    # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
+    # draw(PDF(dir * "cost_contour_7_8.pdf", 24cm, 24cm), vstack(p_stack))
+    #
+    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=tob[8:8,1], y=tob[9:9,1], Geom.point),
+    # layer(z=(x,y) -> (initialize!(a, vcat(tob[1:7,1], [x,y], true_params)); orbit_cost!(a, model)), x=linspace(2initial_lower_bounds[8], 1., 100), y=linspace(2initial_lower_bounds[9], 1., 100), Geom.contour(levels=1000)),
+    # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
+    # draw(PDF(dir * "cost_contour_8_9.pdf", 24cm, 24cm), vstack(p_stack))
+    #
+    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=true_params[1:1], y=true_params[2:2], Geom.point),
+    # layer(z=(x,y) -> (initialize!(a, vcat(tob[1:N,1], [x,y], true_params[3:L-N+R])); orbit_cost!(a, model)), x=linspace(initial_lower_bounds[N+1], initial_upper_bounds[N+1], 100), y=linspace(initial_lower_bounds[N+2], initial_upper_bounds[N+2], 100), Geom.contour(levels=1000)),
+    # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
+    # draw(PDF(dir * "cost_contour_$(N+1)_$(N+2).pdf", 24cm, 24cm), vstack(p_stack))
+    #
+    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=true_params[3:3], y=true_params[4:4], Geom.point),
+    # layer(z=(x,y) -> (initialize!(a, vcat(tob[1:N,1], true_params[1:2], [x,y], true_params[5:L-N+R])); orbit_cost!(a, model)), x=linspace(initial_lower_bounds[N+3], initial_upper_bounds[N+3], 100), y=linspace(initial_lower_bounds[N+4], initial_upper_bounds[N+4], 100), Geom.contour(levels=500)),
+    # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
+    # draw(PDF(dir * "cost_contour_$(N+3)_$(N+4).pdf", 24cm, 24cm), vstack(p_stack))
+    #
+    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=true_params[L-N+1:L-N+1], y=true_params[L-N+2:L-N+2], Geom.point),
+    # layer(z=(x,y) -> (initialize!(a, vcat(tob[1:N,1], true_params[1:L-N], [x,y], true_params[L-N+3:L-N+R])); orbit_cost!(a, model)), x=linspace(initial_lower_bounds[L+1], initial_upper_bounds[L+1], 100), y=linspace(initial_lower_bounds[L+2], initial_upper_bounds[L+2], 100), Geom.contour(levels=1000)),
+    # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
+    # draw(PDF(dir * "cost_contour_$(L+1)_$(L+2).pdf", 24cm, 24cm), vstack(p_stack))
+    #
+    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=true_params[L-N+3:L-N+3], y=true_params[L-N+R:L-N+R], Geom.point),
+    # layer(z=(x,y) -> (initialize!(a, vcat(tob[1:N,1], true_params[1:L-N+2], [x,y])); orbit_cost!(a, model)), x=linspace(initial_lower_bounds[L+3], initial_upper_bounds[L+3], 100), y=linspace(initial_lower_bounds[L+4], initial_upper_bounds[L+4], 100), Geom.contour(levels=1000)),
+    # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
+    # draw(PDF(dir * "cost_contour_$(L+3)_$(L+4).pdf", 24cm, 24cm), vstack(p_stack))
 
     println("ans: ")
     Base.print_matrix(STDOUT, CatView(tob[:,1], true_params)')
@@ -129,28 +210,24 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
 
     res_ana, minres = assimilate!(a, model, initial_lower_bounds, initial_upper_bounds, dists, trials)
 
+    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=minres.minimizer[1:1], y=minres.minimizer[2:2], Geom.point),
+    # layer(z=(x,y) -> (initialize!(a, vcat([x, y], minres.minimizer[3:end])); orbit_cost!(a, model)), x=linspace(minres.minimizer[1] - abs(minres.minimizer[1]), minres.minimizer[1] + abs(minres.minimizer[1]), 100), y=linspace(minres.minimizer[2] - abs(minres.minimizer[2]), minres.minimizer[2] + abs(minres.minimizer[2]), 100), Geom.contour(levels=100)),
+    # white_panel))
+    # draw(PDF(dir * "cost_contour_minimizer.pdf", 24cm, 24cm), vstack(p_stack))
+
+    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = vcat(p_stack,
+    # Gadfly.plot(
+    # layer(x=minres.minimizer[5:5], y=minres.minimizer[6:6], Geom.point),
+    # layer(z=(x,y) -> (initialize!(a, vcat(minres.minimizer[1:4], [x,y], minres.minimizer[7:end])); orbit_cost!(a, model)), x=linspace(minres.minimizer[5] - abs(minres.minimizer[5]), minres.minimizer[5] + abs(minres.minimizer[5]), 100), y=linspace(minres.minimizer[6] - abs(minres.minimizer[6]), minres.minimizer[6] + abs(minres.minimizer[6]), 100), Geom.contour(levels=100)),
+    # white_panel))
+    # draw(PDF(dir * "cost_contour_minimizer.pdf", 24cm, 24cm), vstack(p_stack))
+
     res_num = numerical_covariance!(a, model, numerical_differentiation_delta)
     write_twin_experiment_result(dir, res_ana, minres.minimum, true_params, tob)
-
-    white_panel = Theme(panel_fill="white")
-    p_stack = Array{Gadfly.Plot}(0)
-    # p_stack = vcat(p_stack,
-    # Gadfly.plot(
-    # layer(x=minres.minimizer[1:1], y=minres.minimizer[2:2], Geom.point),
-    # layer(z=(x,y) -> (initialize_p!(a, [x, y, minres.minimizer[3], minres.minimizer[4]]); orbit_negative_log_likelihood!(a, model, pseudo_obs, pseudo_obs_var)), x=linspace(1e-5, max(initial_upper_bounds[1], 2.*minres.minimizer[1]), 100), y=linspace(1e-5, max(initial_upper_bounds[2], 2.*minres.minimizer[2]), 100), Geom.contour(levels=100)),
-    # white_panel))
-
-    # p_stack = vcat(p_stack,
-    # Gadfly.plot(
-    # layer(x=minres.minimizer[1:1], y=minres.minimizer[2:2], Geom.point),
-    # layer(z=(x,y) -> (initialize_p!(a, [x, y, minres.minimizer[3], minres.minimizer[4]]); orbit_cost!(a, model)), x=linspace(1e-5, max(initial_upper_bounds[1], 10.*minres.minimizer[1]), 100), y=linspace(1e-5, max(initial_upper_bounds[2], 10.*minres.minimizer[2]), 100), Geom.contour(levels=500)),
-    # white_panel))
-    # p_stack = vcat(p_stack,
-    # Gadfly.plot(
-    # layer(x=minres.minimizer[3:3], y=minres.minimizer[4:4], Geom.point),
-    # layer(z=(x,y) -> (initialize_p!(a, [minres.minimizer[1], minres.minimizer[2], x, y]); orbit_cost!(a, model)), x=linspace(1e-5, max(initial_upper_bounds[3], 10.*minres.minimizer[3]), 100), y=linspace(1e-5, max(initial_upper_bounds[4], 10.*minres.minimizer[4]), 100), Geom.contour(levels=500)),
-    # white_panel))
-    # draw(PDF(dir * "cost_contour.pdf", 24cm, 48cm), vstack(p_stack))
 
     initialize!(a, minres.minimizer)
     orbit_cost!(a, model)
@@ -204,6 +281,8 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
 
         println("obs_variabce:")
         Base.print_matrix(STDOUT, get(res_ana.obs_variance))
+        println("covariance diag:")
+        Base.print_matrix(STDOUT, diag(inv(get(res_ana.precision))))
     end
     plot_twin_experiment_result_wo_errorbar_observation(dir, a, model, tob, obs, true_params)
 end
@@ -263,18 +342,21 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             arg_type = Float64
             nargs = '+'
             # default = [0.1, 0.01]
-            default = [0.0001, 0.0001, 0.0001]
+            default = [0.00001, 0.00001, 0.00001]
         "--obs-iteration"
             help = "observation iteration"
             arg_type = Int
             # default = 15
+            # default = 2
             default = 20
+            # default = 200
             # default = 1
         "--dt"
             help = "Δt"
             arg_type = Float64
             # default = 0.025
             default = 0.25
+            # default = 2.5
         "--spinup"
             help = "spinup"
             arg_type = Float64
@@ -292,7 +374,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             help = "#trials for gradient descent initial value"
             arg_type = Int
             # default = 100
-            default = 20
+            default = 10
         "--newton-maxiter"
             help = "#maxiter for newton's method"
             arg_type = Int
@@ -301,16 +383,16 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             help = "newton method toralence"
             arg_type = Float64
             default = 1e-12
-            # default = 1e-4
+            # default = 1e-15
         "--regularization-coefficient"
             help = "regularization coefficient"
             arg_type = Float64
-            default = 1.
+            default = 0.01
         "--replicates"
             help = "#replicates"
             arg_type = Int
             # default = 1
-            default = 10
+            default = 1000
         "--iter"
             help = "#iterations"
             arg_type = Int
@@ -319,7 +401,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             help = "numerical differentiation delta"
             arg_type = Float64
             # default = 0.0000001
-            default = 0.0000001
+            default = 0.00000001
         "--time-point"
             help = "time points"
             arg_type = Float64

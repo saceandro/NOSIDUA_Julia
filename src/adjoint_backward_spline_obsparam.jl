@@ -130,16 +130,20 @@ end
 
     innovation_λ!(gr[1:N], m, a.t[1], a.x[:,1], a.p, a.obs_mean[:,1], obs_variance_over_K, a.finite[:,1])
     gr[1:N]     .+= a.λ[1:N,2]
+    gr[4:N]     .+= a.regularization .* exp.(2 .* a.x[4:N,1])
+    # gr[4:N]     .+= a.regularization .* a.x[4:N,1]
     # gr[N+1]      .= a.λ[N+1,2]   .+ a.regularization .* a.p[1]
     # gr[N+2:L]    .= a.λ[N+2:L,2] .+ (exp.(a.p[2:4]) .- a.obs_mean[N+1,:][a.finite[N+1,:]]) ./ obs_variance_over_K[N+1] .* exp.(a.p[2:4])
 
     innovation_ν!(a.λ[N+1:L,1], m, a.t[1], a.x[:,1], a.p, a.obs_mean[:,1], obs_variance_over_K, a.finite[:,1])
     a.λ[N+1:L,1] .+= a.λ[N+1:L,2]
-    a.λ[N+1:N+4,1] .+= a.regularization .* a.p[1:4]
+    a.λ[N+1:N+4,1] .+= a.regularization .* exp.(2 .* a.p[1:4])
+    # a.λ[N+1:N+4,1] .+= a.regularization .* a.p[1:4]
     gr[N+1:L]  .= a.λ[N+1:L,1]
 
     innovation_μ!(a.λ[L+1:L+R,1], m, a.t[1], a.x[:,1], a.p, a.obs_mean[:,1], obs_variance_over_K, a.finite[:,1])
-    a.λ[L+1:L+R,1] .+= a.λ[L+1:L+R,2]
+    # a.λ[L+1:L+R,1] .+= a.λ[L+1:L+R,2] .+ a.regularization .* exp.(2 .* a.p[L-N+1:L-N+R])
+    a.λ[L+1:L+R,1] .+= a.λ[L+1:L+R,2] .+ a.regularization .* a.p[L-N+1:L-N+R]
     gr[L+1:L+R]     .= a.λ[L+1:L+R,1]
     #
     # fill!(gr[L+1:L+R], 0.)
@@ -169,21 +173,25 @@ end
 
     innovation_dλ!(hv[1:N], m, a.t[1], a.x[:,1], a.p, a.dx[:,1], a.dp, a.Nobs, K_over_obs_variance, x_minus_mean_obs[:,1], δobs[:,1], x_minus_mean_obs_times_δobs, a.finite[:,1])
     hv[1:N]     .+= a.dλ[1:N,2]
+    hv[4:N]     .+= 2 * a.regularization .* exp.(2 .* a.x[4:N,1]) .* a.dx[4:N,1]
 
     innovation_dν!(a.dλ[N+1:L,1], m, a.t[1], a.x[:,1], a.p, a.dx[:,1], a.dp, a.Nobs, K_over_obs_variance, x_minus_mean_obs[:,1], δobs[:,1], x_minus_mean_obs_times_δobs, a.finite[:,1])
     a.dλ[N+1:L,1] .+= a.dλ[N+1:L,2]
-    a.dλ[N+1:N+4,1] .+= a.regularization .* a.dp[1:4]
+    a.dλ[N+1:N+4,1] .+= 2 * a.regularization .* exp.(2 .* a.p[1:4]) .* a.dp[1:4]
     hv[N+1:L] .= a.dλ[N+1:L,1]
     # hv[N+2:L]   .= a.dλ[N+2:L,2] .+ K_over_obs_variance[N+1] * ( (2. .* exp.(a.p[2:end]) .- a.obs_mean[N+1,:][a.finite[N+1,:]]) .* exp.(a.p[2:end]) .* a.dp[2:end] .- K_over_obs_variance[N+1] * oftype(K_over_obs_variance[N+1], 2.) / a.Nobs[N+1] * u_minus_mean_obs * u_minus_mean_obs_times_du)
 
     innovation_dμ!(a.dλ[L+1:L+R,1], m, a.t[1], a.x[:,1], a.p, a.dx[:,1], a.dp, a.Nobs, K_over_obs_variance, x_minus_mean_obs[:,1], δobs[:,1], x_minus_mean_obs_times_δobs, a.finite[:,1])
-    a.dλ[L+1:L+R,1] .+= a.dλ[L+1:L+R,2]
+    a.dλ[L+1:L+R,1] .+= a.dλ[L+1:L+R,2] .+ a.regularization .* a.dp[L-N+1:L-N+R]
     hv[L+1:L+R] .= a.dλ[L+1:L+R,1]
     nothing
 end
 
 @views function cost(a::Adjoint{N,L,R,U,K}) where {N,L,R,U,K} # assuming x[:,1] .= x0; orbit!(dxdt, t, x, p, dt); is already run
-    c = a.regularization * dot(a.p[1:4], a.p[1:4])
+    # c = a.regularization * (mapreduce(exp, +, 2 .* a.x[4:N,1]) +  mapreduce(exp, +, 2 .* a.p[1:4]) + mapreduce(exp, +, 2 .* a.p[L-N+1:L-N+R]))
+    c = a.regularization * (mapreduce(exp, +, 2 .* a.x[4:N,1]) +  mapreduce(exp, +, 2 .* a.p[1:4]) + dot(a.p[L-N+1:L-N+R], a.p[L-N+1:L-N+R]))
+    # c = a.regularization * (dot(a.x[4:N,1], a.x[4:N,1]) + mapreduce(exp, +, 2 .* a.p[1:4]) + mapreduce(exp, +, 2 .* a.p[L-N+1:L-N+R]))
+    # c = a.regularization * (dot(a.x[4:N,1], a.x[4:N,1]) + dot(a.p[1:4], a.p[1:4]) + dot(a.p[L-N+1:L-N+R], a.p[L-N+1:L-N+R]))
     for _i in 1:U
         if a.Nobs[_i] > 0
             c += a.Nobs[_i] * log(a.obs_variance[_i])
@@ -206,7 +214,7 @@ end
 
 @views function inv_j!(a::Adjoint{N}, m, t, x) where {N}
     m.jacobianx!(m, t, x, a.p)
-    a.jacobian_inv .= inv( eye(N) .- m.jacobianx .* a.dt )
+    a.jacobian_inv .= eye(N) .- m.jacobianx .* a.dt
     nothing
 end
 
@@ -246,7 +254,7 @@ end
         if norm(a.res, 2) < a.newton_tol
             # println("newton x: $(x[1])")
             # println("true   x: $( (x_prev[1] + a.dt * exp(a.p[3]))/(1.+a.dt*a.p[1]) )")
-            # println("------------------------------------")
+            # println("Residual Norm: $(norm(a.res, 2))\n-------------------------------------------------------------------------------------------------")
             return nothing
         end
     end
@@ -257,7 +265,7 @@ end
 @views function next_dx!(a::Adjoint{N,L,R,U,K,T},       m::Model,       t, x,        dx, dx_nxt) where {N,L,R,U,K,T}
     inv_j!(a, m, t, x)
     m.jacobianp!(m, t, x, a.p)
-    dx_nxt .= a.jacobian_inv * ( dx .+  m.jacobianp * a.dp[1:L-N] .* a.dt )
+    dx_nxt .= a.jacobian_inv \ ( dx .+  m.jacobianp * a.dp[1:L-N] .* a.dt )
     nothing
 end
 
@@ -266,7 +274,7 @@ end
     m.jacobianp!(m, t, x, a.p)
 
     innovation_λ!(λ_prev[1:N], m, t, x, a.p, obs_mean, obs_variance_over_K, finite)
-    λ_prev[1:N] .= a.jacobian_inv' * (λ[1:N] .+ λ_prev[1:N])
+    λ_prev[1:N] .= a.jacobian_inv' \ (λ[1:N] .+ λ_prev[1:N])
 
     innovation_ν!(λ_prev[N+1:L], m, t, x, a.p, obs_mean, obs_variance_over_K, finite)
     λ_prev[N+1:L] .+= λ[N+1:L] + m.jacobianp' * λ_prev[1:N] .* a.dt
@@ -286,7 +294,7 @@ end
     m.hessianpp!(m, t, x, a.p)
 
     innovation_dλ!(dλ_prev[1:N], m, t, x, a.p, dx, dp, Nobs, K_over_obs_variance, x_minus_mean_obs, δobs, x_minus_mean_obs_times_δobs, finite)
-    dλ_prev[1:N] .= a.jacobian_inv' * ( dλ[1:N] .+ ( reshape( reshape(m.hessianxx, N*N, N) * dx, N, N ) .+ reshape( reshape(m.hessianxp, N*N, M) * a.dp[1:M], N, N ) )' * λ[1:N] .* a.dt .+ dλ_prev[1:N] )
+    dλ_prev[1:N] .= a.jacobian_inv' \ ( dλ[1:N] .+ ( reshape( reshape(m.hessianxx, N*N, N) * dx, N, N ) .+ reshape( reshape(m.hessianxp, N*N, M) * a.dp[1:M], N, N ) )' * λ[1:N] .* a.dt .+ dλ_prev[1:N] )
 
     innovation_dν!(dλ_prev[N+1:L], m, t, x, a.p, dx, dp, Nobs, K_over_obs_variance, x_minus_mean_obs, δobs, x_minus_mean_obs_times_δobs, finite)
     # dλ_prev[N+1:end] .= dλ[N+1:end] .+ ( ( reshape( reshape(permutedims(m.hessianxp, [1,3,2]), N*M, N) * dx, N, M ) .+ reshape( reshape(m.hessianpp, N*M, M) * a.dp, N, M ) )' * λ[1:N] .+ m.jacobianp' * dλ[1:N] ) .* a.dt # bug!
@@ -298,6 +306,7 @@ end
 end
 
 @views function fg!(F, ∇θ, θ, a::Adjoint{N,L,R}, m::Model{N,L,R}) where {N,L,R}
+    # println("θ: $θ")
     initialize!(a, θ)
     orbit!(a, m)
     if !(∇θ == nothing)
@@ -313,6 +322,11 @@ end
 #     Optim.optimize(df, initial_θ, LBFGS())
 # end
 
+function cb(os)
+    println(os.metadata["x"])
+    return false
+end
+
 @views function minimize!(initial_θ, a::Adjoint{N,L,R,U,K,T}, m::Model{N,L,R,U,T}) where {N,L,R,U,K,T<:AbstractFloat} # Fixed. views is definitely needed for copy!
     initialize!(a, initial_θ)
     orbit!(a, m)
@@ -323,8 +337,9 @@ end
 
     df = OnceDifferentiable(θ -> fg!(F, nothing, θ, a, m), (∇θ, θ) -> fg!(nothing, ∇θ, θ, a, m), (∇θ, θ) -> fg!(F, ∇θ, θ, a, m), initial_θ, F, ∇θ, inplace=true)
     # options = Optim.Options(;x_tol=1e-32, f_tol=1e-32, g_tol=1e-8, iterations=1_000, store_trace=true, show_trace=false, show_every=1)
-    # options = Optim.Options(;x_tol=1e-7, f_tol=1e-12, g_tol=1e-8, iterations=3_0000, store_trace=true, show_trace=false, show_every=1)
-    options = Optim.Options(;x_tol=1e-32, f_tol=1e-32, g_tol=1e-1, iterations=3_0000, store_trace=true, show_trace=false, show_every=1)
+    options = Optim.Options(;x_tol=1e-12, f_tol=1e-12, g_tol=1e-2, iterations=10_000, store_trace=false)
+    # options = Optim.Options(;x_tol=1e-32, f_tol=1e-32, g_tol=1e-8, iterations=10_000, store_trace=true, show_trace=true, show_every=1)
+    # options = Optim.Options(;x_tol=1e-32, f_tol=1e-32, g_tol=5e-2, iterations=3_0000, extented_trace=true, callback=cb)
     lbfgs_ls_scaled_hz = LBFGS(;alphaguess = LineSearches.InitialStatic(;scaled=true), linesearch = LineSearches.HagerZhang())
     # lbfgs_ls_alpha_hz = LBFGS(;alphaguess = LineSearches.InitialStatic(;alpha=0.001), linesearch = LineSearches.HagerZhang())
     # optimize(df, initial_p, lbfgs_ls_alpha_hz, options)
