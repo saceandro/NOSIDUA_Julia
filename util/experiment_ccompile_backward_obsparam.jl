@@ -8,40 +8,40 @@ join_digits3(x) = join(digits3(x), "_")
 
 @views function obs_mean_var!(a::Adjoint{N,L,R,U}, m::Model{N,L,R,U}, obs) where {N,L,R,U}
     all!(a.finite, isfinite.(obs))
-    a.obs_mean = reshape(mean(obs, 3), U, a.steps+1)
+    a.obs_mean = reshape(mean(obs; dims=3), U, a.steps+1)
     # a.obs_filterd_var = reshape(sum(reshape(reshape(var(obs, 3; corrected=false), N, a.steps+1)[a.finite], N, :), 2), N)
     for _j in 1:U
-        a.obs_filterd_var[_j] = mapreduce(nanzero, +, var(obs[_j,:,:], 2; corrected=false))
-        a.Nobs[_j] .+= count(isfinite.(obs[_j,:,:]))
+        a.obs_filterd_var[_j] = mapreduce(nanzero, +, var(obs[_j,:,:]; dims=2, corrected=false))
+        a.Nobs[_j] += count(isfinite.(obs[_j,:,:]))
     end
     nothing
 end
 
 @views function write_twin_experiment_result(dir, assimilation_results::AssimilationResults{L}, minimum, true_params, tob) where {L}
     mkpath(dir)
-    if isnull(assimilation_results.θ)
+    if assimilation_results.θ == nothing
         writedlm(dir * "estimates.tsv", reshape(CatView(fill(NaN, L), fill(NaN, L)), L, 2))
         return nothing
     end
     # L = length(assimilation_results.θ)
-    println(STDERR, "mincost:\t", minimum)
-    println(STDERR, "θ:\t", get(assimilation_results.θ))
-    println(STDERR, "ans:\t", CatView(tob[:,1], true_params))
-    diff = get(assimilation_results.θ) .- CatView(tob[:,1], true_params)
-    println(STDERR, "diff:\t", diff)
-    println(sqrt(mapreduce(abs2, +, diff) / L)) # output RSME to STDOUT
+    println(stderr, "mincost:\t", minimum)
+    println(stderr, "θ:\t", assimilation_results.θ)
+    println(stderr, "ans:\t", CatView(tob[:,1], true_params))
+    diff = assimilation_results.θ .- CatView(tob[:,1], true_params)
+    println(stderr, "diff:\t", diff)
+    println(sqrt(mapreduce(abs2, +, diff) / L)) # output RSME to stdout
 
-    if !isnull(assimilation_results.precision)
-        println(STDERR, "precision:\t", get(assimilation_results.precision))
+    if assimilation_results.precision != nothing
+        println(stderr, "precision:\t", assimilation_results.precision)
     end
 
-    if isnull(assimilation_results.stddev)
+    if assimilation_results.stddev == nothing
         writedlm(dir * "estimates.tsv", reshape(CatView(diff, fill(NaN, L)), L, 2))
     else
-        println(STDERR, "CI:\t", get(assimilation_results.stddev))
-        writedlm(dir * "estimates.tsv", reshape(CatView(diff, get(assimilation_results.stddev)), L, 2))
+        println(stderr, "CI:\t", assimilation_results.stddev)
+        writedlm(dir * "estimates.tsv", reshape(CatView(diff, assimilation_results.stddev), L, 2))
     end
-    println(STDERR, "obs variance:\t", get(assimilation_results.obs_variance))
+    println(stderr, "obs variance:\t", assimilation_results.obs_variance)
     nothing
 end
 
@@ -155,10 +155,10 @@ end
 
 function twin_experiment!(outdir::String, a::Adjoint{N,L,R,U,K,T}, model::Model{N,L,R,U,T}, true_params::AbstractVector{T}, initial_lower_bounds::AbstractVector{T}, initial_upper_bounds::AbstractVector{T}, dists, trials=10) where {N,L,R,U,K,T<:AbstractFloat}
     tob = deepcopy(a.x) # fixed bug. copy() of >=2 dimensional array is implemented as reference. Thus, deepcopy() is needed.
-    println(STDERR, "====================================================================================================================")
-    println(STDERR, outdir)
+    println(stderr, "====================================================================================================================")
+    println(stderr, outdir)
     assimres, minres = assimilate!(a, model, initial_lower_bounds, initial_upper_bounds, dists, trials)
-    if (isnull(assimres.θ))
+    if assimres.θ == nothing
         write_twin_experiment_result(outdir, assimres, zero(T), true_params, tob)
     else
         write_twin_experiment_result(outdir, assimres, minres.minimum, true_params, tob)

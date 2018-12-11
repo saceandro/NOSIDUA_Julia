@@ -2,7 +2,7 @@ include("../../src/AdjointBackwardObsparam.jl")
 
 module Jakstat
 
-using AdjointsBackwardObsparam, CatViews.CatView, Optim, Distributions, ArgParse
+using Main.AdjointsBackwardObsparam, CatViews, Optim, Distributions, ArgParse, Random, DelimitedFiles, Printf
 
 export julia_main
 
@@ -58,17 +58,17 @@ include("model.jl")
     R = number_of_obs_params
     U = length(obs_variance)
     model = Model(typeof(dt), N, L, R, U, time_point, dxdt!, jacobianx!, jacobianp!, hessianxx!, hessianxp!, hessianpp!, calc_qdot!, observation!, observation_jacobianx!, observation_jacobianr!, observation_jacobianp!, observation_hessianxx!, observation_hessianxr!, observation_hessianrr!, observation_hessianpp!)
-    srand(generation_seed)
+    Random.seed!(generation_seed)
     dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L+R]
     x0 = rand.(dists[1:N])
     a = Adjoint(dt, duration, number_of_obs_params, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates, newton_maxiter, newton_tol, regularization_coefficient)
     orbit_first!(a, model)
     tob = deepcopy(a.x)
     dir *= "/number_of_params_$(digits3(number_of_params))/number_of_obs_params_$(digits3(number_of_obs_params))/true_params_$(join_digits3(true_params))/initial_lower_bounds_$(join_digits3(initial_lower_bounds))/initial_upper_bounds_$(join_digits3(initial_upper_bounds))/pseudo_obs_$(join_digits3(pseudo_obs))/pseudo_obs_var_$(join_digits3(pseudo_obs_var))/obs_variance_$(join_digits3(obs_variance))/spinup_$(digits3(spinup))/trials_$(digits3(trials))/newton_maxiter_$(digits3(newton_maxiter))/newton_tol_$(digits3(newton_tol))/regularization_coefficient_$(digits3(regularization_coefficient))/time_point_$(join_digits3(time_point))/obs_iteration_$(digits3(obs_iteration))/dt_$(digits3(dt))/duration_$(digits3(duration))/replicates_$(digits3(replicates))/iter_$(digits3(iter))/"
-    srand(hash([true_params, obs_variance_bak, obs_iteration, spinup, duration, generation_seed, replicates, iter, time_point]))
+    Random.seed!(hash([true_params, obs_variance_bak, obs_iteration, spinup, duration, generation_seed, replicates, iter, time_point]))
 
     d = Normal.(0., sqrt.(obs_variance_bak))
-    obs = Array{typeof(dt)}(U, a.steps+1, replicates)
+    obs = Array{typeof(dt)}(undef, U, a.steps+1, replicates)
 
     obs[:, :, :] .= NaN
     for _replicate in 1:replicates
@@ -108,7 +108,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             arg_type = Float64
             nargs = '*'
             # default = log.([0.6, 8., 0.97, 0.02, 0.02, 0.4, 1.0, 0.3, 0.01])
-            default = log.([0.2, 0.1, 0.6, 0.02, 0.025, 0.5, 1.25, 0.7, 0.01, e, e, e])
+            default = log.([0.2, 0.1, 0.6, 0.02, 0.025, 0.5, 1.25, 0.7, 0.01, ℯ, ℯ, ℯ])
             # default = log.([0.2, 0.1, 0.6, 0.02, 0.025, 0.05])
         "--initial-lower-bounds", "-l"
             help = "lower bounds for initial state and parameters"

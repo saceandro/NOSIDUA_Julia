@@ -1,6 +1,6 @@
 module AdjointsBackwardObsparam
 
-using CatViews.CatView, Distributions, LineSearches, Optim
+using CatViews, Distributions, LineSearches, Optim, LinearAlgebra
 
 export Adjoint, Model, AssimilationResults, initialize!, orbit!, orbit_first!, gradient!, cost, assimilate!, obs_mean_var!
 

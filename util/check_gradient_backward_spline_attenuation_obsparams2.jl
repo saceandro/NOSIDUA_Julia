@@ -1,4 +1,4 @@
-using DataFrames, Gadfly
+using DataFrames, Gadfly, Printf
 
 nanzero(x) = isnan(x) ? zero(x) : x
 
@@ -10,42 +10,42 @@ join_digits3(x) = join(digits3(x), "_")
 
 @views function obs_mean_var!(a::Adjoint{N,L,R,U}, m::Model{N,L,R,U}, obs) where {N,L,R,U}
     all!(a.finite, isfinite.(obs))
-    a.obs_mean = reshape(mean(obs, 3), U, a.steps+1)
+    a.obs_mean = reshape(mean(obs; dims=3), U, a.steps+1)
     # a.obs_filterd_var = reshape(sum(reshape(reshape(var(obs, 3; corrected=false), N, a.steps+1)[a.finite], N, :), 2), N)
     for _j in 1:U
-        a.obs_filterd_var[_j] = mapreduce(nanzero, +, var(obs[_j,:,:], 2; corrected=false))
-        a.Nobs[_j] .+= count(isfinite.(obs[_j,:,:]))
+        a.obs_filterd_var[_j] = mapreduce(nanzero, +, var(obs[_j,:,:]; dims=2, corrected=false))
+        a.Nobs[_j] += count(isfinite.(obs[_j,:,:]))
     end
     nothing
 end
 
 @views function write_twin_experiment_result(dir, assimilation_results, minimum, true_params, tob)
     mkpath(dir)
-    L = length(get(assimilation_results.θ))
-    println(STDERR, "mincost:\t", minimum)
-    println(STDERR, "θ:\t")
-    Base.print_matrix(STDERR, (get(assimilation_results.θ))')
-    println(STDERR, "ans:\t")
-    Base.print_matrix(STDERR, (CatView(tob[:,1], true_params))')
-    diff = get(assimilation_results.θ) .- CatView(tob[:,1], true_params)
-    println(STDERR, "diff:\t")
-    Base.print_matrix(STDERR, diff')
-    println(sqrt(mapreduce(abs2, +, diff) / L)) # output RSME to STDOUT
+    L = length(assimilation_results.θ)
+    println(stderr, "mincost:\t", minimum)
+    println(stderr, "θ:\t")
+    Base.print_matrix(stderr, (assimilation_results.θ)')
+    println(stderr, "ans:\t")
+    Base.print_matrix(stderr, (CatView(tob[:,1], true_params))')
+    diff = assimilation_results.θ .- CatView(tob[:,1], true_params)
+    println(stderr, "diff:\t")
+    Base.print_matrix(stderr, diff')
+    println(sqrt(mapreduce(abs2, +, diff) / L)) # output RSME to stdout
 
-    if !isnull(assimilation_results.precision)
-        println(STDERR, "precision:\t")
-        Base.print_matrix(STDERR, get(assimilation_results.precision))
+    if assimilation_results.precision != nothing
+        println(stderr, "precision:\t")
+        Base.print_matrix(stderr, assimilation_results.precision)
     end
 
-    if isnull(assimilation_results.stddev)
+    if assimilation_results.stddev == nothing
         writedlm(dir * "estimates.tsv", reshape(CatView(diff, fill(NaN, L)), L, 2))
     else
-        println(STDERR, "CI:\t")
-        Base.print_matrix(STDERR, (get(assimilation_results.stddev))')
-        writedlm(dir * "estimates.tsv", reshape(CatView(diff, get(assimilation_results.stddev)), L, 2))
+        println(stderr, "CI:\t")
+        Base.print_matrix(stderr, (assimilation_results.stddev)')
+        writedlm(dir * "estimates.tsv", reshape(CatView(diff, assimilation_results.stddev), L, 2))
     end
-    println(STDERR, "obs variance:\t")
-    Base.print_matrix(STDERR, (get(assimilation_results.obs_variance))')
+    println(stderr, "obs variance:\t")
+    Base.print_matrix(stderr, (assimilation_results.obs_variance)')
     nothing
 end
 
@@ -53,7 +53,7 @@ end
 #     obs1 = readdlm(observed_files[1])'
 #     steps = size(obs1,2)
 #     K = length(observed_files)
-#     obs = Array{T}(N, steps, K)
+#     obs = Array{T}(undef, N, steps, K)
 #     obs[:,:,1] .= obs1
 #     for _replicate in 2:K
 #         obs[:,:,_replicate] .= readdlm(observed_files[_replicate])'
@@ -157,8 +157,8 @@ end
 
 function twin_experiment!(outdir::String, a::Adjoint{N,L,R,U,K,T}, model::Model{N,L,R,U,T}, true_params::AbstractVector{T}, initial_lower_bounds::AbstractVector{T}, initial_upper_bounds::AbstractVector{T}, dists, trials=10) where {N,L,R,U,K,T<:AbstractFloat}
     tob = deepcopy(a.x) # fixed bug. copy() of >=2 dimensional array is implemented as reference. Thus, deepcopy() is needed.
-    println(STDERR, "====================================================================================================================")
-    println(STDERR, outdir)
+    println(stderr, "====================================================================================================================")
+    println(stderr, outdir)
     assimres, minres = assimilate!(a, model, initial_lower_bounds, initial_upper_bounds, dists, trials)
     write_twin_experiment_result(outdir, assimres, minres.minimum, true_params, tob)
 end
@@ -179,7 +179,7 @@ orbit_negative_log_likelihood!(a, m, pseudo_obs, pseudo_obs_var) = (orbit!(a, m)
 orbit_gradient!(a, m, gr) = (orbit!(a, m); gradient!(a, m, gr))
 
 function numerical_gradient!(a::Adjoint{N,L,R,U,K,T}, m::Model{N,L,R,U}, h) where {N,L,R,U,K,T}
-    gr = Vector{T}(L+R)
+    gr = Vector{T}(undef,L+R)
     c = orbit_cost!(a, m)
     for _i in 1:N
         a.x[_i,1] += h
@@ -196,8 +196,8 @@ function numerical_gradient!(a::Adjoint{N,L,R,U,K,T}, m::Model{N,L,R,U}, h) wher
 end
 
 @views function numerical_covariance!(a::Adjoint{N,L,R,U,K,T}, m::Model{N,L,R,U}, h) where {N,L,R,U,K,T}
-    hessian = Matrix{T}(L+R, L+R)
-    gr = Vector{T}(L+R)
+    hessian = Matrix{T}(undef, L+R, L+R)
+    gr = Vector{T}(undef, L+R)
     orbit_gradient!(a, m, gr)
     for _i in 1:N
         a.x[_i,1] += h
@@ -220,7 +220,7 @@ end
     try
         covariance = inv(hessian)
     catch message
-        println(STDERR, "Numerical CI calculation failed.\nReason: Hessian inversion failed due to $message")
+        println(stderr, "Numerical CI calculation failed.\nReason: Hessian inversion failed due to $message")
         return AssimilationResults(θ, a.obs_variance, hessian)
     end
     stddev = nothing
@@ -228,9 +228,9 @@ end
         stddev = sqrt.(diag(covariance))
     catch message
         if (minimum(diag(covariance)) < 0)
-            println(STDERR, "Numerical CI calculation failed.\nReason: Negative variance!")
+            println(stderr, "Numerical CI calculation failed.\nReason: Negative variance!")
         else
-            println(STDERR, "Numerical CI calculation failed.\nReason: Taking sqrt of variance failed due to $message")
+            println(stderr, "Numerical CI calculation failed.\nReason: Taking sqrt of variance failed due to $message")
         end
         return AssimilationResults(θ, a.obs_variance, hessian, covariance)
     end
@@ -238,7 +238,7 @@ end
 end
 
 @views function numerical_covariance2!(a::Adjoint{N,L,R,U,K,T}, m::Model{N,L,R,U}, h) where {N,L,R,U,K,T}
-    hessian = Matrix{T}(L+R, L+R)
+    hessian = Matrix{T}(undef, L+R, L+R)
     gr = numerical_gradient!(a, m, h)
     for _i in 1:N
         a.x[_i,1] += h
@@ -257,7 +257,7 @@ end
     try
         covariance = inv(hessian)
     catch message
-        println(STDERR, "Numerical CI calculation failed.\nReason: Hessian inversion failed due to $message")
+        println(stderr, "Numerical CI calculation failed.\nReason: Hessian inversion failed due to $message")
         return AssimilationResults(θ, a.obs_variance, hessian)
     end
     stddev = nothing
@@ -265,9 +265,9 @@ end
         stddev = sqrt.(diag(covariance))
     catch message
         if (minimum(diag(covariance)) < 0)
-            println(STDERR, "Numerical CI calculation failed.\nReason: Negative variance!")
+            println(stderr, "Numerical CI calculation failed.\nReason: Negative variance!")
         else
-            println(STDERR, "Numerical CI calculation failed.\nReason: Taking sqrt of variance failed due to $message")
+            println(stderr, "Numerical CI calculation failed.\nReason: Taking sqrt of variance failed due to $message")
         end
         return AssimilationResults(θ, a.obs_variance, hessian, covariance)
     end
@@ -374,7 +374,7 @@ end
 
 function plot_twin_experiment_result(dir, a::Adjoint{N,L,R,U,K}, tob, obs, stddev) where {N,L,R,U,K}
     white_panel = Theme(panel_fill="white")
-    p_stack = Array{Gadfly.Plot}(0)
+    p_stack = Array{Gadfly.Plot}(undef, 0)
     t = collect(0.:a.dt:a.steps*a.dt)
     for _i in 1:N
         df_tob = DataFrame(t=t, x=tob[_i,:], data_type="true orbit")
@@ -406,7 +406,7 @@ end
 
 function plot_twin_experiment_result_wo_errorbar(dir, a::Adjoint{N,L,R,U,K}, m::Model, tob, obs) where {N,L,R,U,K}
     white_panel = Theme(panel_fill="white")
-    p_stack = Array{Gadfly.Plot}(0)
+    p_stack = Array{Gadfly.Plot}(undef, 0)
     t = collect(0.:a.dt:a.steps*a.dt)
     for _i in 1:N
         df_tob = DataFrame(t=t, x=tob[_i,:], data_type="true orbit")
@@ -432,7 +432,7 @@ end
 
 function plot_twin_experiment_result_wo_errorbar_observation(dir, a::Adjoint{N,L,R,U,K}, m::Model, tob, obs, true_params) where {N,L,R,U,K}
     white_panel = Theme(panel_fill="white")
-    p_stack = Array{Gadfly.Plot}(0)
+    p_stack = Array{Gadfly.Plot}(undef, 0)
     t = collect(0.:a.dt:a.steps*a.dt)
 
     for _i in 1:U
@@ -458,7 +458,7 @@ end
 
 function plot_orbit(dir, a::Adjoint{N,L,R,U,K}, m::Model, tob, obs) where {N,L,R,U,K}
     white_panel = Theme(panel_fill="white")
-    p_stack = Array{Gadfly.Plot}(0)
+    p_stack = Array{Gadfly.Plot}(undef, 0)
     t = collect(0.:a.dt:a.steps*a.dt)
     df_tob = DataFrame(t=t, x=[(m.observation!(m, t[_j], tob[:,_j], a.p); m.observation[1]) for _j in 1:a.steps+1], data_type="true orbit")
     # df_tob = DataFrame(t=t, x=m.observation.(tob, a.r), data_type="true orbit")

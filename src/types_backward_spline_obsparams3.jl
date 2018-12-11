@@ -1,4 +1,4 @@
-mutable struct Model{N, L, R, U, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix, C<:AbstractArray, F<:Function, G1<:Function, G2<:Function, H1<:Function, H2<:Function, H3<:Function, O<:Function, P<:Function, Q<:Function, QQ<:Function, I<:Function, J<:Function, K<:Function, KK<:Function, M<:Function, S<:LinAlg.LU} #<: AbstractModel{N, L, T, A, B, C, F, G, H}
+mutable struct Model{N, L, R, U, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix, C<:AbstractArray, F<:Function, G1<:Function, G2<:Function, H1<:Function, H2<:Function, H3<:Function, O<:Function, P<:Function, Q<:Function, QQ<:Function, I<:Function, J<:Function, K<:Function, KK<:Function, M<:Function, S<:LinearAlgebra.LU} #<: AbstractModel{N, L, T, A, B, C, F, G, H}
     dxdt::A
     jacobianx::B
     jacobianp::B
@@ -36,18 +36,18 @@ mutable struct Model{N, L, R, U, T<:AbstractFloat, A<:AbstractVector, B<:Abstrac
     spline_rhs::B
     spline_lhs_inv::B
     spline_lhs_inv_rhs::B
-    Model{N, L, R, U, T, A, B, C, F, G1, G2, H1, H2, H3, O, P, Q, QQ, I, J, K, KK, M, S}(dxdt::AbstractVector{T}, jacobianx::AbstractMatrix{T}, jacobianp::AbstractMatrix{T}, hessianxx::AbstractArray{T,3}, hessianxp::AbstractArray{T,3}, hessianpp::AbstractArray{T,3}, observation::AbstractVector{T}, observation_jacobianx::AbstractMatrix{T}, observation_jacobianr::AbstractMatrix{T}, observation_jacobianp::AbstractMatrix{T}, observation_hessianxx::AbstractArray{T,3}, observation_hessianxr::AbstractArray{T,3}, observation_hessianrr::AbstractArray{T,3}, observation_hessianpp::AbstractArray{T,3}, dxdt!::F, jacobianx!::G1, jacobianp!::G2, hessianxx!::H1, hessianxp!::H2, hessianpp!::H3, calc_eqdot!::O, observation!::I, observation_jacobianx!::J, observation_jacobianr!::K, observation_jacobianp!::KK, observation_hessianxx!::M, observation_hessianxr!::P, observation_hessianrr!::Q, observation_hessianpp!::QQ, time_point::AbstractVector{T}, Δtime_point::AbstractVector{T}, eqdot::AbstractVector{T}, rhs::AbstractVector{T}, spline_lhs::LinAlg.LU{T,Tridiagonal{T}}, spline_rhs::AbstractMatrix{T}, spline_lhs_inv::AbstractMatrix{T}, spline_lhs_inv_rhs::AbstractMatrix{T}) where {N,L,R,U,T,A,B,C,F,G1,G2,H1,H2,H3,O,P,Q,QQ,I,J,K,KK,M,S} = new{N,L,R,U,T,A,B,C,F,G1,G2,H1,H2,H3,O,P,Q,QQ,I,J,K,KK,M,S}(dxdt, jacobianx, jacobianp, hessianxx, hessianxp, hessianpp, observation, observation_jacobianx, observation_jacobianr, observation_jacobianp, observation_hessianxx, observation_hessianxr, observation_hessianrr, observation_hessianpp, dxdt!, jacobianx!, jacobianp!, hessianxx!, hessianxp!, hessianpp!, calc_eqdot!, observation!, observation_jacobianx!, observation_jacobianr!, observation_jacobianp!, observation_hessianxx!, observation_hessianxr!, observation_hessianrr!, observation_hessianpp!, time_point, Δtime_point, eqdot, rhs, spline_lhs, spline_rhs, spline_lhs_inv, spline_lhs_inv_rhs)
+    Model{N, L, R, U, T, A, B, C, F, G1, G2, H1, H2, H3, O, P, Q, QQ, I, J, K, KK, M, S}(dxdt::AbstractVector{T}, jacobianx::AbstractMatrix{T}, jacobianp::AbstractMatrix{T}, hessianxx::AbstractArray{T,3}, hessianxp::AbstractArray{T,3}, hessianpp::AbstractArray{T,3}, observation::AbstractVector{T}, observation_jacobianx::AbstractMatrix{T}, observation_jacobianr::AbstractMatrix{T}, observation_jacobianp::AbstractMatrix{T}, observation_hessianxx::AbstractArray{T,3}, observation_hessianxr::AbstractArray{T,3}, observation_hessianrr::AbstractArray{T,3}, observation_hessianpp::AbstractArray{T,3}, dxdt!::F, jacobianx!::G1, jacobianp!::G2, hessianxx!::H1, hessianxp!::H2, hessianpp!::H3, calc_eqdot!::O, observation!::I, observation_jacobianx!::J, observation_jacobianr!::K, observation_jacobianp!::KK, observation_hessianxx!::M, observation_hessianxr!::P, observation_hessianrr!::Q, observation_hessianpp!::QQ, time_point::AbstractVector{T}, Δtime_point::AbstractVector{T}, eqdot::AbstractVector{T}, rhs::AbstractVector{T}, spline_lhs::LinearAlgebra.LU{T,Tridiagonal{T,Vector{T}}}, spline_rhs::AbstractMatrix{T}, spline_lhs_inv::AbstractMatrix{T}, spline_lhs_inv_rhs::AbstractMatrix{T}) where {N,L,R,U,T,A,B,C,F,G1,G2,H1,H2,H3,O,P,Q,QQ,I,J,K,KK,M,S} = new{N,L,R,U,T,A,B,C,F,G1,G2,H1,H2,H3,O,P,Q,QQ,I,J,K,KK,M,S}(dxdt, jacobianx, jacobianp, hessianxx, hessianxp, hessianpp, observation, observation_jacobianx, observation_jacobianr, observation_jacobianp, observation_hessianxx, observation_hessianxr, observation_hessianrr, observation_hessianpp, dxdt!, jacobianx!, jacobianp!, hessianxx!, hessianxp!, hessianpp!, calc_eqdot!, observation!, observation_jacobianx!, observation_jacobianr!, observation_jacobianp!, observation_hessianxx!, observation_hessianxr!, observation_hessianrr!, observation_hessianpp!, time_point, Δtime_point, eqdot, rhs, spline_lhs, spline_rhs, spline_lhs_inv, spline_lhs_inv_rhs)
 end
 
 function Model(t::Type{T}, N, L, R, U, time_point::AbstractVector{T}, dxdt!::F, jacobianx!::G1, jacobianp!::G2, hessianxx!::H1, hessianxp!::H2, hessianpp!::H3, calc_eqdot!::O, observation!::I, observation_jacobianx!::J, observation_jacobianr!::K, observation_jacobianp!::KK, observation_hessianxx!::M, observation_hessianxr!::P, observation_hessianrr!::Q, observation_hessianpp!::QQ) where {T<:AbstractFloat, F<:Function, G1<:Function, G2<:Function, H1<:Function, H2<:Function, H3<:Function, O<:Function, P<:Function, Q<:Function, QQ<:Function, I<:Function, J<:Function, K<:Function, KK<:Function, M<:Function}
     _M = L-N
-    dxdt = Array{t}(N)
+    dxdt = Array{t}(undef, N)
     jacobianx = zeros(t, N, N)
     jacobianp = zeros(t, N, _M)
     hessianxx = zeros(t, N, N, N)
     hessianxp = zeros(t, N, N, _M)
     hessianpp = zeros(t, N, _M, _M)
-    observation = Array{t}(U)
+    observation = Array{t}(undef, U)
     observation_jacobianx = zeros(t, U, N)
     observation_jacobianr = zeros(t, U, R)
     observation_jacobianp = zeros(t, U, _M)
@@ -63,7 +63,7 @@ function Model(t::Type{T}, N, L, R, U, time_point::AbstractVector{T}, dxdt!::F, 
         Δtime_point[_i] = time_point[_i+1] - time_point[_i]
     end
 
-    eqdot = Array{t}(Ts)
+    eqdot = Array{t}(undef, Ts)
 
     d = similar(time_point, Ts)
     dl = similar(time_point, Ts-1)
@@ -109,7 +109,7 @@ function Model(t::Type{T}, N, L, R, U, time_point::AbstractVector{T}, dxdt!::F, 
 
     spline_lhs_inv_rhs = spline_lhs \ spline_rhs
 
-    rhs = Array{t}(Ts)
+    rhs = Array{t}(undef, Ts)
 
     Model{N, L, R, U, t, typeof(dxdt), typeof(jacobianx), typeof(hessianxx), typeof(dxdt!), typeof(jacobianx!), typeof(jacobianp!), typeof(hessianxx!), typeof(hessianxp!), typeof(hessianpp!), typeof(calc_eqdot!), typeof(observation_hessianxr!), typeof(observation_hessianrr!), typeof(observation_hessianpp!), typeof(observation!), typeof(observation_jacobianx!), typeof(observation_jacobianr!), typeof(observation_jacobianp!), typeof(observation_hessianxx!), typeof(spline_lhs)}(dxdt, jacobianx, jacobianp, hessianxx, hessianxp, hessianpp, observation, observation_jacobianx, observation_jacobianr, observation_jacobianp, observation_hessianxx, observation_hessianxr, observation_hessianrr, observation_hessianpp, dxdt!, jacobianx!, jacobianp!, hessianxx!, hessianxp!, hessianpp!, calc_eqdot!, observation!, observation_jacobianx!, observation_jacobianr!, observation_jacobianp!, observation_hessianxx!, observation_hessianxr!, observation_hessianrr!, observation_hessianpp!, time_point, Δtime_point, eqdot, rhs, spline_lhs, spline_rhs, spline_lhs_inv, spline_lhs_inv_rhs)
 end
@@ -307,14 +307,14 @@ function Adjoint(dt::T, total_T::T, Nobsparams::Int, pseudo_Nobs::AbstractVector
     rdim = Nobsparams
     obsdim = length(pseudo_obs_var)
     t = collect(0.:dt:dt*(steps-1))
-    obs_variance = Vector{T}(obsdim)
+    obs_variance = Vector{T}(undef, obsdim)
     Nobs = copy(pseudo_Nobs)
     pseudo_obs_TSS = pseudo_Nobs .* pseudo_obs_var
-    finite = Matrix{Bool}(obsdim, steps)
-    obs_mean = Matrix{T}(obsdim, steps)
-    obs_filterd_var = Vector{T}(obsdim)
+    finite = Matrix{Bool}(undef, obsdim, steps)
+    obs_mean = Matrix{T}(undef, obsdim, steps)
+    obs_filterd_var = Vector{T}(undef, obsdim)
     x = similar(x0, xdim, steps)
-    @views copy!(x[:,1], x0)
+    @views copyto!(x[:,1], x0)
     dx = similar(x0, xdim, steps)
     dp = similar(p)
     λ = zeros(T, θdim + rdim, steps)
@@ -328,14 +328,14 @@ function Adjoint(xdim::Int, Nparams::Int, Nobsparams::Int, dt::T, obs::AbstractA
     obsdim, steps, replicates = size(obs)
     θdim = xdim + Nparams
     t = collect(0.:dt:dt*(steps-1))
-    obs_variance = Vector{T}(obsdim)
+    obs_variance = Vector{T}(undef, obsdim)
     Nobs = copy(pseudo_Nobs)
     pseudo_obs_TSS = pseudo_Nobs .* pseudo_obs_var
-    finite = Matrix{Bool}(obsdim, steps)
-    obs_filterd_var = Vector{T}(obsdim)
+    finite = Matrix{Bool}(undef, obsdim, steps)
+    obs_filterd_var = Vector{T}(undef, obsdim)
     x = similar(x0, xdim, steps)
-    @views copy!(x[:,1], x0)
-    p = Vector{T}(Nparams + Nobsparams)
+    @views copyto!(x[:,1], x0)
+    p = Vector{T}(undef, Nparams + Nobsparams)
     dx = similar(x0, xdim, steps)
     dp = similar(p)
     λ = zeros(T, θdim + Nobsparams, steps)
@@ -392,34 +392,34 @@ end
 
 
 mutable struct AssimilationResults{L, T<:AbstractFloat, A<:AbstractVector, B<:AbstractMatrix}
-    θ::Nullable{A}
-    obs_variance::Nullable{A}
-    stddev::Nullable{A}
-    precision::Nullable{B}
-    covariance::Nullable{B}
-    AssimilationResults{L, T, A, B}(θ::Nullable{S}, obs_variance::Nullable{S}, stddev::Nullable{S}, precision::Nullable{U}, covariance::Nullable{U}) where {S<:AbstractVector{T}, U<:AbstractMatrix{T}} where {L,T,A,B} = new{L,T,A,B}(θ, obs_variance, stddev, precision, covariance)
+    θ::Union{A,Nothing}
+    obs_variance::Union{A,Nothing}
+    stddev::Union{A,Nothing}
+    precision::Union{B,Nothing}
+    covariance::Union{B,Nothing}
+    AssimilationResults{L, T, A, B}(θ::Union{S,Nothing}, obs_variance::Union{S,Nothing}, stddev::Union{S,Nothing}, precision::Union{U,Nothing}, covariance::Union{U,Nothing}) where {S<:AbstractVector{T}, U<:AbstractMatrix{T}} where {L,T,A,B} = new{L,T,A,B}(θ, obs_variance, stddev, precision, covariance)
 end
 
 function AssimilationResults(θ::AbstractVector{T}, obs_variance::AbstractVector{T}, stddev::AbstractVector{T}, precision::AbstractMatrix{T}, covariance::AbstractMatrix{T}) where {T<:AbstractFloat}
     L = length(θ)
-    AssimilationResults{L, T, typeof(θ), typeof(precision)}(Nullable(θ), Nullable(obs_variance), Nullable(stddev), Nullable(precision), Nullable(covariance))
+    AssimilationResults{L, T, typeof(θ), typeof(precision)}(θ, obs_variance, stddev, precision, covariance)
 end
 
 function AssimilationResults(θ::AbstractVector{T}, obs_variance::AbstractVector{T}, precision::AbstractMatrix{T}, covariance::AbstractMatrix{T}) where {T<:AbstractFloat}
     L = length(θ)
-    AssimilationResults{L, T, typeof(θ), typeof(precision)}(Nullable(θ), Nullable(obs_variance), Nullable{Vector{T}}(), Nullable(precision), Nullable(covariance))
+    AssimilationResults{L, T, typeof(θ), typeof(precision)}(θ, obs_variance, nothing, precision, covariance)
 end
 
 function AssimilationResults(θ::AbstractVector{T}, obs_variance::AbstractVector{T}, precision::AbstractMatrix{T}) where {T<:AbstractFloat}
     L = length(θ)
-    AssimilationResults{L, T, typeof(θ), typeof(precision)}(Nullable(θ), Nullable(obs_variance), Nullable{Vector{T}}(), Nullable(precision), Nullable{Matrix{T}}())
+    AssimilationResults{L, T, typeof(θ), typeof(precision)}(θ, obs_variance, nothing, precision, nothing)
 end
 
 function AssimilationResults(θ::AbstractVector{T}, obs_variance::AbstractVector{T}) where {T<:AbstractFloat}
     L = length(θ)
-    AssimilationResults{L, T, typeof(θ), Matrix{T}}(Nullable(θ), Nullable(obs_variance), Nullable{Vector{T}}(), Nullable{Matrix{T}}(), Nullable{Matrix{T}}())
+    AssimilationResults{L, T, typeof(θ), Matrix{T}}(θ, obs_variance, nothing, nothing, nothing)
 end
 
 function AssimilationResults(L::Int, t::Type{T}) where {T<:AbstractFloat}
-    AssimilationResults{L, t, Vector{t}, Matrix{t}}(Nullable{Vector{t}}(), Nullable{Vector{t}}(), Nullable{Vector{t}}(), Nullable{Matrix{t}}(), Nullable{Matrix{t}}())
+    AssimilationResults{L, t, Vector{t}, Matrix{t}}(nothing, nothing, nothing, nothing, nothing)
 end

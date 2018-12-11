@@ -41,7 +41,7 @@ end
     m.observation_hessianxr!(m, t, x, p)
     for _j in 1:U
         if finite[_j]
-            innovation .+= K_over_obs_variance[_j] .* ( δobs[_j] .* m.observation_jacobianx[_j,:] .+ x_minus_mean_obs[_j] .* (m.observation_hessianxx[_j,:,:] * dx .+ m.observation_hessianxr[_j,:,:] * dp[L-N+1:L-N+R]) .- K_over_obs_variance[_j] * 2./Nobs[_j] * δobs[_j] .* m.observation_jacobianx[_j,:] .* x_minus_mean_obs_times_δobs[_j])
+            innovation .+= K_over_obs_variance[_j] .* ( δobs[_j] .* m.observation_jacobianx[_j,:] .+ x_minus_mean_obs[_j] .* (m.observation_hessianxx[_j,:,:] * dx .+ m.observation_hessianxr[_j,:,:] * dp[L-N+1:L-N+R]) .- K_over_obs_variance[_j] * 2. / Nobs[_j] * δobs[_j] .* m.observation_jacobianx[_j,:] .* x_minus_mean_obs_times_δobs[_j])
         end
     end
 end
@@ -53,7 +53,7 @@ end
     m.observation_hessianpp!(m, t, x, p)
     for _j in 1:U
         if finite[_j]
-            innovation .+= K_over_obs_variance[_j] .* ( δobs[_j] .* m.observation_jacobianp[_j,:] .+ x_minus_mean_obs[_j] .* (m.observation_hessianpp[_j,:,:] * dp[1:L-N]) .- K_over_obs_variance[_j] * 2./Nobs[_j] * δobs[_j] .* m.observation_jacobianp[_j,:] .* x_minus_mean_obs_times_δobs[_j])
+            innovation .+= K_over_obs_variance[_j] .* ( δobs[_j] .* m.observation_jacobianp[_j,:] .+ x_minus_mean_obs[_j] .* (m.observation_hessianpp[_j,:,:] * dp[1:L-N]) .- K_over_obs_variance[_j] * 2. / Nobs[_j] * δobs[_j] .* m.observation_jacobianp[_j,:] .* x_minus_mean_obs_times_δobs[_j])
         end
     end
 end
@@ -66,7 +66,7 @@ end
     m.observation_hessianxr!(m, t, x, p)
     for _j in 1:U
         if finite[_j]
-            innovation .+= K_over_obs_variance[_j] .* ( δobs[_j] .* m.observation_jacobianr[_j,:] .+ x_minus_mean_obs[_j] .* (m.observation_hessianrr[_j,:,:] * dp[L-N+1:L-N+R] .+ m.observation_hessianxr[_j,:,:]' * dx) .- K_over_obs_variance[_j] * 2./Nobs[_j] * δobs[_j] .* m.observation_jacobianr[_j,:] .* x_minus_mean_obs_times_δobs[_j])
+            innovation .+= K_over_obs_variance[_j] .* ( δobs[_j] .* m.observation_jacobianr[_j,:] .+ x_minus_mean_obs[_j] .* (m.observation_hessianrr[_j,:,:] * dp[L-N+1:L-N+R] .+ m.observation_hessianxr[_j,:,:]' * dx) .- K_over_obs_variance[_j] * 2. / Nobs[_j] * δobs[_j] .* m.observation_jacobianr[_j,:] .* x_minus_mean_obs_times_δobs[_j])
         end
     end
 end
@@ -201,20 +201,20 @@ end
 end
 
 @views function initialize!(a::Adjoint{N,L,R}, θ) where {N,L,R}
-    copy!(a.x[:,1], θ[1:N])
-    copy!(a.p, θ[N+1:L+R])
+    copyto!(a.x[:,1], θ[1:N])
+    copyto!(a.p, θ[N+1:L+R])
     # copy!(a.r, θ[L+1:end])
     nothing
 end
 
 # @views function initialize_p!(a::Adjoint{N}, p) where {N}
-#     copy!(a.p, p)
+#     copyto!(a.p, p)
 #     nothing
 # end
 
 @views function inv_j!(a::Adjoint{N}, m, t, x) where {N}
     m.jacobianx!(m, t, x, a.p)
-    a.jacobian_inv .= eye(N) .- m.jacobianx .* a.dt
+    a.jacobian_inv .= I - m.jacobianx .* a.dt
     nothing
 end
 
@@ -332,7 +332,7 @@ end
     orbit!(a, m)
     F = cost(a)
 
-    ∇θ = Vector{T}(L+R)
+    ∇θ = Vector{T}(undef, L+R)
     gradient!(a, m, ∇θ)
 
     df = OnceDifferentiable(θ -> fg!(F, nothing, θ, a, m), (∇θ, θ) -> fg!(nothing, ∇θ, θ, a, m), (∇θ, θ) -> fg!(F, ∇θ, θ, a, m), initial_θ, F, ∇θ, inplace=true)
@@ -360,7 +360,7 @@ nanzero(x) = isnan(x) ? zero(x) : x
         δobs[:,_j] = m.observation_jacobianx * a.dx[:,_j] .+ m.observation_jacobianp * a.dp[1:L-N] .+ m.observation_jacobianr * a.dp[L-N+1:L-N+R]
     end
     for _j in 1:U
-        x_minus_mean_obs_times_δobs[_j] .= mapreduce(nanzero, +, x_minus_mean_obs[_j,:] .* δobs[_j,:])
+        x_minus_mean_obs_times_δobs[_j] = mapreduce(nanzero, +, x_minus_mean_obs[_j,:] .* δobs[_j,:])
     end
     hessian_vector_product!(a, m, x_minus_mean_obs, δobs, x_minus_mean_obs_times_δobs, hv)
 end
@@ -368,11 +368,11 @@ end
 @views function covariance!(a::Adjoint{N,L,R,U,K,T}, m::Model{N,L,R,U,T}) where {N,L,R,U,K,T<:AbstractFloat}
     fill!(a.dx[:,1], 0.)
     fill!(a.dp, 0.)
-    hessian = Matrix{T}(L+R,L+R)
+    hessian = Matrix{T}(undef,L+R,L+R)
 
-    x_minus_mean_obs = Matrix{T}(U,a.steps+1)
-    δobs = Matrix{T}(U,a.steps+1)
-    x_minus_mean_obs_times_δobs = Vector{T}(U)
+    x_minus_mean_obs = Matrix{T}(undef,U,a.steps+1)
+    δobs = Matrix{T}(undef,U,a.steps+1)
+    x_minus_mean_obs_times_δobs = Vector{T}(undef,U)
     fill!(x_minus_mean_obs, NaN)
     fill!(δobs, NaN)
 
@@ -407,7 +407,7 @@ end
     try
         covariance = inv(hessian)
     catch message
-        println(STDERR, "CI calculation failed.\nReason: Hessian inversion failed due to $message")
+        println(stderr, "CI calculation failed.\nReason: Hessian inversion failed due to $message")
         return AssimilationResults(θ, a.obs_variance, hessian)
     end
     stddev = nothing
@@ -420,9 +420,9 @@ end
         # println("covariance:")
         # println(covariance)
         if (minimum(diag(covariance)) < 0)
-            println(STDERR, "Reason: Negative variance!")
+            println(stderr, "Reason: Negative variance!")
         else
-            println(STDERR, "Reason: Taking sqrt of variance failed due to $message")
+            println(stderr, "Reason: Taking sqrt of variance failed due to $message")
         end
         return AssimilationResults(θ, a.obs_variance, hessian, covariance)
     end

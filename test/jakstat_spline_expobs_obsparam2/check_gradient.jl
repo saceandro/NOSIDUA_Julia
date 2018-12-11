@@ -1,4 +1,4 @@
-using CatViews.CatView, Distributions, LineSearches, Optim, ArgParse, Gadfly
+using CatViews, Distributions, LineSearches, Optim, ArgParse, Gadfly, LinearAlgebra, Random, DelimitedFiles, Cairo, Fontconfig
 
 include("../../src/types_backward_spline_obsparams3.jl")
 include("../../src/adjoint_backward_spline_obsparam.jl")
@@ -59,17 +59,17 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     R = number_of_obs_params
     U = length(obs_variance)
     model = Model(typeof(dt), N, L, R, U, time_point, dxdt!, jacobianx!, jacobianp!, hessianxx!, hessianxp!, hessianpp!, calc_qdot!, observation!, observation_jacobianx!, observation_jacobianr!, observation_jacobianp!, observation_hessianxx!, observation_hessianxr!, observation_hessianrr!, observation_hessianpp!)
-    srand(generation_seed)
+    Random.seed!(generation_seed)
     dists = [Uniform(initial_lower_bounds[i], initial_upper_bounds[i]) for i in 1:L+R]
     x0 = rand.(dists[1:N])
     a = Adjoint(dt, duration, number_of_obs_params, pseudo_obs, pseudo_obs_var, x0, copy(true_params), replicates, newton_maxiter, newton_tol, regularization_coefficient)
     orbit_first!(a, model)
     tob = deepcopy(a.x)
     dir *= "/true_params_$(join_digits3(true_params))/initial_lower_bounds_$(join_digits3(initial_lower_bounds))/initial_upper_bounds_$(join_digits3(initial_upper_bounds))/pseudo_obs_$(join_digits3(pseudo_obs))/pseudo_obs_var_$(join_digits3(pseudo_obs_var))/obs_variance_$(join_digits3(obs_variance))/spinup_$(digits3(spinup))/trials_$(digits3(trials))/newton_maxiter_$(digits3(newton_maxiter))/newton_tol_$(digits3(newton_tol))/regularization_coefficient_$(digits3(regularization_coefficient))/obs_iteration_$(digits3(obs_iteration))/dt_$(digits3(dt))/duration_$(digits3(duration))/replicates_$(digits3(replicates))/iter_$(digits3(iter))/numerical_differentiation_delta_$(digits10(numerical_differentiation_delta))/time_point_$(join_digits3(time_point))/"
-    srand(hash([true_params, obs_variance_bak, obs_iteration, spinup, duration, generation_seed, replicates, iter, time_point]))
+    Random.seed!(hash([true_params, obs_variance_bak, obs_iteration, spinup, duration, generation_seed, replicates, iter, time_point]))
 
     d = Normal.(0., sqrt.(obs_variance_bak))
-    obs = Array{typeof(dt)}(U, a.steps+1, replicates)
+    obs = Array{typeof(dt)}(undef, U, a.steps+1, replicates)
 
     # for _j in 1:N
     #     for _replicate in 1:replicates
@@ -101,30 +101,30 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     # θ = rand.(dists)
     θ = vcat(deepcopy(a.x[:,1]), copy(a.p))
     initialize!(a, θ)
-    gr_ana = Vector{typeof(dt)}(L+R)
+    gr_ana = Vector{typeof(dt)}(undef,L+R)
     orbit_gradient!(a, model, gr_ana)
     gr_num = numerical_gradient!(a, model, numerical_differentiation_delta)
     println("analytical gradient:\t")
-    Base.print_matrix(STDOUT, gr_ana')
+    Base.print_matrix(stdout, gr_ana')
     writedlm(dir * "analytical_gradient.tsv", gr_ana')
     println("numerical gradient:\t")
-    Base.print_matrix(STDOUT, gr_num')
+    Base.print_matrix(stdout, gr_num')
     writedlm(dir * "numerical_gradient.tsv", gr_num')
     diff = gr_ana .- gr_num
     println("absolute difference:\t")
-    Base.print_matrix(STDOUT, diff')
+    Base.print_matrix(stdout, diff')
     writedlm(dir * "gradient_absolute_difference.tsv", diff')
     println("max absolute difference:\t", maximum(abs, diff))
     if !any(gr_num == 0)
         rel_diff = diff ./ gr_num
         println("relative difference:\t")
-        Base.print_matrix(STDOUT, rel_diff')
+        Base.print_matrix(stdout, rel_diff')
         writedlm(dir * "gradient_relative_difference.tsv", rel_diff')
         println("max relative difference:\t", maximum(abs, rel_diff))
     end
 
     white_panel = Theme(panel_fill="white")
-    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = Array{Gadfly.Plot}(undef, 0)
     # p_stack = vcat(p_stack,
     # Gadfly.plot(
     # layer(x=tob[1:1,1], y=tob[2:2,1], Geom.point),
@@ -132,7 +132,7 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     # white_panel))
     # draw(PDF(dir * "cost_contour.pdf", 24cm, 24cm), vstack(p_stack))
 
-    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = Array{Gadfly.Plot}(undef, 0)
     # p_stack = vcat(p_stack,
     # Gadfly.plot(
     # layer(x=tob[3:3,1], y=tob[4:4,1], Geom.point),
@@ -140,7 +140,7 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
     # draw(PDF(dir * "cost_contour_3_4.pdf", 24cm, 24cm), vstack(p_stack))
     #
-    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = Array{Gadfly.Plot}(undef, 0)
     # p_stack = vcat(p_stack,
     # Gadfly.plot(
     # layer(x=tob[4:4,1], y=tob[5:5,1], Geom.point),
@@ -148,7 +148,7 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
     # draw(PDF(dir * "cost_contour_4_5.pdf", 24cm, 24cm), vstack(p_stack))
     #
-    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = Array{Gadfly.Plot}(undef, 0)
     # p_stack = vcat(p_stack,
     # Gadfly.plot(
     # layer(x=tob[5:5,1], y=tob[6:6,1], Geom.point),
@@ -156,7 +156,7 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
     # draw(PDF(dir * "cost_contour_5_6.pdf", 24cm, 24cm), vstack(p_stack))
     #
-    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = Array{Gadfly.Plot}(undef, 0)
     # p_stack = vcat(p_stack,
     # Gadfly.plot(
     # layer(x=tob[7:7,1], y=tob[8:8,1], Geom.point),
@@ -164,7 +164,7 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
     # draw(PDF(dir * "cost_contour_7_8.pdf", 24cm, 24cm), vstack(p_stack))
     #
-    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = Array{Gadfly.Plot}(undef, 0)
     # p_stack = vcat(p_stack,
     # Gadfly.plot(
     # layer(x=tob[8:8,1], y=tob[9:9,1], Geom.point),
@@ -172,7 +172,7 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
     # draw(PDF(dir * "cost_contour_8_9.pdf", 24cm, 24cm), vstack(p_stack))
     #
-    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = Array{Gadfly.Plot}(undef, 0)
     # p_stack = vcat(p_stack,
     # Gadfly.plot(
     # layer(x=true_params[1:1], y=true_params[2:2], Geom.point),
@@ -180,7 +180,7 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
     # draw(PDF(dir * "cost_contour_$(N+1)_$(N+2).pdf", 24cm, 24cm), vstack(p_stack))
     #
-    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = Array{Gadfly.Plot}(undef, 0)
     # p_stack = vcat(p_stack,
     # Gadfly.plot(
     # layer(x=true_params[3:3], y=true_params[4:4], Geom.point),
@@ -188,7 +188,7 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
     # draw(PDF(dir * "cost_contour_$(N+3)_$(N+4).pdf", 24cm, 24cm), vstack(p_stack))
     #
-    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = Array{Gadfly.Plot}(undef, 0)
     # p_stack = vcat(p_stack,
     # Gadfly.plot(
     # layer(x=true_params[L-N+1:L-N+1], y=true_params[L-N+2:L-N+2], Geom.point),
@@ -196,7 +196,7 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     # white_panel, Scale.color_continuous(colormap=Scale.lab_gradient("blue", "white", "red"))))
     # draw(PDF(dir * "cost_contour_$(L+1)_$(L+2).pdf", 24cm, 24cm), vstack(p_stack))
     #
-    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = Array{Gadfly.Plot}(undef, 0)
     # p_stack = vcat(p_stack,
     # Gadfly.plot(
     # layer(x=true_params[L-N+3:L-N+3], y=true_params[L-N+R:L-N+R], Geom.point),
@@ -205,12 +205,12 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     # draw(PDF(dir * "cost_contour_$(L+3)_$(L+4).pdf", 24cm, 24cm), vstack(p_stack))
 
     println("ans: ")
-    Base.print_matrix(STDOUT, CatView(tob[:,1], true_params)')
+    Base.print_matrix(stdout, CatView(tob[:,1], true_params)')
     println("")
 
     res_ana, minres = assimilate!(a, model, initial_lower_bounds, initial_upper_bounds, dists, trials)
 
-    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = Array{Gadfly.Plot}(undef, 0)
     # p_stack = vcat(p_stack,
     # Gadfly.plot(
     # layer(x=minres.minimizer[1:1], y=minres.minimizer[2:2], Geom.point),
@@ -218,7 +218,7 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     # white_panel))
     # draw(PDF(dir * "cost_contour_minimizer.pdf", 24cm, 24cm), vstack(p_stack))
 
-    # p_stack = Array{Gadfly.Plot}(0)
+    # p_stack = Array{Gadfly.Plot}(undef, 0)
     # p_stack = vcat(p_stack,
     # Gadfly.plot(
     # layer(x=minres.minimizer[5:5], y=minres.minimizer[6:6], Geom.point),
@@ -246,20 +246,20 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
     #         println("max_relative_difference:\t", maximum(abs, rel_diff))
     #     end
     # end
-    if !isnull(res_ana.precision) && !isnull(res_num.precision)
-        prec_ana = get(res_ana.precision)
-        prec_num = get(res_num.precision)
+    if (res_ana.precision != nothing) && (res_num.precision != nothing)
+        prec_ana = res_ana.precision
+        prec_num = res_num.precision
         println("analytical precision:")
-        Base.print_matrix(STDOUT, prec_ana)
+        Base.print_matrix(stdout, prec_ana)
         println("")
         writedlm(dir * "analytical_precision.tsv", prec_ana)
         println("numerical precision:")
-        Base.print_matrix(STDOUT, prec_num)
+        Base.print_matrix(stdout, prec_num)
         println("")
         writedlm(dir * "numerical_precision.tsv", prec_num)
         diff = prec_ana .- prec_num
         # println("absolute difference:\t")
-        # Base.print_matrix(STDOUT, diff)
+        # Base.print_matrix(stdout, diff)
         writedlm(dir * "precision_absolute_difference.tsv", diff)
         println("max absolute difference:\t", maximum(abs, diff))
         if !any(res_num.stddev == 0)
@@ -267,7 +267,7 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
             # rel_diff = zerodiv2zero.(diff, prec_num)
             rel_diff = zerodiv2zero.(diff, prec_ana)
             # println("relative difference:\t")
-            # Base.print_matrix(STDOUT, rel_diff)
+            # Base.print_matrix(stdout, rel_diff)
             writedlm(dir * "precision_relative_difference.tsv", rel_diff)
             println("max_relative_difference:\t", maximum(abs, rel_diff))
         end
@@ -280,9 +280,9 @@ zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
         draw(PDF(dir * "precision.pdf", 48cm, 24cm), pl)
 
         println("obs_variabce:")
-        Base.print_matrix(STDOUT, get(res_ana.obs_variance))
+        Base.print_matrix(stdout, res_ana.obs_variance)
         println("covariance diag:")
-        Base.print_matrix(STDOUT, diag(inv(get(res_ana.precision))))
+        Base.print_matrix(stdout, diag(inv(res_ana.precision)))
     end
     plot_twin_experiment_result_wo_errorbar_observation(dir, a, model, tob, obs, true_params)
 end
@@ -311,7 +311,7 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             arg_type = Float64
             nargs = '*'
             # default = log.([0.6, 8., 0.97, 0.02, 0.02, 0.4, 1.0, 0.3, 0.01])
-            default = log.([0.2, 0.1, 0.6, 0.02, 0.025, 0.5, 1.25, 0.7, 0.01, e, e, e])
+            default = log.([0.2, 0.1, 0.6, 0.02, 0.025, 0.5, 1.25, 0.7, 0.01, ℯ, ℯ, ℯ])
             # default = log.([0.2, 0.1, 0.6, 0.02, 0.025, 0.05])
         "--initial-lower-bounds", "-l"
             help = "lower bounds for initial state and parameters"
