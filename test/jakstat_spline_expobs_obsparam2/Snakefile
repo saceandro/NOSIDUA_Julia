@@ -54,9 +54,9 @@ rule linuxbuild:
     output:
         'builddir/twin_experiment',
         'builddir/twin_experiment.so',
-        'builddir/twin_experiment.o'
+        'builddir/twin_experiment.a'
     shell:
-        "julia ~/.julia/v0.6/PackageCompiler/juliac.jl -vae twin_experiment.jl"
+        "julia ~/.julia/packages/PackageCompiler/jBqfm/juliac.jl -vae twin_experiment.jl"
 
 rule macbuild:
     input:
