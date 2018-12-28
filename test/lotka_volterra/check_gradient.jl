@@ -377,12 +377,12 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
             help = "time points"
             arg_type = Float64
             nargs = '+'
-            default = [0., 5., 10., 20., 35.]
+            default = [0., 1., 3., 6., 8.]
         "--parameters"
             help = "name of the parameters"
             arg_type = String
             nargs = '+'
-            default = ["logX", "logY", "S"]
+            default = ["logX0", "logY0", "logp1", "logp2", "S"]
     end
 
     parsed_args = parse_args(args, settings; as_symbols=true) # ARGS is needed for static compilation; Otherwise, global ARGS is used.

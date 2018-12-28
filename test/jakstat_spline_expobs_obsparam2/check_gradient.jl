@@ -387,7 +387,8 @@ Base.@ccallable function julia_main(args::Vector{String})::Cint
         "--regularization-coefficient"
             help = "regularization coefficient"
             arg_type = Float64
-            default = 0.01
+            # default = 0.01
+            default = 0.
         "--replicates"
             help = "#replicates"
             arg_type = Int

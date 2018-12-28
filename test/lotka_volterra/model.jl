@@ -68,7 +68,7 @@ end
 
 function observation_hessianxx!(m::Model, t, x, p)
     ex = exp.(x)
-    m.observation_hessianxx[1,1,1] = ex[1]
+    m.observation_hessianxx[1,1,1] = p[3] * ex[1]
     nothing
 end
 

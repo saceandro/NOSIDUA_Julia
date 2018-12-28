@@ -35,6 +35,16 @@ end
     if assimilation_results.precision != nothing
         println(stderr, "precision:\t")
         Base.print_matrix(stderr, assimilation_results.precision)
+        println(stderr, "")
+        println(stderr, "eigvals:\t")
+        Base.print_matrix(stderr, eigvals(assimilation_results.precision)')
+        println(stderr, "")
+    end
+
+    if assimilation_results.covariance != nothing
+        println(stderr, "precision x covariance\t")
+        Base.print_matrix(stderr, assimilation_results.precision * assimilation_results.covariance)
+        println(stderr, "")
     end
 
     if assimilation_results.stddev == nothing

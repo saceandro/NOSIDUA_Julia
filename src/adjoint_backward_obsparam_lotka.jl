@@ -135,15 +135,15 @@ end
 
     innovation_dλ!(hv[1:N], m, a.t[1], a.x[:,1], a.p, a.dx[:,1], a.dp, a.Nobs, K_over_obs_variance, x_minus_mean_obs[:,1], δobs[:,1], x_minus_mean_obs_times_δobs, a.finite[:,1])
     hv[1:N]     .+= a.dλ[1:N,2]
-    hv[2]        += 2 * a.regularization * exp(2 * a.x[2,1]) * a.dx[2,1]
+    # hv[2]        += 2 * a.regularization * exp(2 * a.x[2,1]) * a.dx[2,1]
 
     innovation_dν!(a.dλ[N+1:L,1], m, a.t[1], a.x[:,1], a.p, a.dx[:,1], a.dp, a.Nobs, K_over_obs_variance, x_minus_mean_obs[:,1], δobs[:,1], x_minus_mean_obs_times_δobs, a.finite[:,1])
     a.dλ[N+1:L,1]   .+= a.dλ[N+1:L,2]
-    a.dλ[N+1:N+2,1] .+= 2 * a.regularization .* exp.(2 .* a.p[1:2]) .* a.dp[1:2]
+    # a.dλ[N+1:N+2,1] .+= 2 * a.regularization .* exp.(2 .* a.p[1:2]) .* a.dp[1:2]
     hv[N+1:L]        .= a.dλ[N+1:L,1]
 
     innovation_dμ!(a.dλ[L+1:L+R,1], m, a.t[1], a.x[:,1], a.p, a.dx[:,1], a.dp, a.Nobs, K_over_obs_variance, x_minus_mean_obs[:,1], δobs[:,1], x_minus_mean_obs_times_δobs, a.finite[:,1])
-    a.dλ[L+1:L+R,1] .+= a.dλ[L+1:L+R,2] .+ a.regularization .* a.dp[L-N+1:L-N+R]
+    a.dλ[L+1:L+R,1] .+= a.dλ[L+1:L+R,2] # .+ a.regularization .* a.dp[L-N+1:L-N+R]
     hv[L+1:L+R] .= a.dλ[L+1:L+R,1]
     nothing
 end
@@ -290,7 +290,7 @@ end
     df = OnceDifferentiable(θ -> fg!(F, nothing, θ, a, m), (∇θ, θ) -> fg!(nothing, ∇θ, θ, a, m), (∇θ, θ) -> fg!(F, ∇θ, θ, a, m), initial_θ, F, ∇θ, inplace=true)
     # options = Optim.Options(;x_tol=1e-32, f_tol=1e-32, g_tol=1e-8, iterations=1_000, store_trace=true, show_trace=false, show_every=1)
     # options = Optim.Options(;x_tol=1e-12, f_tol=1e-12, g_tol=1e-2, iterations=10_000, store_trace=false)
-    options = Optim.Options(;x_tol=1e-15, f_tol=1e-32, g_tol=1e-6, iterations=1_000, store_trace=true, show_trace=true, show_every=1)
+    options = Optim.Options(;x_tol=1e-15, f_tol=1e-32, g_tol=1e-6, iterations=1_000, store_trace=false, show_trace=false, show_every=1)
     # options = Optim.Options(;x_tol=1e-32, f_tol=1e-32, g_tol=5e-2, iterations=3_0000, extented_trace=true, callback=cb)
     lbfgs_ls_scaled_hz = LBFGS(;alphaguess = LineSearches.InitialStatic(;scaled=true), linesearch = LineSearches.HagerZhang())
     # lbfgs_ls_alpha_hz = LBFGS(;alphaguess = LineSearches.InitialStatic(;alpha=0.001), linesearch = LineSearches.HagerZhang())
