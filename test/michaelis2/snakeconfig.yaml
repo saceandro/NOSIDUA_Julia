@@ -1,0 +1,6 @@
+true_params: 1.0 2.0 3.0 4.0 5.0
+initial_lower_bounds: 0.0 0.0 0.0 1.0 2.0 3.0 4.0
+initial_upper_bounds: 2.0 2.0 2.0 3.0 4.0 5.0 6.0
+spinup: 0.0
+generation_seed: 0
+trials: 20

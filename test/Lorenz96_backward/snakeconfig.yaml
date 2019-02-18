@@ -1,0 +1,7 @@
+true_params: 0.3 1.0 5.0 0.15
+initial_lower_bounds: 0.0 0.0 0.0 0.0
+initial_upper_bounds: 1.0 10.0 10.0 1.0
+pseudo_obs: 0 0
+pseudo_obs_var: 1.0 1.0
+spinup: 0.0
+trials: 100
