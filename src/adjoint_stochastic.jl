@@ -51,6 +51,19 @@ end
 
 # @views innovation_dλ(m::Model, x_i, dx_i, Nobs, K_over_obs_variance, x_minus_mean_obs_i, x_minus_mean_obs_times_dx, finite_i) = finite_i ? K_over_obs_variance * ( ( m.dd_observation(x_i) * x_minus_mean_obs_i + m.d_observation(x_i)^2 ) * dx_i - K_over_obs_variance * oftype(K_over_obs_variance, 2.) / Nobs * m.d_observation(x_i) * x_minus_mean_obs_i * x_minus_mean_obs_times_dx) : zero(K_over_obs_variance)
 
+@views function next_x_first!(a::Adjoint{N,L,R,U,K,T},       m::Model,       t, x_prev, x) where {N,L,R,U,K,T}
+    m.dxdt!(m, t, x_prev, a.p)
+    x .= x_prev .+ m.dxdt .* a.dt .+ dot(sqrt.(inv.(diag(a.sys_precision))), randn(N)) .* a.dt
+    nothing
+end
+
+@views function orbit_first!(a::Adjoint{N,L,R,U,K,T}, m) where {N,L,R,U,K,T<:AbstractFloat}
+    for _i in 1:a.steps
+        next_x_first!(a, m, a.dt*(_i-1), a.x[:,_i], a.x[:,_i+1]) # Use next step's t
+    end
+    nothing
+end
+
 @views function orbit!(a::Adjoint{N,L,R,U,K,T}, m, obs_mean) where {N,L,R,U,K,T<:AbstractFloat}
     noise = zeros(T, N)
     for _i in 1:a.steps
@@ -160,9 +173,10 @@ end
     c / oftype(a.dt, 2.)
 end
 
-@views function initialize!(a::Adjoint{N,L,R}, θ) where {N,L,R}
+@views function initialize!(a::Adjoint{N,M,R}, θ) where {N,M,R}
     copy!(a.x[:,1], θ[1:N])
-    copy!(a.p, θ[N+1:L+R])
+    copy!(a.p, θ[N+1:N+M])
+    copy!(a.r, θ[N+M+1:end])
     # copy!(a.r, θ[L+1:end])
     nothing
 end
@@ -189,8 +203,12 @@ end
     m.jacobianx!(m, t, x_prev, a.p)
     m.observation!(m, t, x_prev, a.r)
     m.observation_jacobianx!(m, t, x_prev, a.r)
-    noise .= (I + m.jacobianx .* a.dt)' * a.sys_precision \ ( a.sys_precision * noise + m.observation_jacobianx' * a.obs_precision * (m.observation .- obs_mean_prev) .* a.dt^2 )
-    x .= x_prev .+ m.dxdt .* a.dt .+ noise  #<- editing this line
+    # noise .= (I + m.jacobianx .* a.dt)' * a.sys_precision \ ( a.sys_precision * noise + m.observation_jacobianx' * a.obs_precision * (m.observation .- obs_mean_prev) .* a.dt^2 )
+    # # println("noise: $noise")
+    # x .= x_prev .+ m.dxdt .* a.dt .+ noise  #<- editing this line
+
+    noise[1] = (noise[1] + inv(a.sys_precision[1,1]) * a.obs_precision[1,1] * (a.r[1] + x_prev[1] - obs_mean_prev[1]))/(1. - a.p[1]*a.dt)
+    x[1] = (1. - a.p[1]*a.dt) * x_prev[1] + noise[1]
 end
 
 @views function next_dx!(a::Adjoint{N,L,R,U,K,T},       m::Model,       t, x,        dx, dx_nxt) where {N,L,R,U,K,T}
