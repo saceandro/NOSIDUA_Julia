@@ -125,7 +125,7 @@ end
     println("hoge")
     println(a.x[:,1])
     println(a.obs_mean[:,1])
-    a.x[:,1] .= a.obs_mean[:,1]
+    # a.x[:,1] .= a.obs_mean[:,1]
     orbit!(a, model, a.obs_mean)
 
     println(dir)

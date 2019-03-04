@@ -71,6 +71,7 @@ end
     end
     nothing
 end
+
 #
 # @views function neighboring!(a, m)
 #     for _i in 1:a.steps
@@ -207,7 +208,7 @@ end
     # # println("noise: $noise")
     # x .= x_prev .+ m.dxdt .* a.dt .+ noise  #<- editing this line
 
-    noise[1] = (noise[1] + inv(a.sys_precision[1,1]) * a.obs_precision[1,1] * (a.r[1] + x_prev[1] - obs_mean_prev[1]))/(1. - a.p[1]*a.dt)
+    noise[1] = (noise[1] + inv(a.sys_precision[1,1]) * a.obs_precision[1,1] * a.dt^2 * (a.r[1] + x_prev[1] - obs_mean_prev[1]))/(1. - a.p[1]*a.dt)
     x[1] = (1. - a.p[1]*a.dt) * x_prev[1] + noise[1]
 end
 
