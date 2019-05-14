@@ -43,7 +43,7 @@ function Adjoint(dt::T, obs::AbstractArray{T,3}, x0::AbstractVector{T}, p::Abstr
     x = similar(x0, xdim, steps)
     @views copy!(x[:,1], x0)
     dx = similar(dx0, xdim, steps)
-    λ = zeros(T, θdim, steps)
+    λ = zeros(T, θdim, steps) # adjoint variables
     dλ = zeros(T, θdim, steps)
     Adjoint{xdim, θdim, replicates, T, typeof(p), typeof(x), typeof(obs)}(dt, steps-1, obs_variance, obs, x, p, dx, dp, λ, dλ)
 end
