@@ -35,7 +35,7 @@ function Model(t::Type{T}, N, L, time_point::AbstractVector{T}, dxdt!::F, jacobi
     hessianxx = zeros(t, N, N, N)
     hessianxp = zeros(t, N, N, _M)
     hessianpp = zeros(t, N, _M, _M)
-    Ts = length(time_point)
+    Ts = length(time_point) # time points
 
     Δtime_point = similar(time_point, Ts-1)
     for _i in 1:Ts-1
