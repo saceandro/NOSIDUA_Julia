@@ -1,4 +1,4 @@
-using CatViews, Distributions, LineSearches, Optim, ArgParse, Gadfly, LinearAlgebra, Random, DelimitedFiles, Cairo, Fontconfig, ASTInterpreter2, Juno
+using CatViews, Distributions, LineSearches, Optim, ArgParse, Gadfly, LinearAlgebra, Random, DelimitedFiles, Cairo, Fontconfig, ASTInterpreter2, Juno, Printf, DataFrames
 
 include("../../src/types_stochastic.jl")
 include("../../src/adjoint_stochastic.jl")
@@ -9,6 +9,10 @@ include("../../util/check_args.jl")
 include("model.jl")
 
 zerodiv2zero(a,b) = (b==0.) ? 0. : a/b
+
+digits3(x) = map(x -> Printf.@sprintf("%.3f", x), x)
+digits10(x) = map(x -> Printf.@sprintf("%.10f", x), x)
+join_digits3(x) = join(digits3(x), "_")
 
 @views function obs_mean_var!(a::Adjoint{N,L,R,U}, m::Model{N,L,R,U}, obs) where {N,L,R,U}
     all!(a.finite, isfinite.(obs))

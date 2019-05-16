@@ -18,21 +18,13 @@ paramsdic = {\
     #     "duration":      np.array([100.]),\
     #     "replicates":    np.array([3])\
     #     },\
-    # "obs_iteration": {\
-    #     "obs_variance":  np.array([0.01]),\
-    #     "obs_iteration": np.array([10,20,30,50,100,150,200,300,600]),\
-    #     "dt":            np.array([0.1]),\
-    #     "duration":      np.array([240.]),\
-    #     "replicates":    np.array([3])\
-    #     },\
     "obs_iteration": {\
         "obs_variance":  np.array([0.01]),\
-        "obs_iteration": np.array([10,20,30,50,100,150,200,300,600,1200]),\
+        "obs_iteration": np.array([10,20,30,50,100,150,200,300,600]),\
         "dt":            np.array([0.1]),\
         "duration":      np.array([240.]),\
         "replicates":    np.array([3])\
         },\
-
     "duration": {\
         "obs_variance":  np.array([0.01]),\
         "obs_iteration": np.array([150]),\
