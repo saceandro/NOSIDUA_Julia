@@ -13,6 +13,7 @@ Optim
 ArgParse
 
 
+# Usage
 ```
 usage: twin_experiment [-d DIR] [--number-of-params NUMBER_OF_PARAMS]
                        [--number-of-obs-params NUMBER_OF_OBS_PARAMS]
