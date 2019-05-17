@@ -2,6 +2,17 @@
 
 Julia implementation of NOnlinear dynamical System IDentification with Uncertainty Assessment (NOSIDUA).
 
+# Requirements
+Julia 0.6.4
+
+Packages:
+CatViews
+Distributions
+LineSearches
+Optim
+ArgParse
+
+
 ```
 usage: twin_experiment [-d DIR] [--number-of-params NUMBER_OF_PARAMS]
                        [--number-of-obs-params NUMBER_OF_OBS_PARAMS]
@@ -96,3 +107,7 @@ optional arguments:
   --version             show version information and exit
   -h, --help            show this help message and exit
 ```
+
+# Example
+ 
+ 
