@@ -2,7 +2,8 @@
 
 Julia implementation of NOnlinear dynamical System IDentification with Uncertainty Assessment (NOSIDUA).
 
-```usage: twin_experiment [-d DIR] [--number-of-params NUMBER_OF_PARAMS]
+```
+usage: twin_experiment [-d DIR] [--number-of-params NUMBER_OF_PARAMS]
                        [--number-of-obs-params NUMBER_OF_OBS_PARAMS]
                        [-p [TRUE_PARAMS...]]
                        [-l INITIAL_LOWER_BOUNDS [INITIAL_LOWER_BOUNDS...]]
@@ -20,8 +21,6 @@ Julia implementation of NOnlinear dynamical System IDentification with Uncertain
                        [--time-point TIME_POINT [TIME_POINT...]]
                        [--parameters PARAMETERS [PARAMETERS...]]
                        [--version] [-h]
-
-# Usage
 
 optional arguments:
   -d, --dir DIR         output directory (default: "result")
