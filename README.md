@@ -113,4 +113,4 @@ obs variance: estimated variance of observation (first element is NaN because no
 ```
 
 # SDE4DVar
-Method to estimate parameters and initial states as well as their confidence intervals.
+Method to estimate parameters and initial states as well as their confidence intervals for the stochastic differential equations.
