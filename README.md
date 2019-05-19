@@ -102,3 +102,13 @@ precision:      [8.75505e5 1.31006e5 4.34241e6 6.53755e5; 1.32353e5 8.51591e5 1.
 CI:             [0.0455814, 0.0282653, 0.00879531, 0.00848429]
 obs variance:   [NaN, 0.00100802]
 ```
+
+## Description of the output
+```
+p:            estimated parameters
+ans:          true parameters
+diff:         difference between estimated parameters and true parameters
+precision:    precisoin matrix of the estimated parameters
+CI:           confidence interval of the estimated parameters
+obs variance: estimated variance of observation (first element is NaN because no observation is provided for the first element)
+```
