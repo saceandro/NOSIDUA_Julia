@@ -112,5 +112,5 @@ CI:           confidence interval of the estimated parameters
 obs variance: estimated variance of observation (first element is NaN because no observation is provided for the first element)
 ```
 
-## SDE4DVar
+# SDE4DVar
 Method to estimate parameters and initial states as well as their confidence intervals.
