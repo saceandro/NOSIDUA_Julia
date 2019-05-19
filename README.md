@@ -14,7 +14,7 @@ Optim
 ArgParse
 
 # Biological applications
-Please see NOSIDUA_Julia_application.pdf.
+Please see NOSIDUA_Julia_application.pdf for the following insulin signaling-dependent gene expression model (michaelis_foldchange_positive_backward_parameter).
 
 # Usage
 ```
