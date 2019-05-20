@@ -2,6 +2,7 @@
 
 Julia implementation of NOnlinear dynamical System IDentification with Uncertainty Assessment (NOSIDUA).
 Command line options and more functions are provided compared to python version.
+- Backward Euler Orbit calculation
 
 # Requirements
 Julia 0.6.4
