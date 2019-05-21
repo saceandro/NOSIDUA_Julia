@@ -1,10 +1,10 @@
 # NOSIDUA_Julia
 
-Julia implementation of NOnlinear dynamical System IDentification with Uncertainty Assessment (NOSIDUA).
-Command line options and more functions are provided compared to python version.
-- Backward Euler Orbit calculation
+Julia implementation of NOnlinear dynamical System IDentification with Uncertainty Assessment (NOSIDUA_Julia).
+Command line options and more functions are provided compared to NOSIDUA.
+Biological applications (Insulin signaling-dependent gene expression model and JAK/STAT signaling model) are provided in NOSIDUA_Julia_application.pdf.
 
-# Requirements
+## Dependency
 Julia 0.6.4
 
 Packages:
@@ -14,7 +14,7 @@ LineSearches
 Optim
 ArgParse
 
-# Usage
+## Usage
 Please see NOSIDUA_Julia_application.pdf for the following insulin signaling-dependent gene expression model (michaelis_foldchange_positive_backward_parameter).
 
 ```
@@ -113,5 +113,5 @@ CI:           confidence interval of the estimated parameters
 obs variance: estimated variance of observation (first element is NaN because no observation is provided for the first element)
 ```
 
-# SDE4DVar
+## SDE4DVar
 Method to estimate parameters and initial states as well as their confidence intervals for stochastic differential equations.
