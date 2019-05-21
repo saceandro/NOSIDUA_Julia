@@ -24,7 +24,7 @@ $ julia michaelis_obs_m_test.jl
 $ julia michaelis_obs_m_test.jl --help
 usage: michaelis_obs_m [-d DIR] [-p [TRUE_PARAMS...]]
                        [-l INITIAL_LOWER_BOUNDS [INITIAL_LOWER_BOUNDS...]]
-                                              [-u INITIAL_UPPER_BOUNDS [INITIAL_UPPER_BOUNDS...]]
+                       [-u INITIAL_UPPER_BOUNDS [INITIAL_UPPER_BOUNDS...]]
                        [--pseudo-obs PSEUDO_OBS [PSEUDO_OBS...]]
                        [--pseudo-obs-var PSEUDO_OBS_VAR [PSEUDO_OBS_VAR...]]
                        [--obs-variance OBS_VARIANCE]
