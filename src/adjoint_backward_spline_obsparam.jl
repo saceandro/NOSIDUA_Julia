@@ -337,7 +337,8 @@ end
 
     df = OnceDifferentiable(θ -> fg!(F, nothing, θ, a, m), (∇θ, θ) -> fg!(nothing, ∇θ, θ, a, m), (∇θ, θ) -> fg!(F, ∇θ, θ, a, m), initial_θ, F, ∇θ, inplace=true)
     # options = Optim.Options(;x_tol=1e-32, f_tol=1e-32, g_tol=1e-8, iterations=1_000, store_trace=true, show_trace=false, show_every=1)
-    options = Optim.Options(;x_tol=1e-12, f_tol=1e-32, g_tol=1e-5, iterations=10_000, show_trace=false)
+    # options = Optim.Options(;x_tol=1e-12, f_tol=1e-32, g_tol=1e-5, iterations=10_000, show_trace=false)
+    options = Optim.Options(;x_tol=1e-12, f_tol=1e-12, g_tol=1e-2, iterations=10_000, show_trace=false)
     # options = Optim.Options(;x_tol=1e-32, f_tol=1e-32, g_tol=1e-8, iterations=10_000, store_trace=true, show_trace=true, show_every=1)
     # options = Optim.Options(;x_tol=1e-32, f_tol=1e-32, g_tol=5e-2, iterations=3_0000, extented_trace=true, callback=cb)
     lbfgs_ls_scaled_hz = LBFGS(;alphaguess = LineSearches.InitialStatic(;scaled=true), linesearch = LineSearches.HagerZhang())
